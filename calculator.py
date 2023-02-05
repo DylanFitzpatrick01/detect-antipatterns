@@ -52,7 +52,7 @@ def ten(x, y):
     '''
     print x*10^y (use **)
     '''
-    print("hello world")
+    print(x * (10**y))
 
 def bigger(x, y):
     '''
