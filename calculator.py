@@ -22,7 +22,7 @@ def add(x, y):
     '''
     print sum
     '''
-    print("hello world")
+    print(x+y)
 
 def sub(x, y):
     '''
