@@ -58,7 +58,7 @@ def bigger(x, y):
     '''
     print the bigger number
     '''
-    print("hello world")                        
+    print(x if x > y else y)                        
 
 if __name__ == "__main__":
     main()
