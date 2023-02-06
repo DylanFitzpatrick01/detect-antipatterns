@@ -44,7 +44,7 @@ def div(x, y):
     '''
     print divison
     '''
-    print("hello world")
+    print(x/y)
 
 def exp(x, y):
     '''
