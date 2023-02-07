@@ -22,17 +22,17 @@ def main():
     else:
         print("Error, choice invalid!")
 
-def add(x, y):
+def add(x,y):
     '''
     print sum
     '''
-    print(x+y)
+    return x+y
 
 def sub(x, y):
     '''
     print sub
     '''
-    print("hello world")
+    return x-y
 
 def mul(x, y):
     '''
