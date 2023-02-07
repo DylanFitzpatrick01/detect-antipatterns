@@ -32,7 +32,7 @@ def sub(x, y):
     '''
     print sub
     '''
-    print("hello world")
+    return x-y
 
 def mul(x, y):
     '''
