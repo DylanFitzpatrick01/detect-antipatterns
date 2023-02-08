@@ -67,8 +67,10 @@ def bigger(x, y):
 def root(x, y):
     '''
     print y-th root of x
-    '''         
+             
     print(x**(1 / y))               
+    '''
+    return x**(1 / y)
 
 if __name__ == "__main__":
     main()
