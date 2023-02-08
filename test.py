@@ -1,4 +1,4 @@
-from calculator import add, sub
+from calculator import add, sub, ten
 
 
 def test_add():
@@ -6,3 +6,6 @@ def test_add():
     
 def test_sub():
     assert sub(20,10) == 10
+
+def test_ten():
+    assert ten(5, 1) == 50
