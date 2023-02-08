@@ -1,4 +1,4 @@
-from calculator import add, sub
+from calculator import add, sub, mul
 
 
 def test_add():
