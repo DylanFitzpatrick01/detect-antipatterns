@@ -38,7 +38,7 @@ def mul(x, y):
     '''
     print product
     '''
-    print("hello world")
+    return x * y
 
 def div(x, y):
     '''
