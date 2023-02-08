@@ -8,4 +8,4 @@ def test_sub():
     assert sub(20,10) == 10
 
 def test_mul():
-    assert mul(10,20) == 30
+    assert mul(10,20) == 200
