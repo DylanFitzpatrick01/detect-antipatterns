@@ -1,4 +1,4 @@
-from calculator import add, sub
+from calculator import add, sub, bigger
 
 
 def test_add():
@@ -6,3 +6,8 @@ def test_add():
     
 def test_sub():
     assert sub(20,10) == 10
+    
+def test_bigger():
+    assert bigger(300, 10) == 300
+    assert bigger(-5, -1) == -1
+    assert bigger(10, 10) == 10

@@ -62,7 +62,7 @@ def bigger(x, y):
     '''
     print the bigger number
     '''
-    print(x if x > y else y)  
+    return x if x > y else y
 
 def root(x, y):
     '''
