@@ -1,12 +1,13 @@
-from calculator import add, sub, mul, bigger
-
-
+from calculator import add, sub, mul, bigger, ten
 
 def test_add():
     assert add(10,10) == 20
     
 def test_sub():
     assert sub(20,10) == 10
+
+def test_ten():
+    assert ten(5, 1) == 50
     
 def test_bigger():
     assert bigger(300, 10) == 300
