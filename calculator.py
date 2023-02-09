@@ -56,13 +56,13 @@ def ten(x, y):
     '''
     print x*10^y (use **)
     '''
-    print(x * (10**y))
+    return(x * (10**y))
 
 def bigger(x, y):
     '''
     print the bigger number
     '''
-    print(x if x > y else y)  
+    return(x if x > y else y)  
 
 def root(x, y):
     '''
