@@ -23,52 +23,28 @@ def main():
         print("Error, choice invalid!")
 
 def add(x,y):
-    '''
-    print sum
-    '''
     return x+y
 
 def sub(x, y):
-    '''
-    print sub
-    '''
     return x-y
 
 def mul(x, y):
-    '''
-    print product
-    '''
     return x * y
 
 def div(x, y):
-    '''
-    print divison
-    '''
     print("hello world")
 
 def exp(x, y):
-    '''
-    print x^y (use **)
-    '''
-    print("hello world")
+    return x**y
 
 def ten(x, y):
-    '''
-    print x*10^y (use **)
-    '''
     return (x * (10**y))
 
 def bigger(x, y):
-    '''
-    print the bigger number
-    '''
     return x if x > y else y
 
-def root(x, y):
-    '''
-    print y-th root of x
-    '''         
-    print(x**(1 / y))               
+def root(x, y):       
+    return x**(1 / y)               
 
 if __name__ == "__main__":
     main()
