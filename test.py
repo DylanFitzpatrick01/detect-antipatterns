@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 from main import *
 from contextlib import suppress
 import os
+=======
+from calculator import add, sub, mul, bigger, ten, root, exp, div
+>>>>>>> ddc28fe1b4c9a11bd6d7a0d780ea8581c676b46b
 
 def test_save_ast():
 
@@ -63,5 +67,24 @@ def test_count_tokens():
     tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
                 unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
     
+<<<<<<< HEAD
     # Make sure we get the number of tokens we expect.
     assert count_tokens(tu) == 13
+=======
+def test_bigger():
+    assert bigger(300, 10) == 300
+    assert bigger(-5, -1) == -1
+    assert bigger(10, 10) == 10
+
+def test_mul():
+    assert mul(10,20) == 200
+
+def test_root():
+    assert root(4,2) == 2
+
+def test_exp():
+    assert exp(10,2) == 100
+
+def test_div():
+    assert div(20,10) == 2
+>>>>>>> ddc28fe1b4c9a11bd6d7a0d780ea8581c676b46b
