@@ -32,7 +32,7 @@ def mul(x, y):
     return x * y
 
 def div(x, y):
-    print("hello world")
+    return x/y
 
 def exp(x, y):
     return x**y
