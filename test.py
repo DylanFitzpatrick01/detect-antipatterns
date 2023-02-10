@@ -1,4 +1,4 @@
-from calculator import add, sub, mul, bigger, ten, root, exp
+from calculator import add, sub, mul, bigger, ten, root, exp, div
 
 def test_add():
     assert add(10,10) == 20
@@ -22,3 +22,6 @@ def test_root():
 
 def test_exp():
     assert exp(10,2) == 100
+
+def test_div():
+    assert div(20,10) == 2
