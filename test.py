@@ -1,10 +1,7 @@
-<<<<<<< HEAD
+
 from main import *
 from contextlib import suppress
 import os
-=======
-from calculator import add, sub, mul, bigger, ten, root, exp, div
->>>>>>> ddc28fe1b4c9a11bd6d7a0d780ea8581c676b46b
 
 def test_save_ast():
 
