@@ -1,6 +1,6 @@
 import re
-file_path1 = r"C:\Users\jaywa\VS CODE Softwear project\OWN deadlock\deadlock code"
-file_path2 = r"C:\Users\jaywa\VS CODE Softwear project\OWN deadlock\test1"
+file_path1 = r"deadlock code"
+file_path2 = r"test1"
 
 ordered_list = []
 
