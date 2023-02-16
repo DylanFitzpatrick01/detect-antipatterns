@@ -1,0 +1,83 @@
+import threading
+import time
+
+# Global variable x
+x = 0
+
+# Define a lock for x
+lock_x = threading.Lock()
+
+# Define a lock for y
+lock_y = threading.Lock()
+
+def thread_1():
+    global x
+
+    # Acquire lock for x
+    lock_x.acquire()
+    print("Thread 1: Acquired lock for x")
+
+    # Increment x
+    x += 1
+    print("Thread 1: Incremented x to", x)
+
+    # Sleep for a short period of time
+    # to simulate a longer operation
+    time.sleep(0.1)
+
+    # Acquire lock for y
+    lock_y.acquire()
+    print("Thread 1: Acquired lock for y")
+
+    # Release lock for x
+    lock_x.release()
+    print("Thread 1: Released lock for x")
+
+    # Do something with y
+    print("Thread 1: Doing something with y")
+
+    # Release lock for y
+    lock_y.release()
+    print("Thread 1: Released lock for y")
+
+def thread_2():
+    global x
+
+    # Acquire lock for y
+    lock_y.acquire()
+    print("Thread 2: Acquired lock for y")
+
+    # Increment x
+    x += 1
+    print("Thread 2: Incremented x to", x)
+
+    # Sleep for a short period of time
+    # to simulate a longer operation
+    time.sleep(0.1)
+
+    # Acquire lock for x
+    lock_x.acquire()
+    print("Thread 2: Acquired lock for x")
+
+    # Release lock for y
+    lock_y.release()
+    print("Thread 2: Released lock for y")
+
+    # Do something with x
+    print("Thread 2: Doing something with x")
+
+    # Release lock for x
+    lock_x.release()
+    print("Thread 2: Released lock for x")
+
+# Create two threads
+t1 = threading.Thread(target=thread_1)
+t2 = threading.Thread(target=thread_2)
+
+# Start the threads
+t1.start()
+t2.start()
+
+# Wait for the threads to finish
+t1.join()
+t2.join()
