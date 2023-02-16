@@ -1,6 +1,6 @@
 import re
-file_path1 = r"C:\Users\jaywa\VS CODE Softwear project\OWN deadlock\deadlock code"
-file_path2 = r"C:\Users\jaywa\VS CODE Softwear project\OWN deadlock\test1"
+file_path1 = r"test files/deadlock code"
+file_path2 = r"test files/test1"
 
 ordered_list = []
 
@@ -36,12 +36,3 @@ with open(file_path1, "r") as f:
         if ordered_list[i] == ordered_list[i-1]:
             if ordered_list[i] == searchFor1:
                 print("error2" , searchFor1," is repeated twice")
-            
-            
-                
-                
-
-        
-
-
-   
