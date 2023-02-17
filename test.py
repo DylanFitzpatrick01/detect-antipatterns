@@ -1,4 +1,4 @@
-
+import clang.cindex
 from main import *
 from contextlib import suppress
 import os
