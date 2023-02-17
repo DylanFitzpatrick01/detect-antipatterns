@@ -29,10 +29,6 @@ def main():
     # Print the number of tokens.
     print("\nNumber of tokens in given file:", count_tokens(tu), "\n")
 
-    for x in dataPairs:
-        print(x.variable + "\n")
-
-
 
 # --------FUNCTIONS-------- #
 
