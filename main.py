@@ -1,5 +1,6 @@
 import clang.cindex
 import sys
+from datapair import *
 
 def main():
 
@@ -21,12 +22,15 @@ def main():
     idx = clang.cindex.Index.create()
     tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
                     unsaved_files=[('tmp.cpp', s.read())],  options=0)
-
+    dataPairs = generate_pairs(tu)
     # Generate a textual representation of the AST, in AST.txt.
-    save_ast(tu, "AST.txt")
+    save_ast(tu, "pubmut.txt")
 
     # Print the number of tokens.
     print("\nNumber of tokens in given file:", count_tokens(tu), "\n")
+
+    for x in dataPairs:
+        print(x.variable + "\n")
 
 
 
@@ -47,6 +51,17 @@ def count_tokens(translation_unit):
         # print(token.kind.value) # Prints the numerical value of each token
         num_tokens += 1
     return num_tokens
+
+def generate_pairs(translation_unit):
+    dataPairs = []
+    for token in translation_unit.get_tokens(extent=translation_unit.cursor.extent):
+        spelling = token.spelling
+        name = token.kind.name
+        data = DataPair(spelling, name)
+        dataPairs.append(data)
+    
+    return dataPairs
+
 
 if __name__ == "__main__":
     main()
