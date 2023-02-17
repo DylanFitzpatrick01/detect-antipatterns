@@ -1,4 +1,5 @@
 import clang.cindex
+clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 import sys
 from datapair import *
 
@@ -29,6 +30,9 @@ def main():
     # Print the number of tokens.
     print("\nNumber of tokens in given file:", count_tokens(tu), "\n")
 
+    # Call public-mutex-members method
+    public_mutex_members(dataPairs)
+
 
 # --------FUNCTIONS-------- #
 
@@ -57,6 +61,27 @@ def generate_pairs(translation_unit):
         dataPairs.append(data)
     
     return dataPairs
+
+def public_mutex_members(dataPairs):
+    is_public = False
+    war = False
+    curly_brackets_count = 0
+
+    for index,pair in enumerate(dataPairs):
+        if pair.variable == "public":
+            is_public = True
+        elif pair.variable == "private":
+            is_public = False
+        elif pair.variable == "{":
+            curly_brackets_count = curly_brackets_count + 1
+        elif pair.variable == "}":
+            curly_brackets_count = curly_brackets_count - 1
+        elif is_public and curly_brackets_count == 1 and pair.variable == "mutex":
+            print("public_mutex_members - Are you sure you want to have a public mutex called " + dataPairs[index+1].variable)
+            war = True
+
+    if not war:
+        print("public_mutex_members - No problem found")
 
 
 if __name__ == "__main__":
