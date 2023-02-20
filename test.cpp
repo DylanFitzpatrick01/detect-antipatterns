@@ -74,12 +74,22 @@ public:
   std::shared_ptr<MyClass> mMyClass;
 };
 
+std::mutex a;
+
 int main()
 {
     auto callback = std::make_shared<ReEntrantCallbackImpl>();
+
+    std::lock_guard<std::mutex> b(a);
+    int i = test();
 
     auto myClass = std::make_shared<MyClass>(callback);
     callback->init(myClass);
 
     myClass->doSomething();                                         // Deadlock or crash
+}
+
+int test()
+{
+    return 3;
 }
