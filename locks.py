@@ -119,8 +119,6 @@ tu = index.parse("test.cpp")
 func = dict()
 get_function(tu.cursor, func, None)
 
-print(func['test'].functionClass)
-
 order = LockOrder()
 
 scope = Scope(None)

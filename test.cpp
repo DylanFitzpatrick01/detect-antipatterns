@@ -76,6 +76,12 @@ public:
 
 std::mutex a;
 
+
+int test()
+{
+    return 3;
+}
+
 int main()
 {
     auto callback = std::make_shared<ReEntrantCallbackImpl>();
@@ -87,9 +93,4 @@ int main()
     callback->init(myClass);
 
     myClass->doSomething();                                         // Deadlock or crash
-}
-
-int test()
-{
-    return 3;
 }
