@@ -2,6 +2,9 @@
 #These are class for use with my locks.py file
 #Could remove some and add some type variable instead
 
+#TODO split orders down into just two mutexes, easier to check orders
+#TODO maybe hold onto permutations of given orders too, adding one will give an error
+
 class Scope:
   def __init__(self):
     self.data = []
@@ -34,6 +37,13 @@ class LockGuard:
     self.mutex = mutex
     self.location = location
 
+  
+class Call:
+  def __init__(self, node, location):
+    self.node = node
+    self.location = location
+    self.scope = Scope()
+
 class Locked:
   def __init__(self):
     self.order = []
@@ -62,7 +72,7 @@ class Locked:
       list.append(m.mutex)
 
     return list
-  
+
 class LockOrder:
   def __init__(self):
     self.orders = []

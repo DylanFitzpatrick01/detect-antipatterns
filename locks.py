@@ -29,7 +29,13 @@ def get_function(node, dict):
 #Will not take into account if-else branchs
 # Locking/unlocking in one or the other will be treated as both happening, even
 # if impossible to do so
-def build_thread(node, scope):
+#
+#TODO perhaps give the list of function calls, avoid calling it again
+#
+# @Param node:        the node from which building the thread is done
+# @Param scope: 
+# @Param callAllowed: whether or not calling out of scope is allowed
+def build_thread(node, scope, callAllowed):
   if node.kind == clang.cindex.CursorKind.COMPOUND_STMT:
     newScope = Scope()
     scope.add(newScope)
@@ -46,13 +52,19 @@ def build_thread(node, scope):
       #Sometimes it's a call expr while not saying it's name
       #It's children will though
       if node.spelling in func:
-        newScope = Scope()
-        scope.add(newScope)
-        scope = newScope
-        build_thread(func[node.spelling], scope)
+        if callAllowed:
+          newScope = Scope()
+          scope.add(newScope)
+          scope = newScope
+          build_thread(func[node.spelling], scope, callAllowed)
+        else:
+          newCall = Call(func[node.spelling], node.location)
+          scope.add(newCall)
+          scope.add(newCall.scope)
+          build_thread(newCall.node, newCall.scope, callAllowed)
 
   for child in node.get_children():
-    build_thread(child, scope)
+    build_thread(child, scope, callAllowed)
 
 #Leon Byrne
 #Runs through a scope and examines it for locks and unlocks
@@ -74,6 +86,9 @@ def examine_thread(scope, lock_list):
     elif type(a) == LockGuard:
       if lock_list.lock(a):
         print("Error at: ", a.location)
+    elif type(a) == Call:
+      if lock_list.order:
+        print("Error: called: ", a.node.spelling, "in file:", a.location.file, ", at line:", a.location.line)
     
     order.add(lock_list.get_order())
 
@@ -105,7 +120,7 @@ order = LockOrder()
 
 scope = Scope()
 locks = Locked()
-build_thread(func['main'], scope)
+build_thread(func['main'], scope, False)
 examine_thread(scope, locks)
 
 print_scope(scope, "")
