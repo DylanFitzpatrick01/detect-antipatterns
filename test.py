@@ -3,7 +3,7 @@ from main import *
 from contextlib import suppress
 import os
 
-def test_save_ast():
+def test_save_tokens():
 
     # Our C++ 'file'
     cpp_file = '''
@@ -22,7 +22,7 @@ def test_save_ast():
                 unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
     
     # Save the AST of the translation unit
-    save_ast(tu, filename)
+    save_tokens(tu, filename)
 
     # Get the contents of the AST text file.
     file_string = open(filename, "r").read()
