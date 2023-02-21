@@ -31,6 +31,7 @@ def main():
     idx = clang.cindex.Index.create()
     tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
                     unsaved_files=[('tmp.cpp', s.read())],  options=0)
+    s.close()
     dataPairs = generate_pairs(tu)
     # Generate a textual representation of the AST, in AST.txt.
     save_ast(tu, "pubmut.txt")
@@ -76,8 +77,6 @@ def generate_pairs(translation_unit):
     line_counter = 1
     line_string = txt.readline()
     for index, pair in enumerate(dataPairs):
-        if "instance" == dataPairs[index].variable:
-            print("a")
         if dataPairs[index].variable in line_string:
             dataPairs[index].line_number = line_counter
             if line_string.endswith(dataPairs[index].variable+"\n"):
@@ -91,6 +90,7 @@ def generate_pairs(translation_unit):
     for pair in dataPairs:
         print(pair.variable + " " + str(pair.line_number))
 
+    txt.close()
     return dataPairs
 
 def public_mutex_members(dataPairs):
