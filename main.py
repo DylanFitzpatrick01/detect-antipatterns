@@ -1,22 +1,30 @@
 import clang.cindex
 clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 import sys
+import shutil
 from datapair import *
 
 def main():
+
+
 
     # Attempt to get a filename from the command line args.
     # If that fails, ask the user.
     # If both fail, give up.
     s = ""
+    file_name = ""
     try:
         if (len(sys.argv) > 1):
             s = open(sys.argv[1], "r")
         else:
-            s = open(input("Enter the name of the file you'd like to analyse\n > "), "r")
+            file_name = input("Enter the name of the file you'd like to analyse\n > ")
+            s = open(file_name, "r")
     except FileNotFoundError:
         print("FILE DOES NOT EXIST!\n")
         exit()
+
+    # Make a txt copy of cpp code
+    shutil.copy(file_name, 'c++.txt')
 
     # Gets clang to start parsing the file, and generate
     # a translation unit with an Abstract Syntax Tree.
@@ -27,11 +35,14 @@ def main():
     # Generate a textual representation of the AST, in AST.txt.
     save_ast(tu, "pubmut.txt")
 
+
     # Print the number of tokens.
     print("\nNumber of tokens in given file:", count_tokens(tu), "\n")
 
     # Call public-mutex-members method
     public_mutex_members(dataPairs)
+
+
 
 
 # --------FUNCTIONS-------- #
@@ -59,7 +70,27 @@ def generate_pairs(translation_unit):
         name = token.kind.name
         data = DataPair(spelling, name)
         dataPairs.append(data)
-    
+
+    # generate line number for each pair using txt file
+    txt = open('c++.txt', 'r')
+    line_counter = 1
+    line_string = txt.readline()
+    for index, pair in enumerate(dataPairs):
+        if "instance" == dataPairs[index].variable:
+            print("a")
+        if dataPairs[index].variable in line_string:
+            dataPairs[index].line_number = line_counter
+            if line_string.endswith(dataPairs[index].variable+"\n"):
+                line_counter += 1
+                line_string = txt.readline()
+        else:
+            while not(dataPairs[index].variable in line_string):
+                line_counter += 1
+                line_string = txt.readline()
+            dataPairs[index].line_number = line_counter
+    for pair in dataPairs:
+        print(pair.variable + " " + str(pair.line_number))
+
     return dataPairs
 
 def public_mutex_members(dataPairs):
@@ -67,7 +98,7 @@ def public_mutex_members(dataPairs):
     war = False
     curly_brackets_count = 0
 
-    for index,pair in enumerate(dataPairs):
+    for index, pair in enumerate(dataPairs):
         if pair.variable == "public":
             is_public = True
         elif pair.variable == "private":
@@ -77,7 +108,7 @@ def public_mutex_members(dataPairs):
         elif pair.variable == "}":
             curly_brackets_count = curly_brackets_count - 1
         elif is_public and curly_brackets_count == 1 and pair.variable == "mutex":
-            print("public_mutex_members - Are you sure you want to have a public mutex called " + dataPairs[index+1].variable)
+            print("public_mutex_members - Are you sure you want to have a public mutex called " + dataPairs[index+1].variable + ", Line - " + str(dataPairs[index+1].line_number))
             war = True
 
     if not war:
