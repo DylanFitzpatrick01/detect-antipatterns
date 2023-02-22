@@ -87,8 +87,8 @@ def generate_pairs(translation_unit):
                 line_counter += 1
                 line_string = txt.readline()
             dataPairs[index].line_number = line_counter
-    for pair in dataPairs:
-        print(pair.variable + " " + str(pair.line_number))
+    #for pair in dataPairs:
+        #print(pair.variable + " " + str(pair.line_number))
 
     txt.close()
     return dataPairs
@@ -101,7 +101,7 @@ def public_mutex_members(dataPairs):
     for index, pair in enumerate(dataPairs):
         if pair.variable == "public":
             is_public = True
-        elif pair.variable == "private":
+        elif pair.variable == "private" or pair.variable == "protected":
             is_public = False
         elif pair.variable == "{":
             curly_brackets_count = curly_brackets_count + 1
