@@ -151,6 +151,28 @@ def public_mutex_members(dataPairs):
 
     if not war:
         print("public_mutex_members - No problem found")
+ def immutableObjects(dataPairs):
+    is_struct = False
+    constCount = 0
+    varCount = 0
+
+
+
+
+    for index, pair in enumerate(dataPairs):
+        if pair.variable == "struct":
+            is_struct = True
+        else:
+            if is_struct == True:
+                if  pair.variable == "}":
+                    is_struct = False
+                else:   
+                    if pair.variable == "const":
+                        constCount+=1
+                    elif pair.variable == "int" or "double" or "string" or "char" or "bool":
+                        varCount+=1
+
+    print(varCount , constCount)
 
 if __name__ == "__main__":
     main()
