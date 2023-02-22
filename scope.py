@@ -101,4 +101,10 @@ class LockOrder:
 	def add(self, order):
 		if not order in self.orders and len(order) > 1:
 			self.orders.append(order)
+
+		for i in range(len(order) - 1):
+			for j in range(i + 1, len(order)):
+				newOrder = [order[i], order[j]]
+				if not newOrder in self.orders:
+					self.orders.append(newOrder)
 		
