@@ -1,5 +1,5 @@
 from typing import List
-
+# Gráinne Ready
 
 # Observer INTERFACE, declares update method to be used in implementations of Observer interface
 class Observer():            
