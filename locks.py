@@ -109,32 +109,30 @@ def build_else_thread(startNode, currentNode, elseNode, scope):
 #Leon Byrne
 #Runs through a scope and examines it for locks and unlocks
 #Will also record the order of locks
-def examine_thread(scope, lock_list, str, callAllowed, manualAllowed):
+def examine_thread(scope, lock_list, warnings, callAllowed, manualAllowed):
 	for a in scope.data:
 		if type(a) == Scope:
-			examine_thread(a, lock_list, str + "  ", callAllowed, manualAllowed)
+			examine_thread(a, lock_list, warnings, callAllowed, manualAllowed)
 			#When we return from the scope, unlock lockguards
 			for b in a.data:
 				if type(b) == LockGuard:
 					if not lock_list.unlock(b):
-						print("Error at: ", b.location)
+						warnings.add("Error at: " + b.location)
 		elif type(a) == Lock:
 			if not manualAllowed:
-				print(str, "Manual locking at:", a.location)
-				print(str, "	RAII is prefered")
+				warnings.add("Manual locking at :" + a.location + "\n	RAII is preferred")
 			if lock_list.lock(a):
-				print(str, "Error: locking locked mutex at:", a.location)
+				warnings.add("Error: locking locked mutex at:" + a.location)
 		elif type(a) == Unlock:
 			if not manualAllowed:
-				print(str, "Manual unlocking at:", a.location)
-				print(str, "	RAII is prefered")
+				warnings.add("Manual unlocking at: " + a.location + "\n	RAII is preferred")
 			lock_list.unlock(a)
 		elif type(a) == LockGuard:
 			if lock_list.lock(a):
-				print("Error at: ", a.location)
+				warnings.add("Error at: " + str(a.location))
 		elif type(a) == Call:
 			if (not callAllowed) and lock_list.order and (scope.scopeClass != a.function.functionClass or a.function.functionClass == None):
-				print(str, "Error: called out of scope: ", a.function.node.spelling,  ", at line", a.location.line)
+				warnings.add("Error: called out of scope: " + a.function.node.spelling + " at: " + str(a.location))
 				
 		order.add(lock_list.get_order())
 
@@ -158,14 +156,14 @@ def print_scope(scope, str):
 #Checks order in which locks are aquired and releases them in the correct order. 
 #Prints error if mutex is already held
 def check_lock_order(order):
-    held_locks = set()
-    for mutex in order:
-        if mutex in held_locks:
-            print("Error: mutex", mutex, "is already held")
-        else:
-            held_locks.add(mutex)
-    for mutex in reversed(order):
-        held_locks.remove(mutex)
+		held_locks = set()
+		for mutex in order:
+				if mutex in held_locks:
+						print("Error: mutex", mutex, "is already held")
+				else:
+						held_locks.add(mutex)
+		for mutex in reversed(order):
+				held_locks.remove(mutex)
 
 
 #Leon Byrne
@@ -196,10 +194,13 @@ def tests(filename, callAllowed, manualAllowed):
 	scopes.append(mainScope)
 	build_thread(func['main'].node, func['main'].node, mainScope, eventSource)
 
+	warningList = WarningList()
 	for scope in scopes:
 		locks = Locked()
-		print()
-		examine_thread(scope, locks, "", callAllowed, manualAllowed)
+		examine_thread(scope, locks, warningList, callAllowed, manualAllowed)
+
+	for str in warningList.warnings:
+		print(str)
 
 	#might leve in as is useful to show that we catalogue the orders
 	for o in order.orders:

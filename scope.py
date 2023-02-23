@@ -169,3 +169,12 @@ def node_contains(root, node):
 				return True
 	return False
 		
+class WarningList():
+	def __init__(self):
+		self.warnings = list()
+
+	def add(self, str):
+		for w in self.warnings:
+			if w == str:
+				return
+		self.warnings.append(str)
