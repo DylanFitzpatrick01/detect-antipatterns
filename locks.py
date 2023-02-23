@@ -152,6 +152,20 @@ def print_scope(scope, str):
 			print(str, "unlocking: ", a.mutex)
 
 
+#Liam Byrne
+#Checks order in which locks are aquired and releases them in the correct order. 
+#Prints error if mutex is already held
+def check_lock_order(order):
+    held_locks = set()
+    for mutex in order:
+        if mutex in held_locks:
+            print("Error: mutex", mutex, "is already held")
+        else:
+            held_locks.add(mutex)
+    for mutex in reversed(order):
+        held_locks.remove(mutex)
+
+
 #Leon Byrne
 #Maybe remove the global varibales? Not really neat
 
@@ -184,6 +198,7 @@ def tests(filename, callAllowed, manualAllowed):
 		print("order: ")
 		for m in o:
 			print(m)
+		check_lock_order(o)
 
 	#Useful for debugging.
 	#Not really a demo-able thing though
