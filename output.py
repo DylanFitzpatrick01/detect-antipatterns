@@ -8,12 +8,12 @@ def print_error(filename: str, location: tuple, error_msg: str, severity: str="e
     # Gets the C++ file, removes comments, then saves it  as an array, with one entry per line.
     lines = remove_comments("".join(open(filename).readlines()[0:])).splitlines()
 
-    highlight_colour = "light red" if (severity=="error") else "yellow"
     # Our colours! Light red for error, yellow for warning.
     highlight = { "error" : "light red",  "warning" : "yellow" }
     
-    if (location[0] <= len(lines) and location[1] <= len(lines[location[0]-1])):
-        print()
+    # If the location exists...
+    if (location[0] <= len(lines) and location[1] <= len(lines[location[0]-1])
+        and location[1] > 0 and location[0] > 0):
 
         # Tell the user where the error/warning was found...
         colour("dark grey")
