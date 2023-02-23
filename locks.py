@@ -37,8 +37,7 @@ def get_function(node, dict, functionClass):
 # @Param startNode:   the node that analysis is started on, used a bit
 # @Param currentNode:        the node from which building the thread is done
 # @Param scope: 			the current scope which we're in
-# @Param callAllowed: whether or not calling out of scope is allowed
-def build_thread(startNode, currentNode, scope, callAllowed):
+def build_thread(startNode, currentNode, scope):
 	if currentNode.kind == clang.cindex.CursorKind.COMPOUND_STMT:
 		newScope = Scope(scope.scopeClass)
 		scope.add(newScope)
@@ -54,36 +53,32 @@ def build_thread(startNode, currentNode, scope, callAllowed):
 			#Sometimes it's a call expr while not saying it's name
 			#It's children will though
 			if currentNode.spelling in func:
-				if callAllowed:
-					newScope = Scope()
-					scope.add(newScope)
-					scope = newScope
-					build_thread(startNode, func[currentNode.spelling].node, scope, callAllowed)
-				else:
-					newCall = Call(func[currentNode.spelling], currentNode.location)
-					scope.add(newCall)
-					scope.add(newCall.scope)
-					build_thread(startNode, newCall.function.node, newCall.scope, callAllowed)
+				newCall = Call(func[currentNode.spelling], currentNode.location)
+				scope.add(newCall)
+				scope.add(newCall.scope)
+				build_thread(startNode, newCall.function.node, newCall.scope)
 
 
 	if currentNode.kind == clang.cindex.CursorKind.IF_STMT:
 		children = list(currentNode.get_children())
-		build_thread(startNode, children[0], scope, callAllowed)
+
+		#Build the first child as evalutation could have locking/unlocking in it
+		ifScope = Scope(scope.scopeClass)
+		scope.add(ifScope)
+		build_thread(startNode, children[0], ifScope)
+
+		#Build inside of if statement
+		scopeCopy = ifScope.copy()
+		build_else_thread(startNode, startNode, children[1], scopeCopy)
+		scopes.append(scopeCopy.get_scope_root())
 
 		#only if has else statement
 		if len(children) >= 3:
-			print("else:", children[2].location)
-			scopeCopy = scope.copy()
-			elseScope = Scope(scopeCopy.scopeClass)
-			scopeCopy.add(elseScope)
-			build_else_thread(startNode, startNode, children[2], elseScope, callAllowed)
-			scopes.append(elseScope.get_scope_root())
-
-		build_thread(startNode, children[1], scope, callAllowed)
+			build_else_thread(startNode, startNode, children[2], ifScope)
 	else:
 		#Don't build if-node children. The above is required to handle that
 		for child in currentNode.get_children():
-			build_thread(startNode, child, scope, callAllowed)
+			build_thread(startNode, child, scope)
 
 #When an else is detected this method will build it.
 #Has to restart building and only starts building once elseNode is found.
@@ -91,46 +86,52 @@ def build_thread(startNode, currentNode, scope, callAllowed):
 #Assumes that scope is 'pre-built' up to the elseNode
 #
 #-Leon Byrne
-def build_else_thread(startNode, currentNode, elseNode, scope, callAllowed):
+def build_else_thread(startNode, currentNode, elseNode, scope):
 	children = list(currentNode.get_children())
 	build = False
 
 	for i in range(len(children)):
 		if build:
-			build_thread(startNode, children[i], scope, callAllowed)
+			build_thread(startNode, children[i], scope)
 		elif children[i] == elseNode:
 			build = True
-			build_thread(startNode, children[i], scope, callAllowed)
+			build_thread(startNode, children[i], scope)
 		elif node_contains(children[i], elseNode):
-			build_else_thread(startNode, children[i], elseNode, scope, callAllowed)
+			build_else_thread(startNode, children[i], elseNode, scope)
 			build = True
 		elif children[i].kind == clang.cindex.CursorKind.CALL_EXPR:
-			build_else_thread(startNode, func[children[i].spelling].node, elseNode, scope, callAllowed)
+			build_else_thread(startNode, func[children[i].spelling].node, elseNode, scope)
 		
 
 
 #Leon Byrne
 #Runs through a scope and examines it for locks and unlocks
 #Will also record the order of locks
-def examine_thread(scope, lock_list, str):
+def examine_thread(scope, lock_list, str, callAllowed, manualAllowed):
 	for a in scope.data:
 		if type(a) == Scope:
-			examine_thread(a, lock_list, str + "  ")
+			examine_thread(a, lock_list, str + "  ", callAllowed, manualAllowed)
 			#When we return from the scope, unlock lockguards
 			for b in a.data:
 				if type(b) == LockGuard:
 					if not lock_list.unlock(b):
 						print("Error at: ", b.location)
 		elif type(a) == Lock:
+			if not manualAllowed:
+				print(str, "Manual locking at:", a.location)
+				print(str, "	RAII is prefered")
 			if lock_list.lock(a):
-				print("Error at: ", a.location)
+				print(str, "Error: locking locked mutex at:", a.location)
 		elif type(a) == Unlock:
+			if not manualAllowed:
+				print(str, "Manual unlocking at:", a.location)
+				print(str, "	RAII is prefered")
 			lock_list.unlock(a)
 		elif type(a) == LockGuard:
 			if lock_list.lock(a):
 				print("Error at: ", a.location)
 		elif type(a) == Call:
-			if lock_list.order and (scope.scopeClass != a.function.functionClass or a.function.functionClass == None):
+			if (not callAllowed) and lock_list.order and (scope.scopeClass != a.function.functionClass or a.function.functionClass == None):
 				print(str, "Error: called out of scope: ", a.function.node.spelling,  ", at line", a.location.line)
 				
 		order.add(lock_list.get_order())
@@ -153,30 +154,44 @@ def print_scope(scope, str):
 
 #Leon Byrne
 #Maybe remove the global varibales? Not really neat
-index = clang.cindex.Index.create()
-tu = index.parse("test.cpp")
+
 
 func = dict()
-get_function(tu.cursor, func, None)
 
 order = LockOrder()
 
 #Contains all built scopes
 scopes = list()
 
-mainScope = Scope(None)
-scopes.append(mainScope)
-build_thread(func['main'].node, func['main'].node, mainScope, False)
 
-for scope in scopes:
-	locks = Locked()
-	examine_thread(scope, locks, "")
+def tests(filename, callAllowed, manualAllowed):
+	index = clang.cindex.Index.create()
+	tu = index.parse(filename)
 
-for o in order.orders:
-	print("order: ")
-	for m in o:
-		print(m)
+	get_function(tu.cursor, func, None)
 
-for a in scopes:
-	print("Start")
-	print_scope(a, "")
+	mainScope = Scope(None)
+	scopes.append(mainScope)
+	build_thread(func['main'].node, func['main'].node, mainScope)
+
+	for scope in scopes:
+		locks = Locked()
+		print()
+		examine_thread(scope, locks, "", callAllowed, manualAllowed)
+
+	#might leve in as is useful to show that we catalogue the orders
+	for o in order.orders:
+		print("order: ")
+		for m in o:
+			print(m)
+
+	#Useful for debugging.
+	#Not really a demo-able thing though
+	#
+	# for a in scopes:
+	# 	print("Start")
+	# 	print_scope(a, "")
+
+if __name__ == "__main__":
+	tests("test.cpp", False, True)
+	print("hello")
