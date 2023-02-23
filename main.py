@@ -84,11 +84,11 @@ def traverse(cursor: clang.cindex.Cursor):
             # it here! Just simple if-else statements, etc.
             #
             #-------DELETE ME!-------
-            print("\nDisplay name: ",str(c.displayname) + 
-                  "\n\tAccess specifier:",str(c.access_specifier) + 
-                  "\n\tLocation: ("+str(c.location.line)+", "+str(c.location.column)+")"
-                  "\n\tKind:",str(c.kind)
-                 )
+            # print("\nDisplay name: ",str(c.displayname) + 
+            #      "\n\tAccess specifier:",str(c.access_specifier) + 
+            #      "\n\tLocation: ("+str(c.location.line)+", "+str(c.location.column)+")"
+            #      "\n\tKind:",str(c.kind)
+            #     )
             #-------DELETE ME!-------
             
             traverse(c) # Recursively traverse the tree.
@@ -158,7 +158,8 @@ def public_mutex_members(dataPairs):
 
     if not war:
         print("public_mutex_members - No problem found")
- def immutableObjects(dataPairs):
+ 
+def immutableObjects(dataPairs):
     is_struct = False
     constCount = 0
     varCount = 0
@@ -186,9 +187,7 @@ def immutableObjects(dataPairs):
     is_struct = False
     constCount = 0
     varCount = 0
-
-
-
+    threshold = 0.25
 
     for index, pair in enumerate(dataPairs):
         if pair.variable == "struct":
@@ -200,20 +199,18 @@ def immutableObjects(dataPairs):
                 else:   
                     if pair.variable == "const":
                         constCount+=1
-                    elif pair.variable == "int" or "double" or "string" or "char" or "bool":
+                    elif pair.variable == "int" or pair.variable == "double" or pair.variable == "string" or pair.variable == "char" or pair.variable == "bool":
                         varCount+=1
+    notConst = 1
 
-    print(varCount , constCount)
+    if constCount > 0 and varCount > 0:
+        notConst = 1 - (constCount / varCount)
 
-
-
-                
-            
-
-
-        
-    
-
+    if notConst <= threshold:
+        prettier = round(notConst, 4) * 100
+        print(prettier, "% of your variables in this struct are not constant.")
+        print("We suspect you may want to make this class immutable, however at the moment it isn't.")
+        print("We recommend you examine the code before proceeding.") 
 
 if __name__ == "__main__":
     main()

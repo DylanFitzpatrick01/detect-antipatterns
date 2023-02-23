@@ -24,9 +24,9 @@ int main()
 {
     auto contactRecord = Contact{ "Joe Blogs", "123 Fake Street", "Europe/Dublin", true, "2000/01/01" };
 
-    //contactRecord.name = "Steve";             // Doesnt compile as name is a const member.  👍
+    //contactRecord.name = "Steve";             // Doesnt compile as name is a const member. 
 
-    contactRecord.dateOfBirth = "1999/12/25";   // Uh-oh, this object isnt immutable after all! 👎
+    contactRecord.dateOfBirth = "1999/12/25";   // Uh-oh, this object isnt immutable after all!
 
 }
 
