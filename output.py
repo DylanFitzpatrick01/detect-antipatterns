@@ -3,11 +3,13 @@ import os, re
 # given a filename, a (line, column) tuple, and an error string,
 # show the error message pointing at our location.
 # Multi-line error messages are supported.
-def print_error(filename: str, location: tuple, error_msg: str):
+def print_error(filename: str, location: tuple, error_msg: str, severity: str="error"):
 
     # Gets the C++ file, removes comments, then saves it 
     # as an array, with one entry per line.
     lines = remove_comments("".join(open(filename).readlines()[0:])).splitlines()
+
+    highlight_colour = "light red" if (severity=="error") else "yellow"
     
     if (location[0] <= len(lines) and location[1] <= len(lines[location[0]-1])):
         print()
@@ -26,7 +28,7 @@ def print_error(filename: str, location: tuple, error_msg: str):
         
         # Print the rest of the line our location points to,
         # with an error colour. 
-        colour(background="light red")
+        colour(background=highlight_colour)
         print(lines[location[0]-1][location[1]-1:len(lines[location[0]-1])],
               end='')
         colour("native")
@@ -34,7 +36,7 @@ def print_error(filename: str, location: tuple, error_msg: str):
         # Print our error message, offset to align with the error.
         print("\n" + (" "*(location[1]-1 + len(str(location[0]) + ": "))),
               end='')
-        colour("light red")
+        colour(highlight_colour)
         print("^" + error_msg.replace("\n", "\n" + " "*(location[1] + len(str(location[0]) + ": "))))
         colour("native")
 
