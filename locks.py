@@ -29,45 +29,85 @@ def get_function(node, dict, functionClass):
 #Leon Byrne
 #Builds a path of execution from one node on
 #Will crash if there is recursion within the path
-#Will not take into account if-else branchs
-# Locking/unlocking in one or the other will be treated as both happening, even
-# if impossible to do so
+#Now acounts for branching
+# -Leon Byrne
 #
 #TODO perhaps give the list of function calls, avoid calling it again
 #
-# @Param node:        the node from which building the thread is done
+# @Param startNode:   the node that analysis is started on, used a bit
+# @Param currentNode:        the node from which building the thread is done
 # @Param scope: 			the current scope which we're in
 # @Param callAllowed: whether or not calling out of scope is allowed
-def build_thread(node, scope, callAllowed):
-	if node.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+def build_thread(startNode, currentNode, scope, callAllowed):
+	if currentNode.kind == clang.cindex.CursorKind.COMPOUND_STMT:
 		newScope = Scope(scope.scopeClass)
 		scope.add(newScope)
 		scope = newScope
-
-	elif node.kind == clang.cindex.CursorKind.CALL_EXPR:
-		if node.spelling == "lock":
-			scope.add(Lock(list(list(node.get_children())[0].get_children())[0].spelling, node.location))
-		elif node.spelling == "unlock":
-			scope.add(Unlock(list(list(node.get_children())[0].get_children())[0].spelling, node.location))
-		elif node.spelling == "lock_guard":
-			scope.add(LockGuard(list(node.get_children())[0].spelling, node.location))
+	elif currentNode.kind == clang.cindex.CursorKind.CALL_EXPR:
+		if currentNode.spelling == "lock":
+			scope.add(Lock(list(list(currentNode.get_children())[0].get_children())[0].spelling, currentNode.location))
+		elif currentNode.spelling == "unlock":
+			scope.add(Unlock(list(list(currentNode.get_children())[0].get_children())[0].spelling, currentNode.location))
+		elif currentNode.spelling == "lock_guard":
+			scope.add(LockGuard(list(currentNode.get_children())[0].spelling, currentNode.location))
 		else:
 			#Sometimes it's a call expr while not saying it's name
 			#It's children will though
-			if node.spelling in func:
+			if currentNode.spelling in func:
 				if callAllowed:
 					newScope = Scope()
 					scope.add(newScope)
 					scope = newScope
-					build_thread(func[node.spelling].node, scope, callAllowed)
+					build_thread(startNode, func[currentNode.spelling].node, scope, callAllowed)
 				else:
-					newCall = Call(func[node.spelling], node.location)
+					newCall = Call(func[currentNode.spelling], currentNode.location)
 					scope.add(newCall)
 					scope.add(newCall.scope)
-					build_thread(newCall.function.node, newCall.scope, callAllowed)
+					build_thread(startNode, newCall.function.node, newCall.scope, callAllowed)
 
-	for child in node.get_children():
-		build_thread(child, scope, callAllowed)
+
+	if currentNode.kind == clang.cindex.CursorKind.IF_STMT:
+		children = list(currentNode.get_children())
+		build_thread(startNode, children[0], scope, callAllowed)
+
+		#only if has else statement
+		if len(children) >= 3:
+			print("else:", children[2].location)
+			scopeCopy = scope.copy()
+			elseScope = Scope(scopeCopy.scopeClass)
+			scopeCopy.add(elseScope)
+			build_else_thread(startNode, startNode, children[2], elseScope, callAllowed)
+			scopes.append(elseScope.get_scope_root())
+
+		build_thread(startNode, children[1], scope, callAllowed)
+	else:
+		#Don't build if-node children. The above is required to handle that
+		for child in currentNode.get_children():
+			build_thread(startNode, child, scope, callAllowed)
+
+#When an else is detected this method will build it.
+#Has to restart building and only starts building once elseNode is found.
+#Ignores nodes beforehand.
+#Assumes that scope is 'pre-built' up to the elseNode
+#
+#-Leon Byrne
+def build_else_thread(startNode, currentNode, elseNode, scope, callAllowed):
+	children = list(currentNode.get_children())
+	build = False
+
+	for i in range(len(children)):
+		if build:
+			build_thread(startNode, children[i], scope, callAllowed)
+		elif children[i] == elseNode:
+			build = True
+			build_thread(startNode, children[i], scope, callAllowed)
+		elif node_contains(children[i], elseNode):
+			build_else_thread(startNode, children[i], elseNode, scope, callAllowed)
+			build = True
+		elif children[i].kind == clang.cindex.CursorKind.CALL_EXPR:
+			build_else_thread(startNode, func[children[i].spelling].node, elseNode, scope, callAllowed)
+		
+
 
 #Leon Byrne
 #Runs through a scope and examines it for locks and unlocks
@@ -121,12 +161,22 @@ get_function(tu.cursor, func, None)
 
 order = LockOrder()
 
-scope = Scope(None)
-locks = Locked()
-build_thread(func['main'].node, scope, False)
-examine_thread(scope, locks, "")
+#Contains all built scopes
+scopes = list()
+
+mainScope = Scope(None)
+scopes.append(mainScope)
+build_thread(func['main'].node, func['main'].node, mainScope, False)
+
+for scope in scopes:
+	locks = Locked()
+	examine_thread(scope, locks, "")
 
 for o in order.orders:
 	print("order: ")
 	for m in o:
 		print(m)
+
+for a in scopes:
+	print("Start")
+	print_scope(a, "")
