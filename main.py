@@ -5,6 +5,8 @@ from tkinter import Variable
 import clang.cindex
 import sys
 from datapair import *
+from cursorSearch import *
+from missingUnlock import *
 def main():
 
     # Attempt to get a filename from the command line args.
@@ -32,12 +34,10 @@ def main():
 
     dataPairs = generate_pairs(tu)
     
-    # Call public-mutex-members method
+    # Call methods
     public_mutex_members(dataPairs)
-
-
-    immutableObjects(dataPairs)
-
+    immutable_objects(dataPairs)
+    missing_unlock(tu)
 
     # Generate a textual representation of the tokens, in pubmut.txt.
     save_tokens(tu, "pubmut.txt")
@@ -157,33 +157,9 @@ def public_mutex_members(dataPairs):
             war = True
 
     if not war:
-        print("public_mutex_members - No problem found")
- 
-def immutableObjects(dataPairs):
-    is_struct = False
-    constCount = 0
-    varCount = 0
+        print("No errors found for public mutex members.")
 
-
-
-
-    for index, pair in enumerate(dataPairs):
-        if pair.variable == "struct":
-            is_struct = True
-        else:
-            if is_struct == True:
-                if  pair.variable == "}":
-                    is_struct = False
-                else:   
-                    if pair.variable == "const":
-                        constCount+=1
-                    elif pair.variable == "int" or "double" or "string" or "char" or "bool":
-                        varCount+=1
-
-    print(varCount , constCount)
-
-
-def immutableObjects(dataPairs):
+def immutable_objects(dataPairs):
     is_struct = False
     constCount = 0
     varCount = 0
@@ -210,7 +186,32 @@ def immutableObjects(dataPairs):
         prettier = round(notConst, 4) * 100
         print(prettier, "% of your variables in this struct are not constant.")
         print("We suspect you may want to make this class immutable, however at the moment it isn't.")
-        print("We recommend you examine the code before proceeding.") 
+        print("We recommend you examine the code before proceeding.")
+
+    else:
+        print("No errors found for immutable objects.")   
+
+
+def missing_unlock(tu):
+    search_string = ".lock()"
+    errors = False
+    #print("\nSearching for {:s}...".format(search_string))
+    found_cursors = cursor_search(tu.cursor, search_string)
+    for cursor in found_cursors:
+    # print("cursor covers the following range of text:", cursor.extent)
+        caller = findCaller(cursor, "lock")
+        #print(t)
+        result = isUnlockCalled(cursor, caller)
+        if result == True:
+            print("")
+        else:
+            print(" Manual lock was found within the following scope : \n Line " + str(cursor.extent.start.line) + " -> Line " 
+            + str( cursor.extent.end.line) + 
+            "\n No manual unlock was detected within the same scope,\n are you missing a call to '" + caller + ".unlock()'?")
+            errors = True
+
+    if errors == False:
+        print("No errors found for missing manual unlocks.")          
 
 if __name__ == "__main__":
     main()
