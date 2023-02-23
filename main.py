@@ -1,5 +1,5 @@
-import clang.cindex
-import sys
+import clang.cindex, sys
+from output import *
 
 def main():
 
