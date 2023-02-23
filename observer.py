@@ -12,11 +12,11 @@ class Observer():
 class concreteObserver(Observer):
     def __init__(self, tagToDetect:str):
         self.tagToDetect = tagToDetect
-        self.tagList = set()
+        self.tagList = list()
     
     def update(self, currentNode):
         if self.tagToDetect == currentNode.type.spelling and currentNode not in self.tagList:
-            self.tagList.add(currentNode)
+            self.tagList.append(currentNode)
             print(f"Detected a '{self.tagToDetect}', Name: {currentNode.spelling} at {currentNode.location}")
             if currentNode.spelling == "lock_guard":
                 print(f"    Mutex Name: {list(currentNode.get_children())[0].spelling}")
