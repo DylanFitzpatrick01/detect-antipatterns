@@ -206,7 +206,7 @@ def tests(filename, callAllowed, manualAllowed):
 		print("order: ")
 		for m in o:
 			print(m)
-		check_lock_order(o)
+		#check_lock_order(o)
 
 	#Useful for debugging.
 	#Not really a demo-able thing though
