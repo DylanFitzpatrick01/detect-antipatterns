@@ -9,9 +9,12 @@ class Scope:
 	def __init__(self, scopeClass):
 		self.data = []
 		self.scopeClass = scopeClass
+		self.parent = None
 
 	def add(self, statement):
 		self.data.append(statement)
+		if type(statement) == Scope:
+			statement.parent = self
 
 	def get_non_empty(self):
 		returned = None
@@ -37,6 +40,58 @@ class Scope:
 					return False
 
 		return True 
+
+	def contains(self, object):
+		for a in self.data:
+			if a == object:
+				return True
+			elif type(a) == Scope:
+				if a.contains(object):
+					return True
+		return False
+
+	#Returns the root of a given scope
+	def get_scope_root(self):
+		if self.parent != None:
+			return self.parent.get_scope_root()
+		else:
+			return self
+
+	#gets the rightest, or the last added scope
+	def get_rightest_leaf(self):
+		#I don't know why but if len is 1 the for loop below is skipped
+		#Weird but not an impossible fix
+		#
+		#No, this annoyed me to no end. I may be stupid but why?
+		#-Leon Byrne
+		if len(self.data) == 1 and type(self.data[0]) == Scope:
+			return self.data[0].get_rightest_leaf()
+
+		for i in range(len(self.data) - 1, -1):
+			if type(self.data[i]) == Scope:
+				return self.data[i].get_rightest_leaf()
+		return self
+
+	#Copies the root node and all other nodes downwards
+	def root_copy(self):
+		copy = Scope(self.scopeClass)
+
+		for a in self.data:
+			if type(a) == Scope:
+				copy.add(a.root_copy())
+			else:
+				#No need to copy lock objects and such. Reference will do
+				copy.add(a)
+		return copy
+
+	#Copies the node's root and returns this copy afterwards
+	def copy(self):
+		rootCopy = self.get_scope_root().root_copy()
+
+		if rootCopy == None:
+			print("How?")
+
+		return rootCopy.get_rightest_leaf()
 
 class Function:
 	def __init__(self, node, functionClass):
@@ -99,12 +154,18 @@ class LockOrder:
 		self.orders = []
 
 	def add(self, order):
-		if not order in self.orders and len(order) > 1:
-			self.orders.append(order)
-
 		for i in range(len(order) - 1):
 			for j in range(i + 1, len(order)):
 				newOrder = [order[i], order[j]]
 				if not newOrder in self.orders:
 					self.orders.append(newOrder)
+
+def node_contains(root, node):
+	if root == node:
+		return True
+	else:
+		for child in root.get_children():
+			if node_contains(child, node):
+				return True
+	return False
 		
