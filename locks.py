@@ -1,5 +1,6 @@
 import clang.cindex
 from scope import *
+from observer import *
 
 #TODO some types of locking is not detected
 #TODO recursion breaks this
@@ -37,12 +38,14 @@ def get_function(node, dict, functionClass):
 # @Param startNode:   the node that analysis is started on, used a bit
 # @Param currentNode:        the node from which building the thread is done
 # @Param scope: 			the current scope which we're in
-def build_thread(startNode, currentNode, scope):
+# @Param eventSource:       EventSource to notify observers about currentNode       <- Added by Gráinne Ready
+def build_thread(startNode, currentNode, scope, eventSource):
 	if currentNode.kind == clang.cindex.CursorKind.COMPOUND_STMT:
 		newScope = Scope(scope.scopeClass)
 		scope.add(newScope)
 		scope = newScope
 	elif currentNode.kind == clang.cindex.CursorKind.CALL_EXPR:
+		eventSource.notifyObservers(currentNode)
 		if currentNode.spelling == "lock":
 			scope.add(Lock(list(list(currentNode.get_children())[0].get_children())[0].spelling, currentNode.location))
 		elif currentNode.spelling == "unlock":
@@ -56,8 +59,7 @@ def build_thread(startNode, currentNode, scope):
 				newCall = Call(func[currentNode.spelling], currentNode.location)
 				scope.add(newCall)
 				scope.add(newCall.scope)
-				build_thread(startNode, newCall.function.node, newCall.scope)
-
+				build_thread(startNode, newCall.function.node, newCall.scope, eventSource)
 
 	if currentNode.kind == clang.cindex.CursorKind.IF_STMT:
 		children = list(currentNode.get_children())
@@ -65,7 +67,7 @@ def build_thread(startNode, currentNode, scope):
 		#Build the first child as evalutation could have locking/unlocking in it
 		ifScope = Scope(scope.scopeClass)
 		scope.add(ifScope)
-		build_thread(startNode, children[0], ifScope)
+		build_thread(startNode, children[0], ifScope, eventSource)
 
 		#Build inside of if statement
 		scopeCopy = ifScope.copy()
@@ -78,7 +80,7 @@ def build_thread(startNode, currentNode, scope):
 	else:
 		#Don't build if-node children. The above is required to handle that
 		for child in currentNode.get_children():
-			build_thread(startNode, child, scope)
+			build_thread(startNode, child, scope, eventSource)
 
 #When an else is detected this method will build it.
 #Has to restart building and only starts building once elseNode is found.
@@ -92,10 +94,10 @@ def build_else_thread(startNode, currentNode, elseNode, scope):
 
 	for i in range(len(children)):
 		if build:
-			build_thread(startNode, children[i], scope)
+			build_thread(startNode, children[i], scope, eventSource)
 		elif children[i] == elseNode:
 			build = True
-			build_thread(startNode, children[i], scope)
+			build_thread(startNode, children[i], scope, eventSource)
 		elif node_contains(children[i], elseNode):
 			build_else_thread(startNode, children[i], elseNode, scope)
 			build = True
@@ -167,7 +169,7 @@ def check_lock_order(order):
 
 
 #Leon Byrne
-#Maybe remove the global varibales? Not really neat
+#Maybe remove the global variables? Not really neat
 
 
 func = dict()
@@ -176,6 +178,12 @@ order = LockOrder()
 
 #Contains all built scopes
 scopes = list()
+
+# Grainne Ready
+# 
+eventSource = EventSource()
+lock_guard_observer = concreteObserver("std::lock_guard<std::mutex>")
+eventSource.addObserver(lock_guard_observer)
 
 
 def tests(filename, callAllowed, manualAllowed):
@@ -186,7 +194,7 @@ def tests(filename, callAllowed, manualAllowed):
 
 	mainScope = Scope(None)
 	scopes.append(mainScope)
-	build_thread(func['main'].node, func['main'].node, mainScope)
+	build_thread(func['main'].node, func['main'].node, mainScope, eventSource)
 
 	for scope in scopes:
 		locks = Locked()
@@ -209,4 +217,3 @@ def tests(filename, callAllowed, manualAllowed):
 
 if __name__ == "__main__":
 	tests("test.cpp", False, True)
-	print("hello")
