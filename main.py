@@ -16,6 +16,7 @@ def main():
     try:
         if (len(sys.argv) > 1):
             s = sys.argv[1]
+            s = sys.argv[1]
         else:
             s = input("Enter the name of the file you'd like to analyse\n > ")
         open(s)
@@ -30,6 +31,8 @@ def main():
     # Gets clang to start parsing the file, and generate
     # a translation unit with an Abstract Syntax Tree.
     idx = clang.cindex.Index.create()
+    tu = idx.parse(s, args=['-std=c++11'])
+
     tu = idx.parse(s, args=['-std=c++11'])
 
     dataPairs = generate_pairs(tu)
@@ -116,6 +119,26 @@ def generate_pairs(translation_unit):
         name = token.kind.name
         data = DataPair(spelling, name)
         dataPairs.append(data)
+
+    # generate line number for each pair using txt file
+    txt = open('c++.txt', 'r')
+    line_counter = 1
+    line_string = txt.readline()
+    for index, pair in enumerate(dataPairs):
+        if dataPairs[index].variable in line_string:
+            dataPairs[index].line_number = line_counter
+            if line_string.endswith(dataPairs[index].variable+"\n"):
+                line_counter += 1
+                line_string = txt.readline()
+        else:
+            while not(dataPairs[index].variable in line_string):
+                line_counter += 1
+                line_string = txt.readline()
+            dataPairs[index].line_number = line_counter
+    #for pair in dataPairs:
+        #print(pair.variable + " " + str(pair.line_number))
+
+    txt.close()
 
     # generate line number for each pair using txt file
     txt = open('c++.txt', 'r')
