@@ -12,42 +12,91 @@ def main():
     # Attempt to get a filename from the command line args.
     # If that fails, ask the user.
     # If both fail, give up.
-    s = ""
-    try:
-        if (len(sys.argv) > 1):
-            s = sys.argv[1]
-        else:
-            s = input("Enter the name of the file you'd like to analyse\n > ")
-        open(s)
-
-        # Make a txt copy of cpp code
-        shutil.copy(s, 'c++.txt')
-
-    except FileNotFoundError:
-        print("FILE DOES NOT EXIST!\n")
-        exit()
-
-    # Gets clang to start parsing the file, and generate
-    # a translation unit with an Abstract Syntax Tree.
-    idx = clang.cindex.Index.create()
-    tu = idx.parse(s, args=['-std=c++11'])
-
-    dataPairs = generate_pairs(tu)
     
-    # Call methods
-    public_mutex_members(dataPairs)
-    immutable_objects(dataPairs)
-    missing_unlock(tu)
+    quit = False
+    while quit == False:
+        
+        exist = True
+        s = ""
+        try:
+            if (len(sys.argv) > 1):
+                s = sys.argv[1]
+            else:
+                s = input("Enter the name of the file you'd like to analyse or 'quit' to quit\n > ")
+            open(s)
 
-    # Generate a textual representation of the tokens, in pubmut.txt.
-    save_tokens(tu, "pubmut.txt")
+            # Make a txt copy of cpp code
+            shutil.copy(s, 'c++.txt')
 
-    # Traverse the AST
-    traverse(tu.cursor)
+        except FileNotFoundError:
+            exist = False
+            if s == "quit":
+                quit = True
+            else:    
+                print("FILE DOES NOT EXIST!\n")
 
-    # Print the number of tokens.
-    print("\nNumber of tokens in given file:", count_tokens(tu), "\n")
+        if exist == True:
+            choice = ""
+            okInput = False
+            choice = 0
 
+            print("Choose what analysis you would like to run by selecting from the following options:")
+            print("Press 1 for public mutex members check")
+            print("Press 2 for immutable objects check")
+            print("Press 3 for manual lock/unlock check")
+            print("Press 4 for public mutex members check")
+            print("Press 5 for public mutex members check")
+            print("Press 6 for checking lock order")
+
+            while okInput == False:
+                choose = input("Please enter an int between 1 and 5\n")
+
+                if choose == "1" or choose == "2" or choose == "3" or choose == "4" or choose == "5" or choose == "6": 
+                    choice = choose
+                    okInput = True
+                else:
+                    print("Error invalid input...") 
+            
+
+            # Gets clang to start parsing the file, and generate
+            # a translation unit with an Abstract Syntax Tree.
+            idx = clang.cindex.Index.create()
+            tu = idx.parse(s, args=['-std=c++11'])
+
+            dataPairs = generate_pairs(tu)
+            
+            # Generate a textual representation of the tokens, in pubmut.txt.
+            save_tokens(tu, "pubmut.txt")
+
+            # Traverse the AST
+            traverse(tu.cursor)
+    
+            # Call methods
+            print("\n---------------------\n")
+
+            if choice == "1":
+                print("Checking for public mutex members...")
+                print("\n")    
+                public_mutex_members(dataPairs)
+            elif choice == "2":
+                print("Checking for immutable objects...")
+                print("\n")  
+                immutable_objects(dataPairs)
+            elif choice == "3":
+                print("Checking for missing manual locks/unlocks...")
+                print("\n")  
+                missing_unlock(tu)
+            elif choice == "4":
+                print("Gráinne's function")
+            elif choice == "5":
+                print("Leon's function")
+            else:
+                check_lock_order(tu) 
+
+            # Print the number of tokens.
+            # print("\nNumber of tokens in given file:", count_tokens(tu), "\n")
+
+    print("Program terminated.")
 
 # --------FUNCTIONS-------- #
 
@@ -205,13 +254,23 @@ def missing_unlock(tu):
         if result == True:
             print("")
         else:
-            print(" Manual lock was found within the following scope : \n Line " + str(cursor.extent.start.line) + " -> Line " 
-            + str( cursor.extent.end.line) + 
-            "\n No manual unlock was detected within the same scope,\n are you missing a call to '" + caller + ".unlock()'?")
+            print(" Manual lock was found within the following scope : \n Line ", str(cursor.extent.start.line),
+             " -> Line ", str( cursor.extent.end.line), 
+             "\n No manual unlock was detected within the same scope,\n are you missing a call to '", caller, ".unlock()'?")
             errors = True
 
     if errors == False:
-        print("No errors found for missing manual unlocks.")          
+        print("No errors found for missing manual unlocks.")
+
+def check_lock_order(order):
+    held_locks = set()
+    for mutex in order:
+        if mutex in held_locks:
+            print("Error: mutex", mutex, "is already held")
+        else:
+            held_locks.add(mutex)
+    for mutex in reversed(order):
+        held_locks.remove(mutex)               
 
 if __name__ == "__main__":
     main()
