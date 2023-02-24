@@ -117,6 +117,4 @@ def term_colour(text: str="native", background: str="native"):
 # Removes C-Style comments in a multi-line string.
 def remove_comments(text):
     return re.sub(re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE), "", text)
-
-if __name__ == "__main__":
-    print_error(open("test.cpp"), (7,5), "YO!")
+    
