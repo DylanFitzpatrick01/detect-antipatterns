@@ -44,13 +44,12 @@ def main():
             print("Press 1 for public mutex members check")
             print("Press 2 for immutable objects check")
             print("Press 3 for manual lock/unlock check")
-            print("Press 4 for mutex order check")
-            print("Press 5 for out of scope mutex call checks")
+            print("Press 4 for mutex order and out of scope mutex call checks")
 
             while okInput == False:
-                choose = input("Please enter a number between 1 and 5:\n")
+                choose = input("Please enter a number between 1 and 4:\n")
 
-                if choose == "1" or choose == "2" or choose == "3" or choose == "4" or choose == "5": 
+                if choose == "1" or choose == "2" or choose == "3" or choose == "4": 
                     choice = choose
                     okInput = True
                 else:
@@ -83,11 +82,8 @@ def main():
                 print("Checking for missing manual locks/unlocks...\n") 
                 missing_unlock(tu)
             elif choice == "4":
-                print("Checking the order of mutexes\n")
-                tests(s, True, True)
-            elif choice == "5":
-                print("Checking whether mutexes are called out of scope\n")
-                tests(s, False, True)    
+                print("Checking the order of mutexes and whether mutexes are called out of scope\n")
+                tests(s, False, True)   
             else:
                 print("Shouldn't get here.")     
 

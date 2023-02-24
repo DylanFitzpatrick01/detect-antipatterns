@@ -1,39 +1,113 @@
-﻿#include <iostream>
-#include <string>
+#include <iostream>
+#include <memory>
+#include <mutex>
 
-struct Contact
+class IMyCallback                              						// Callback interface
 {
-    const std::string name;
-    const std::string address;
-    const std::string timezone;
-    const bool isActive;
-    std::string dateOfBirth;
+public:
+   virtual ~IMyCallback() = 0;
+
+   virtual void onSomethingHappend(int value) = 0;
+   virtual void onErrorHappend() = 0;
 };
 
-// So what's wrong here? 
+class MyClass                                                       // Class that needs to be made threadsafe.
+{
+public:
+    MyClass(std::shared_ptr<IMyCallback> callback)
+        :  mCallback(callback)
+    {}
 
-// We have a concept called "immutable objects" which basically means that all of the state inside the object 
-// is const (another way of saying that it cannot change after the object is created).
+    void doSomething()
+    {
+        {
+            std::lock_guard<std::mutex> lock(mDataMutex);           // CriticalSection starts
 
-// Immutable objects are inherently thread safe as no one can write to any of the members, so its safe to have
-// concurrent readers, even without locks/mutexes.
+            calculate();
 
-// However, it's easy to forget to mark one member as const, therefore making the object not immuatable.
+            mCallback->onSomethingHappend(mInternalState);          // Uh oh! We're calling outside of a locked scope
+        }                                                           // CriticalSection ends
+    }
+
+    int readState()
+    {
+        std::lock_guard<std::mutex> lock(mDataMutex);               // Accessing the same lock as in `doSomething()`
+
+        return mInternalState;
+    }
+
+private:
+
+    void calculate()
+    {
+        mInternalState = mInternalState + 1;                        // Modifying some internal state that needs to be synchronised.
+    }
+
+   std::shared_ptr<IMyCallback> mCallback;
+   std::mutex mDataMutex;
+   int mInternalState = 0;
+};
+
+
+class ReEntrantCallbackImpl : public IMyCallback                     // Implementation of callback interface 
+{
+public:
+    ReEntrantCallbackImpl()
+    {
+    }
+
+    void init(std::shared_ptr<MyClass> myClass)
+    {
+        mMyClass = myClass;
+    }
+
+    void onSomethingHappend(int value) override
+    {
+        std::cout << "Current value is: " << mMyClass->readState(); // Calling `mMyClass->readState()` will access the lock. 
+    }
+
+    void onErrorHappend() override
+    {
+
+    }
+ private:
+  std::shared_ptr<MyClass> mMyClass;
+};
+
+std::mutex a;
+std::mutex x;
+std::mutex y;
+std::mutex z;
+
+
+int test()
+{
+    return 3;
+}
 
 int main()
 {
-    auto contactRecord = Contact{ "Joe Blogs", "123 Fake Street", "Europe/Dublin", true, "2000/01/01" };
+    auto callback = std::make_shared<ReEntrantCallbackImpl>();
 
-    //contactRecord.name = "Steve";             // Doesnt compile as name is a const member. 
+    std::lock_guard<std::mutex> b(a);
+    int i = test();
 
-    contactRecord.dateOfBirth = "1999/12/25";   // Uh-oh, this object isnt immutable after all!
+    if(true)
+    {
+        i = 5;
+        std::lock_guard<std::mutex> c(x);
+    } else if(i >= 5)
+    {
+        i = 0;
+        std::lock_guard<std::mutex> d(y);
+    } else
+    {
+        i = 10;
+        std::lock_guard<std::mutex> e(z);
+    }
 
+    auto myClass = std::make_shared<MyClass>(callback);
+    callback->init(myClass);
+
+    myClass->doSomething();                                         // Deadlock or crash
 }
-
-// We should be able to detect when something "looks like" it was intended to be immutable (nearly all the 
-// members are const), but we then have one member that isnt const.
-
-// This isnt a hard rule as we cannot fully know the intent of the programmer. But, it is a suspicous 
-// pattern and we can build a hueristic around it, and provide a warning. 
-
-// "Are you sure you want just this one member you're adding to be non const? The object is no longer immutable."

@@ -217,4 +217,4 @@ def tests(filename, callAllowed, manualAllowed):
 	# 	print_scope(a, "")
 
 if __name__ == "__main__":
-	tests("test.cpp", False, True)
+	tests("order.cpp", False, True)
