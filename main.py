@@ -12,6 +12,33 @@ def main():
     # Attempt to get a filename from the command line args.
     # If that fails, ask the user.
     # If both fail, give up.
+<<<<<<< HEAD
+=======
+    s = ""
+    try:
+        if (len(sys.argv) > 1):
+            s = sys.argv[1]
+            s = sys.argv[1]
+        else:
+            s = input("Enter the name of the file you'd like to analyse\n > ")
+        open(s)
+
+        # Make a txt copy of cpp code
+        shutil.copy(s, 'c++.txt')
+
+    except FileNotFoundError:
+        print("FILE DOES NOT EXIST!\n")
+        exit()
+
+    # Gets clang to start parsing the file, and generate
+    # a translation unit with an Abstract Syntax Tree.
+    idx = clang.cindex.Index.create()
+    tu = idx.parse(s, args=['-std=c++11'])
+
+    tu = idx.parse(s, args=['-std=c++11'])
+
+    dataPairs = generate_pairs(tu)
+>>>>>>> d299e69cebef62365bfd1e5eee634e7278071be8
     
     quit = False
     while quit == False:
@@ -165,6 +192,26 @@ def generate_pairs(translation_unit):
         name = token.kind.name
         data = DataPair(spelling, name)
         dataPairs.append(data)
+
+    # generate line number for each pair using txt file
+    txt = open('c++.txt', 'r')
+    line_counter = 1
+    line_string = txt.readline()
+    for index, pair in enumerate(dataPairs):
+        if dataPairs[index].variable in line_string:
+            dataPairs[index].line_number = line_counter
+            if line_string.endswith(dataPairs[index].variable+"\n"):
+                line_counter += 1
+                line_string = txt.readline()
+        else:
+            while not(dataPairs[index].variable in line_string):
+                line_counter += 1
+                line_string = txt.readline()
+            dataPairs[index].line_number = line_counter
+    #for pair in dataPairs:
+        #print(pair.variable + " " + str(pair.line_number))
+
+    txt.close()
 
     # generate line number for each pair using txt file
     txt = open('c++.txt', 'r')

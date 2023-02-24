@@ -74,9 +74,37 @@ public:
   std::shared_ptr<MyClass> mMyClass;
 };
 
+std::mutex a;
+std::mutex x;
+std::mutex y;
+std::mutex z;
+
+
+int test()
+{
+    return 3;
+}
+
 int main()
 {
     auto callback = std::make_shared<ReEntrantCallbackImpl>();
+
+    std::lock_guard<std::mutex> b(a);
+    int i = test();
+
+    if(true)
+    {
+        i = 5;
+        std::lock_guard<std::mutex> c(x);
+    } else if(i >= 5)
+    {
+        i = 0;
+        std::lock_guard<std::mutex> d(y);
+    } else
+    {
+        i = 10;
+        std::lock_guard<std::mutex> e(z);
+    }
 
     auto myClass = std::make_shared<MyClass>(callback);
     callback->init(myClass);
