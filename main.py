@@ -249,7 +249,7 @@ def immutable_objects(dataPairs):
     if constCount > 0 and varCount > 0:
         notConst = 1 - (constCount / varCount)
 
-    if notConst <= threshold:
+    if notConst <= threshold and notConst > 0:
         prettier = round(notConst, 4) * 100
         print(prettier, "% of your variables in this struct are not constant.")
         print("We suspect you may want to make this class immutable, however at the moment it isn't.")
