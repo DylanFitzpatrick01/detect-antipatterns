@@ -7,39 +7,12 @@ import sys
 from datapair import *
 from cursorSearch import *
 from missingUnlock import *
+from locks import *
 def main():
 
     # Attempt to get a filename from the command line args.
     # If that fails, ask the user.
     # If both fail, give up.
-<<<<<<< HEAD
-=======
-    s = ""
-    try:
-        if (len(sys.argv) > 1):
-            s = sys.argv[1]
-            s = sys.argv[1]
-        else:
-            s = input("Enter the name of the file you'd like to analyse\n > ")
-        open(s)
-
-        # Make a txt copy of cpp code
-        shutil.copy(s, 'c++.txt')
-
-    except FileNotFoundError:
-        print("FILE DOES NOT EXIST!\n")
-        exit()
-
-    # Gets clang to start parsing the file, and generate
-    # a translation unit with an Abstract Syntax Tree.
-    idx = clang.cindex.Index.create()
-    tu = idx.parse(s, args=['-std=c++11'])
-
-    tu = idx.parse(s, args=['-std=c++11'])
-
-    dataPairs = generate_pairs(tu)
->>>>>>> d299e69cebef62365bfd1e5eee634e7278071be8
-    
     quit = False
     while quit == False:
         
@@ -49,7 +22,7 @@ def main():
             if (len(sys.argv) > 1):
                 s = sys.argv[1]
             else:
-                s = input("Enter the name of the file you'd like to analyse or 'quit' to quit\n > ")
+                s = input("\nEnter the name of the file you'd like to analyse or 'quit' to quit\n > ")
             open(s)
 
             # Make a txt copy of cpp code
@@ -71,14 +44,12 @@ def main():
             print("Press 1 for public mutex members check")
             print("Press 2 for immutable objects check")
             print("Press 3 for manual lock/unlock check")
-            print("Press 4 for public mutex members check")
-            print("Press 5 for public mutex members check")
-            print("Press 6 for checking lock order")
+            print("Press 4 for mutex order and out of scope mutex call checks")
 
             while okInput == False:
-                choose = input("Please enter an int between 1 and 5\n")
+                choose = input("Please enter a number between 1 and 4\n")
 
-                if choose == "1" or choose == "2" or choose == "3" or choose == "4" or choose == "5" or choose == "6": 
+                if choose == "1" or choose == "2" or choose == "3" or choose == "4": 
                     choice = choose
                     okInput = True
                 else:
@@ -102,23 +73,19 @@ def main():
             print("\n---------------------\n")
 
             if choice == "1":
-                print("Checking for public mutex members...")
-                print("\n")    
+                print("Checking for public mutex members...\n")   
                 public_mutex_members(dataPairs)
             elif choice == "2":
-                print("Checking for immutable objects...")
-                print("\n")  
+                print("Checking for immutable objects...\n") 
                 immutable_objects(dataPairs)
             elif choice == "3":
-                print("Checking for missing manual locks/unlocks...")
-                print("\n")  
+                print("Checking for missing manual locks/unlocks...\n") 
                 missing_unlock(tu)
             elif choice == "4":
-                print("Gráinne's function")
-            elif choice == "5":
-                print("Leon's function")
+                print("Checking the order of mutexes and whether they are called out of scope...\n")
+                tests(s, False, True)
             else:
-                check_lock_order(tu) 
+                print("Shouldn't get here.")     
 
             # Print the number of tokens.
             # print("\nNumber of tokens in given file:", count_tokens(tu), "\n")
