@@ -1,4 +1,5 @@
 import os, re, typing
+from colours import *
 
 # Arguments:
 # file:     Either the path of the file as a string - "filename", or a TextIOWrapper of the file - open("filename")
@@ -27,7 +28,7 @@ def print_error(file: str | typing.TextIO, location: tuple, message: str, severi
 
         # Tell the user the file name and location.
         term_colour(colours["greyed out"])
-        print(("-"*5)+"In",file.name,str(location)+("-"*5))
+        print(f"{'-'*8}In {file.name}, {location}{'-'*8}")
 
         # for: the line before the error line (if it exists), the error line,
         # and the line after the error line (if it exists).
@@ -35,70 +36,32 @@ def print_error(file: str | typing.TextIO, location: tuple, message: str, severi
 
             if (index != location[0]-1): # Print non-error lines in dark grey.
                 term_colour(colours["greyed out"])
-                print((str(index+1)+": "+lines[index]))
+                print(f"{index+1}: {lines[index]}")
                 term_colour("native")
             else:
                 # Print the line our location points to.
-                print(str(index+1) + ": " + lines[index][0:location[1]-1], end='')
+                print(f"{index+1}: {lines[index][0:location[1]-1]}", end='')
                 term_colour(text = "black", background=colours[severity])
                 print(lines[index][location[1]-1:len(lines[index])], end='\033[m')
 
                 # Print our error message, offset to align with the error.
-                print("\n" + (" "*(location[1]-1+len(str(index+1))+2)), end='')
+                print(f"\n{' '*(location[1]-1+len(str(index+1))+2)}", end='')
                 term_colour(colours[severity])
                 print("^" + message.replace("\n", "\n"+" "*(location[1]+len(str(index+1))+2)))
                 term_colour("native")
     
     else: # If we call for a location that isn't in the file, complain!
         term_colour(background="light red")
-        print("print_error(): location",location,"does not exist in",file.name)
+        print(f"print_error(): location {location} does not exist in {file.name}.")
         term_colour("native")
 
 
 # Change the colour of the terminal, using ANSI colour codes.
 # The first input string is the text colour, The second is the background.
-# A list of supported colours can be found below. (native = default colours)
+# A list of supported colours can be found in 'colours.py'.
 def term_colour(text: str="native", background: str="native"):
 
     os.system("") # Gets ANSI colour codes working on windows.
-
-    text_colours = {
-        "black"        : '\033[30m',
-        "red"          : '\033[31m',
-        "green"        : '\033[32m',
-        "yellow"       : '\033[33m',
-        "blue"         : '\033[34m',
-        "purple"       : '\033[35m',
-        "cyan"         : '\033[36m',
-        "light grey"   : '\033[37m',
-        "dark grey"    : '\033[90m',
-        "light red"    : '\033[91m',
-        "light green"  : '\033[92m',
-        "light yellow" : '\033[93m',
-        "light blue"   : '\033[94m',
-        "light purple" : '\033[95m',
-        "light cyan"   : '\033[96m',
-        "white"        : '\033[97m',
-    }
-    background_colours = {
-        "black"        : '\033[40m',
-        "red"          : '\033[41m',
-        "green"        : '\033[42m',
-        "yellow"       : '\033[43m',
-        "blue"         : '\033[44m',
-        "purple"       : '\033[45m',
-        "cyan"         : '\033[46m',
-        "light grey"   : '\033[47m',
-        "dark grey"    : '\033[100m',
-        "light red"    : '\033[101m',
-        "light green"  : '\033[102m',
-        "light yellow" : '\033[103m',
-        "light blue"   : '\033[104m',
-        "light purple" : '\033[105m',
-        "light cyan"   : '\033[106m',
-        "white"        : '\033[107m',
-        "native"       : '\033[m'
-    }
 
     # If we want our default text colours...
     if (text == "native"):
