@@ -1,59 +1,76 @@
-import os, re, typing
+import os, re
+from clang.cindex import TranslationUnit, SourceLocation, SourceRange
+import clang
 from colours import *
 
-# Arguments:
-# file:     Either the path of the file as a string - "filename", or a TextIOWrapper of the file - open("filename")
-# location: A line-column tuple - (line, column)
-# message:  A string (possibly multi-line), containing the error message - "message"
-# severity: OPTIONAL, "error" by default. A string, containing the severity of the message - "warning"
-# 
 # prints the given error message in a fancy way.
 # 
-def print_error(file: str | typing.TextIO, location: tuple, message: str, severity: str="error"):
+def print_error(tu: TranslationUnit,
+                location: tuple | SourceLocation | SourceRange,
+                message: str,
+                severity: str="error"):
 
     # Our colours! Light red for error, yellow for warning.
     colours = { "error"      : "light red",
                 "warning"    : "yellow",
                 "greyed out" : "dark grey" }
-
-    if type(file) == str:   # If the 'file' variable is a string, convert it to a TextIOWrapper.
-        file = open(file)
+    
+    # If location is a tuple or SourceLocation, turn them into a SourceRange.
+    if (type(location) == tuple):
+        start = SourceLocation.from_position(tu, tu.get_file(tu.spelling), location[0], location[1])
+        end = SourceLocation.from_position(tu, tu.get_file(tu.spelling), location[0], -1)
+        location = SourceRange.from_locations(start, end)
+    if (type(location) == SourceLocation):
+        end = SourceLocation.from_position(tu, tu.get_file(tu.spelling), location.line, -1)
+        location = SourceRange.from_locations(location, end)
 
     # Gets the C++ file, removes comments, then saves it  as an array, with one entry per line.
-    lines = remove_comments("".join(file.readlines()[0:])).splitlines()
-    
-    # If the location exists in the file...
-    if (location[0] <= len(lines) and location[1] <= len(lines[location[0]-1])
-        and location[1] > 0 and location[0] > 0):
+    lines = remove_comments("".join(open(tu.spelling).readlines()[0:])).splitlines()
 
-        # Tell the user the file name and location.
-        term_colour(colours["greyed out"])
-        print(f"{'-'*8}In {file.name}, {location}{'-'*8}")
+    # Tell the user the file name and location.
+    term_colour(colours["greyed out"])
+    print(f"{'-'*8}In '{tu.spelling}', starting at ({location.start.line}, {location.start.column}){'-'*8}")
 
-        # for: the line before the error line (if it exists), the error line,
-        # and the line after the error line (if it exists).
-        for index in range(max(location[0]-2,0),min(location[0]+1,len(lines))):
+    # for: the line before the error line (if it exists), the error line,
+    # and the line after the error line (if it exists).
+    for index in range(max(location.start.line-1,0),min(location.end.line+2,len(lines))):
 
-            if (index != location[0]-1): # Print non-error lines in dark grey.
-                term_colour(colours["greyed out"])
-                print(f"{index+1}: {lines[index]}")
-                term_colour("native")
-            else:
-                # Print the line our location points to.
-                print(f"{index+1}: {lines[index][0:location[1]-1]}", end='')
-                term_colour(text = "black", background=colours[severity])
-                print(lines[index][location[1]-1:len(lines[index])], end='\033[m')
+        # !!!!!!!!!!!!!!!!!!!!UNFINISHED!!!!!!!!!!!!!!!!!!!!!!!!!
+        # Comp. labs closed mid-session! Saving through github for now.
+        # I'll get back to it tomorrow.
+        # Future commit message:
+        # Revised output.py
+        # Output.py now integrates much better with the libclang library:
+        # - The file is referenced using a TranslationUnit, which will be the main way we reference files going forward.
+        # - The location can either be a tuple - (line, column), a SourceLocation (clang's line-column reference class), or a SourceRange (Two SourceLocation values - start & end).
+        # - If the type is a tuple or SourceLocation, we automatically convert them to a single-line SourceRange object.
+        # -  
 
-                # Print our error message, offset to align with the error.
-                print(f"\n{' '*(location[1]-1+len(str(index+1))+2)}", end='')
+        if (index < location.start.line or index > location.end.line):
+            # Print non-location lines in dark grey.
+            term_colour(colours["greyed out"])
+            print(f"{index}: {lines[index-1]}")
+            term_colour("native")
+        else:
+            print(f"{index}: ", end='')
+            # Print a line within 'location'.
+            if (index == location.start.line):
                 term_colour(colours[severity])
-                print("^" + message.replace("\n", "\n"+" "*(location[1]+len(str(index+1))+2)))
+                print(lines[index-1][location.start.column-1:len(lines[location.start.column])], end='\033[m')
+                print()
+            elif (index < location.end.line):
+                term_colour(colours[severity])
+                print(lines[index-1], end='\033[m')
+                print()
+            else:
+                # Print our error message, offset to align with the error.
+                print(f"\n{' '*(location.start.column-1+len(str(index+1))+2)}", end='')
+                term_colour(background=colours[severity])
+                print("^" + message.replace("\n", "\n"+" "*(location.start.column+len(str(index+1))+2)), end='')
                 term_colour("native")
-    
-    else: # If we call for a location that isn't in the file, complain!
-        term_colour(background="light red")
-        print(f"print_error(): location {location} does not exist in {file.name}.")
-        term_colour("native")
+                print()
+
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 # Change the colour of the terminal, using ANSI colour codes.
@@ -79,5 +96,15 @@ def term_colour(text: str="native", background: str="native"):
 # Inspired by https://stackoverflow.com/questions/241327/remove-c-and-c-comments-using-python
 # Removes C-Style comments in a multi-line string.
 def remove_comments(text):
-    return re.sub(re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE), "", text)
+    return re.sub(
+        re.compile(r'\s*//.*?$|\s*/\*.*?\*/|\s*\'(?:\\.|\s*[^\\\'])*\'|\s*"(?:\\.|\s*[^\\"])*"',
+        re.DOTALL | re.MULTILINE), "", text
+    )
     
+if __name__ == "__main__":
+    idx = clang.cindex.Index.create()
+    tu = idx.parse("unlock.cpp", args=['-std=c++11'])
+    start = SourceLocation.from_position(tu, tu.get_file(tu.spelling), 5, 7)
+    end = SourceLocation.from_position(tu, tu.get_file(tu.spelling), 10, 3)
+    location = SourceRange.from_locations(start, end)
+    print_error(tu, location, "YO!")
