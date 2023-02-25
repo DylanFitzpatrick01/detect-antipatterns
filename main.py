@@ -5,6 +5,7 @@ from tkinter import Variable
 import clang.cindex
 import sys
 from datapair import *
+from output import *
 from cursorSearch import *
 from missingUnlock import *
 from locks import *
