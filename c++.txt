@@ -1,57 +1,113 @@
 #include <iostream>
-#include <string>
+#include <memory>
 #include <mutex>
 
-class MyClass
+class IMyCallback                              						// Callback interface
 {
 public:
+   virtual ~IMyCallback() = 0;
 
-    MyClass(const std::string& input)
-        : mState(input)   // No need to lock in a constructor. By definition, only the thread that creates the object has access to the object
-    {
+   virtual void onSomethingHappend(int value) = 0;
+   virtual void onErrorHappend() = 0;
+};
 
-    }
+class MyClass                                                       // Class that needs to be made threadsafe.
+{
+public:
+    MyClass(std::shared_ptr<IMyCallback> callback)
+        :  mCallback(callback)
+    {}
 
-    std::mutex mDataAccess1;  //public
-    std::string mDataAccess2; //not a mutex
-
-    std::string getState()
-    {
-        std::mutex mDataAccess3; //private
-        std::lock_guard<std::mutex> lock(mDataAccess3);          // Correctly locking for a read
-
-        return mState;
-    }
-
+    void doSomething()
     {
         {
-        // do something
-        }
-        std::mutex mDataAccess4; //private
-        void updateState(const std::string& input)
-        {
-            std::lock_guard<std::mutex> lock(mDataAccess4);
+            std::lock_guard<std::mutex> lock(mDataMutex);           // CriticalSection starts
 
-            mState = input;
-        }
+            calculate();
+
+            mCallback->onSomethingHappend(mInternalState);          // Uh oh! We're calling outside of a locked scope
+        }                                                           // CriticalSection ends
     }
 
-     std::mutex mDataAccess5; //public
+    int readState()
+    {
+        std::lock_guard<std::mutex> lock(mDataMutex);               // Accessing the same lock as in `doSomething()`
 
-protected:
-    std::mutex mDataAccess6; //private
+        return mInternalState;
+    }
 
 private:
-    std::string mDataAccess7; //not a mutex
-    std::mutex mDataAccess8;  //private
+
+    void calculate()
+    {
+        mInternalState = mInternalState + 1;                        // Modifying some internal state that needs to be synchronised.
+    }
+
+   std::shared_ptr<IMyCallback> mCallback;
+   std::mutex mDataMutex;
+   int mInternalState = 0;
 };
+
+
+class ReEntrantCallbackImpl : public IMyCallback                     // Implementation of callback interface 
+{
+public:
+    ReEntrantCallbackImpl()
+    {
+    }
+
+    void init(std::shared_ptr<MyClass> myClass)
+    {
+        mMyClass = myClass;
+    }
+
+    void onSomethingHappend(int value) override
+    {
+        std::cout << "Current value is: " << mMyClass->readState(); // Calling `mMyClass->readState()` will access the lock. 
+    }
+
+    void onErrorHappend() override
+    {
+
+    }
+ private:
+  std::shared_ptr<MyClass> mMyClass;
+};
+
+std::mutex a;
+std::mutex x;
+std::mutex y;
+std::mutex z;
+
+
+int test()
+{
+    return 3;
+}
 
 int main()
 {
-    auto instance = MyClass("test123");
+    auto callback = std::make_shared<ReEntrantCallbackImpl>();
 
-    std::cout << instance.getState() << "\n";                  // Good!
+    std::lock_guard<std::mutex> b(a);
+    int i = test();
 
-    instance.mDataAccess.lock();                               // Oh no!
+    if(true)
+    {
+        i = 5;
+        std::lock_guard<std::mutex> c(x);
+    } else if(i >= 5)
+    {
+        i = 0;
+        std::lock_guard<std::mutex> d(y);
+    } else
+    {
+        i = 10;
+        std::lock_guard<std::mutex> e(z);
+    }
 
+    auto myClass = std::make_shared<MyClass>(callback);
+    callback->init(myClass);
+
+    myClass->doSomething();                                         // Deadlock or crash
 }
