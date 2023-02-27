@@ -71,12 +71,31 @@ def build_thread(startNode, currentNode, scope, eventSource):
 
 		#Build inside of if statement
 		scopeCopy = ifScope.copy()
-		build_else_thread(startNode, startNode, children[1], scopeCopy)
+		build_else_thread(startNode, startNode, children[1], scopeCopy, True)
 		scopes.append(scopeCopy.get_scope_root())
 
 		#only if has else statement
 		if len(children) >= 3:
-			build_else_thread(startNode, startNode, children[2], ifScope)
+			build_else_thread(startNode, startNode, children[2], ifScope, True)
+	elif currentNode.kind == clang.cindex.CursorKind.WHILE_STMT:
+		children = list(currentNode.get_children())
+
+		#build condition statement
+		whileScope = Scope(scope.scopeClass)
+		scope.add(whileScope)
+		build_thread(startNode, children[0], whileScope, eventSource)
+
+		#build body once
+		singleRunScope = whileScope.copy()
+		build_thread(startNode, children[1], singleRunScope, eventSource)
+
+		#build body again + all else
+		doubleRunScope = singleRunScope.copy()
+		build_else_thread(startNode, startNode, children[1], doubleRunScope.get_scope_root(), True)
+
+		#build rest of single body scope
+		build_else_thread(startNode, currentNode, children[1], singleRunScope.get_scope_root(), False)
+
 	else:
 		#Don't build if-node children. The above is required to handle that
 		for child in currentNode.get_children():
@@ -85,10 +104,12 @@ def build_thread(startNode, currentNode, scope, eventSource):
 #When an else is detected this method will build it.
 #Has to restart building and only starts building once elseNode is found.
 #Ignores nodes beforehand.
-#Assumes that scope is 'pre-built' up to the elseNode
+#Assumes that scope is 'pre-built' up to the elseNode if include else is true
 #
 #-Leon Byrne
-def build_else_thread(startNode, currentNode, elseNode, scope):
+#
+#TODO test if this works right if branching outside of main
+def build_else_thread(startNode, currentNode, elseNode, scope, includeElse: bool):
 	children = list(currentNode.get_children())
 	build = False
 
@@ -97,9 +118,10 @@ def build_else_thread(startNode, currentNode, elseNode, scope):
 			build_thread(startNode, children[i], scope, eventSource)
 		elif children[i] == elseNode:
 			build = True
-			build_thread(startNode, children[i], scope, eventSource)
+			if includeElse:
+				build_thread(startNode, children[i], scope, eventSource)
 		elif node_contains(children[i], elseNode):
-			build_else_thread(startNode, children[i], elseNode, scope)
+			build_else_thread(startNode, children[i], elseNode, scope, includeElse)
 			build = True
 		elif children[i].kind == clang.cindex.CursorKind.CALL_EXPR:
 			build_else_thread(startNode, func[children[i].spelling].node, elseNode, scope)
@@ -122,7 +144,7 @@ def examine_thread(scope, lock_list, warnings, callAllowed, manualAllowed):
 			if not manualAllowed:
 				warnings.add("Manual locking at :" + a.location + "\n	RAII is preferred")
 			if lock_list.lock(a):
-				warnings.add("Error: locking locked mutex at:" + a.location)
+				warnings.add("Error: locking locked mutex at:" + str(a.location))
 		elif type(a) == Unlock:
 			if not manualAllowed:
 				warnings.add("Manual unlocking at: " + a.location + "\n	RAII is preferred")
@@ -212,9 +234,9 @@ def tests(filename, callAllowed, manualAllowed):
 	#Useful for debugging.
 	#Not really a demo-able thing though
 	#
-	# for a in scopes:
-	# 	print("Start")
-	# 	print_scope(a, "")
+	for a in scopes:
+		print("Start")
+		print_scope(a, "")
 
 if __name__ == "__main__":
 	tests("order.cpp", False, True)
