@@ -62,6 +62,8 @@ def main():
             idx = clang.cindex.Index.create()
             tu = idx.parse(s, args=['-std=c++11'])
 
+            print(clang.cindex.SourceLocation.from_position(tu, tu.get_file(tu.spelling), 2, 4))
+
             dataPairs = generate_pairs(tu)
             
             # Generate a textual representation of the tokens, in pubmut.txt.
