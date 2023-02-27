@@ -35,42 +35,34 @@ def print_error(tu: TranslationUnit,
     # and the line after the error line (if it exists).
     for index in range(max(location.start.line-1,0),min(location.end.line+2,len(lines))):
 
-        # !!!!!!!!!!!!!!!!!!!!UNFINISHED!!!!!!!!!!!!!!!!!!!!!!!!!
-        # Comp. labs closed mid-session! Saving through github for now.
-        # I'll get back to it tomorrow.
-        # Future commit message:
-        # Revised output.py
-        # Output.py now integrates much better with the libclang library:
-        # - The file is referenced using a TranslationUnit, which will be the main way we reference files going forward.
-        # - The location can either be a tuple - (line, column), a SourceLocation (clang's line-column reference class), or a SourceRange (Two SourceLocation values - start & end).
-        # - If the type is a tuple or SourceLocation, we automatically convert them to a single-line SourceRange object.
-        # -  
-
+        # I won't lie, this code is messy. I'll update it soon!
         if (index < location.start.line or index > location.end.line):
-            # Print non-location lines in dark grey.
             term_colour(colours["greyed out"])
             print(f"{index}: {lines[index-1]}")
             term_colour("native")
         else:
             print(f"{index}: ", end='')
-            # Print a line within 'location'.
-            if (index == location.start.line):
-                term_colour(colours[severity])
-                print(lines[index-1][location.start.column-1:len(lines[location.start.column])], end='\033[m')
+            if index == location.start.line:
+                print(lines[index-1][0:location.start.column-1], end=text_colours[colours[severity]])
+                print(lines[index-1][location.start.column-1:len(lines[index-1])], end='')
+                if location.start.line == location.end.line:
+                    term_colour("black", colours[severity])
+                    print(f"\n{' '*(location.start.column+len(str(index))+2)}", end='')
+                    print("^" + message.replace("\n", "\n"+" "*(location.start.column+len(str(index))+2)))
+                    print('\033[m', end='')
+                    continue
                 print()
-            elif (index < location.end.line):
+            elif index == location.end.line:
                 term_colour(colours[severity])
-                print(lines[index-1], end='\033[m')
-                print()
+                print(lines[index-1][0:location.end.column], end='\033[m')
+                print(lines[index-1][location.end.column:len(lines[index-1])], end='')
+                term_colour("black", colours[severity])
+                print(f"\n{' '*(len(str(index))+2)}", end='')
+                print("^" + message.replace("\n", "\n"+" "*(len(str(index))+2)))
+                print('\033[m', end='')
             else:
-                # Print our error message, offset to align with the error.
-                print(f"\n{' '*(location.start.column-1+len(str(index+1))+2)}", end='')
-                term_colour(background=colours[severity])
-                print("^" + message.replace("\n", "\n"+" "*(location.start.column+len(str(index+1))+2)), end='')
-                term_colour("native")
-                print()
-
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                term_colour(colours[severity])
+                print(lines[index-1])
 
 
 # Change the colour of the terminal, using ANSI colour codes.
@@ -80,7 +72,7 @@ def term_colour(text: str="native", background: str="native"):
 
     os.system("") # Gets ANSI colour codes working on windows.
 
-    # If we want our default text colours...
+    # If we want our default text colours w/ custom background...
     if (text == "native"):
         # Reset the terminal colour scheme...
         print('\033[m', end='')
@@ -100,11 +92,3 @@ def remove_comments(text):
         re.compile(r'\s*//.*?$|\s*/\*.*?\*/|\s*\'(?:\\.|\s*[^\\\'])*\'|\s*"(?:\\.|\s*[^\\"])*"',
         re.DOTALL | re.MULTILINE), "", text
     )
-    
-if __name__ == "__main__":
-    idx = clang.cindex.Index.create()
-    tu = idx.parse("unlock.cpp", args=['-std=c++11'])
-    start = SourceLocation.from_position(tu, tu.get_file(tu.spelling), 5, 7)
-    end = SourceLocation.from_position(tu, tu.get_file(tu.spelling), 10, 3)
-    location = SourceRange.from_locations(start, end)
-    print_error(tu, location, "YO!")
