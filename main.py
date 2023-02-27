@@ -9,6 +9,8 @@ from output import *
 from cursorSearch import *
 from missingUnlock import *
 from locks import *
+clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
+
 def main():
 
     # Attempt to get a filename from the command line args.
@@ -75,7 +77,7 @@ def main():
 
             if choice == "1":
                 print("Checking for public mutex members...\n")   
-                public_mutex_members(dataPairs)
+                #public_mutex_members(dataPairs)
             elif choice == "2":
                 print("Checking for immutable objects...\n") 
                 immutable_objects(dataPairs)
@@ -128,13 +130,13 @@ def traverse(cursor: clang.cindex.Cursor):
             # it here! Just simple if-else statements, etc.
             #
             #-------DELETE ME!-------
-            # print("\nDisplay name: ",str(c.displayname) + 
-            #      "\n\tAccess specifier:",str(c.access_specifier) + 
-            #      "\n\tLocation: ("+str(c.location.line)+", "+str(c.location.column)+")"
-            #      "\n\tKind:",str(c.kind)
-            #     )
+            #print("\nDisplay name: ",str(c.displayname) +
+            #    "\n\tAccess specifier:",str(c.access_specifier) +
+            #    "\n\tLocation: ("+str(c.location.line)+", "+str(c.location.column)+")"
+            #    "\n\tKind:",str(c.kind)
+            #  )
             #-------DELETE ME!-------
-            
+            public_mutex_members_API(c)
             traverse(c) # Recursively traverse the tree.
 
 # Saves the tokens of a translation unit into a text file with
@@ -201,6 +203,19 @@ def generate_pairs(translation_unit):
 
     txt.close()
     return dataPairs
+
+def public_mutex_members_API(cursor: clang.cindex.Cursor):
+    if str(cursor.access_specifier) == "AccessSpecifier.PUBLIC":
+        #print(str(cursor.displayname) + " Public")
+        count = 0
+        contains = False
+        for cursor1 in cursor.get_children():
+            count += 1
+            if str(cursor1.displayname) == "class std::mutex" and str(cursor1.kind) == "CursorKind.TYPE_REF":
+                contains = True
+        if contains and count == 2:
+            print("public_mutex_members - Are you sure you want to have a public mutex called " + str(
+                cursor.displayname) + ", Line - " + str(cursor.location.line))
 
 def public_mutex_members(dataPairs):
     is_public = False
