@@ -1,3 +1,5 @@
+import clang.cindex
+
 #Leon Byrne
 #These are class for use with my locks.py file
 #Could remove some and add some type variable instead
@@ -87,10 +89,6 @@ class Scope:
 	#Copies the node's root and returns this copy afterwards
 	def copy(self):
 		rootCopy = self.get_scope_root().root_copy()
-
-		if rootCopy == None:
-			print("How?")
-
 		return rootCopy.get_rightest_leaf()
 
 class Function:
@@ -160,12 +158,15 @@ class LockOrder:
 				if not newOrder in self.orders:
 					self.orders.append(newOrder)
 
-def node_contains(root, node):
+def node_contains(root, node, func):
 	if root == node:
 		return True
+	elif root.kind == clang.cindex.CursorKind.CALL_EXPR and root.spelling in func:
+		if node_contains(func[root.spelling].node, node, func):
+			return True
 	else:
 		for child in root.get_children():
-			if node_contains(child, node):
+			if node_contains(child, node, func):
 				return True
 	return False
 		

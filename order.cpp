@@ -24,9 +24,9 @@ public:
             std::lock_guard<std::mutex> lock(mDataMutex);           // CriticalSection starts
 
             calculate();
-
             mCallback->onSomethingHappend(mInternalState);          // Uh oh! We're calling outside of a locked scope
         }                                                           // CriticalSection ends
+
     }
 
     int readState()
@@ -89,22 +89,22 @@ int main()
 {
     auto callback = std::make_shared<ReEntrantCallbackImpl>();
 
-    std::lock_guard<std::mutex> b(a);
+    //std::lock_guard<std::mutex> b(a);
     int i = test();
 
-    if(true)
-    {
-        i = 5;
-        std::lock_guard<std::mutex> c(x);
-    } else if(i >= 5)
-    {
-        i = 0;
-        std::lock_guard<std::mutex> d(y);
-    } else
-    {
-        i = 10;
-        std::lock_guard<std::mutex> e(z);
-    }
+    // if(true)
+    // {
+    //     i = 5;
+    //     std::lock_guard<std::mutex> c(x);
+    // } else if(i >= 5)
+    // {
+    //     i = 0;
+    //     std::lock_guard<std::mutex> d(y);
+    // } else
+    // {
+    //     i = 10;
+    //     std::lock_guard<std::mutex> e(z);
+    // }
 
     auto myClass = std::make_shared<MyClass>(callback);
     callback->init(myClass);

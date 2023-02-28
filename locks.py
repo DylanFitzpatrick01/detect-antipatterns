@@ -109,6 +109,9 @@ def build_thread(startNode, currentNode, scope, eventSource):
 #-Leon Byrne
 #
 #TODO test if this works right if branching outside of main
+#			It does not
+#			It also does not catch all possible branches
+#			If outside of a function, it won't find else even if in path of exection
 def build_else_thread(startNode, currentNode, elseNode, scope, includeElse: bool):
 	children = list(currentNode.get_children())
 	build = False
@@ -120,11 +123,12 @@ def build_else_thread(startNode, currentNode, elseNode, scope, includeElse: bool
 			build = True
 			if includeElse:
 				build_thread(startNode, children[i], scope, eventSource)
-		elif node_contains(children[i], elseNode):
+		elif node_contains(children[i], elseNode, func):
 			build_else_thread(startNode, children[i], elseNode, scope, includeElse)
 			build = True
-		elif children[i].kind == clang.cindex.CursorKind.CALL_EXPR:
-			build_else_thread(startNode, func[children[i].spelling].node, elseNode, scope)
+
+		if children[i].kind == clang.cindex.CursorKind.CALL_EXPR and children[i].spelling in func:
+			build_else_thread(startNode, func[children[i].spelling].node, elseNode, scope, includeElse)
 		
 
 
@@ -234,9 +238,9 @@ def tests(filename, callAllowed, manualAllowed):
 	#Useful for debugging.
 	#Not really a demo-able thing though
 	#
-	for a in scopes:
-		print("Start")
-		print_scope(a, "")
+	# for a in scopes:
+	# 	print("Start")
+	# 	print_scope(a, "")
 
 if __name__ == "__main__":
 	tests("order.cpp", False, True)
