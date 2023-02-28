@@ -1,0 +1,46 @@
+Error: locking locked mutex at:<SourceLocation file 'while.cpp', line 9, column 9>
+order: 
+a
+a
+Start
+ {
+   {
+     {
+       {
+       }
+     }
+   }
+ }
+Start
+ {
+   {
+     {
+       {
+         {
+           locking:  a
+         }
+         {
+         }
+       }
+     }
+   }
+ }
+Start
+ {
+   {
+     {
+       {
+         {
+           locking:  a
+         }
+         {
+           {
+             locking:  a
+           }
+           {
+           }
+         }
+       }
+     }
+   }
+ }

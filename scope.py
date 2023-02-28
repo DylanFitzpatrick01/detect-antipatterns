@@ -69,7 +69,7 @@ class Scope:
 		if len(self.data) == 1 and type(self.data[0]) == Scope:
 			return self.data[0].get_rightest_leaf()
 
-		for i in range(len(self.data) - 1, -1):
+		for i in range(len(self.data) - 1, -1, -1):
 			if type(self.data[i]) == Scope:
 				return self.data[i].get_rightest_leaf()
 		return self

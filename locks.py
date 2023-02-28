@@ -80,22 +80,34 @@ def build_thread(startNode, currentNode, scope, eventSource):
 	elif currentNode.kind == clang.cindex.CursorKind.WHILE_STMT:
 		children = list(currentNode.get_children())
 
-		#build condition statement
+		#Build condition check -No run
 		whileScope = Scope(scope.scopeClass)
 		scope.add(whileScope)
 		build_thread(startNode, children[0], whileScope, eventSource)
 
-		#build body once
-		singleRunScope = whileScope.copy()
-		build_thread(startNode, children[1], singleRunScope, eventSource)
+		#Build body -One run
+		whileScopeOne = whileScope.copy()
+		scopes.append(whileScopeOne.get_scope_root())
+		build_thread(startNode, children[1], whileScopeOne, eventSource)
 
-		#build body again + all else
-		doubleRunScope = singleRunScope.copy()
-		build_else_thread(startNode, startNode, children[1], doubleRunScope.get_scope_root(), True)
+		#Build condition check -One run
+		whileScopeTwo = Scope(scope.scopeClass)
+		whileScopeOne.add(whileScopeTwo)
+		build_thread(startNode, children[0], whileScopeTwo, eventSource)
 
-		#build rest of single body scope
-		build_else_thread(startNode, currentNode, children[1], singleRunScope.get_scope_root(), False)
+		#Build body -Two runs
+		whileScopeTwo = whileScopeTwo.copy()
+		scopes.append(whileScopeTwo.get_scope_root())
+		build_thread(startNode, children[1], whileScopeTwo, eventSource)
 
+		#Build condition check -Two runs
+		whileScopeThree = Scope(scope.scopeClass)
+		whileScopeTwo.add(whileScopeThree)
+		build_thread(startNode, children[0], whileScopeThree, eventSource)
+
+		#Build all else for one run
+		build_else_thread(startNode, startNode, children[1], whileScopeTwo, False)
+		build_else_thread(startNode, startNode, children[1], whileScopeThree, False)
 	else:
 		#Don't build if-node children. The above is required to handle that
 		for child in currentNode.get_children():
@@ -238,9 +250,9 @@ def tests(filename, callAllowed, manualAllowed):
 	#Useful for debugging.
 	#Not really a demo-able thing though
 	#
-	# for a in scopes:
-	# 	print("Start")
-	# 	print_scope(a, "")
+	for a in scopes:
+		print("Start")
+		print_scope(a, "")
 
 if __name__ == "__main__":
-	tests("order.cpp", False, True)
+	tests("while.cpp", False, True)
