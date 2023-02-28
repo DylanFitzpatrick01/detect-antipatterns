@@ -216,6 +216,32 @@ def public_mutex_members_API(cursor: clang.cindex.Cursor):
         if contains and count == 2:
             print("public_mutex_members - Are you sure you want to have a public mutex called " + str(
                 cursor.displayname) + ", Line - " + str(cursor.location.line))
+    
+def immutable_objects_API(cursor: clang.cindex.Cursor):
+    constCount = 0
+    varCount = 0
+    thresHold = .25
+    notConst = 0
+
+    if str(cursor.displayname) == "const":
+        constCount +=1
+    else:
+        if str(cursor.displayname) == "int" or str(cursor.displayname) == "double" or str(cursor.displayname) == "string" or str(cursor.displayname) == "char" or str(cursor.displayname) == "bool":
+            varCount +=1
+            
+            
+   
+    if constCount > 0 and varCount > 0:
+        notConst = 1 - (constCount / varCount)
+    
+    if notConst <= thresHold and notConst > 0:
+        prettier = round(notConst, 4) * 100
+        print(prettier, "% of your variables in this struct are not constant.")
+        print("We suspect you may want to make this class immutable, however at the moment it isn't.")
+        print("We recommend you examine the code before proceeding.")
+
+    else:
+        print("No errors found for immutable objects.")           
 
 def public_mutex_members(dataPairs):
     is_public = False
@@ -269,7 +295,6 @@ def immutable_objects(dataPairs):
 
     else:
         print("No errors found for immutable objects.")   
-
 
 def missing_unlock(tu):
     search_string = ".lock()"
