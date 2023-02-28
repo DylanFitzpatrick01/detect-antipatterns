@@ -1,17 +1,25 @@
 #include <mutex>
 
 std::mutex a;
+std::mutex b;
+std::mutex c;
+
 
 void test()
 {
+    a.lock();
+
     while(true)
     {
-        a.lock();
+        b.lock();
     }
 }
 
 int main()
 {
-    test();
+    while(true)
+    {
+        test();
+    }
     return 0;
 }
