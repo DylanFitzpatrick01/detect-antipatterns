@@ -169,6 +169,19 @@ def node_contains(root, node, func):
 			if node_contains(child, node, func):
 				return True
 	return False
+
+def was_non_if(root, node, func):
+	if root == node:
+		return False
+	elif root.kind != clang.cindex.CursorKind.IF_STMT:
+		return True
+	else:
+		children = list(root.get_children())
+		for i in range(1, 3):
+			if was_non_if(children[i], node, func) and node_contains(children[i], node, func):
+				return True
+	return False
+
 		
 class WarningList():
 	def __init__(self):
@@ -179,3 +192,24 @@ class WarningList():
 			if w == str:
 				return
 		self.warnings.append(str)
+
+class Paths():
+	def __init__(self):
+		self.paths = list()
+		self.nextPath = -1 #Look a get_next, explains why it starts at -1
+	
+	def copy(self):
+		copy = Paths()
+		copy.paths = self.paths.copy()
+
+		return copy
+
+	def add(self, newPath : bool):
+		self.paths.append(newPath)
+
+	def get_next(self):
+		self.nextPath += 1
+		return self.paths[self.nextPath]
+	
+	def has_next(self):
+		return self.nextPath + 1 < len(self.paths)

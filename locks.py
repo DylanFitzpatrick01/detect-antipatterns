@@ -39,14 +39,96 @@ def get_function(node, dict, functionClass):
 # @Param currentNode:        the node from which building the thread is done
 # @Param scope: 			the current scope which we're in
 # @Param eventSource:       EventSource to notify observers about currentNode       <- Added by Gráinne Ready
-def build_thread(startNode, currentNode, scope, eventSource):
+# def build_thread(startNode, currentNode, scope, eventSource):
+# 	if currentNode.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+# 		newScope = Scope(scope.scopeClass)
+# 		scope.add(newScope)
+# 		scope = newScope
+# 	elif currentNode.kind == clang.cindex.CursorKind.CALL_EXPR:
+# 		eventSource.notifyObservers(currentNode)
+# 		if currentNode.spelling == "lock":
+# 			scope.add(Lock(list(list(currentNode.get_children())[0].get_children())[0].spelling, currentNode.location))
+# 		elif currentNode.spelling == "unlock":
+# 			scope.add(Unlock(list(list(currentNode.get_children())[0].get_children())[0].spelling, currentNode.location))
+# 		elif currentNode.spelling == "lock_guard":
+# 			scope.add(LockGuard(list(currentNode.get_children())[0].spelling, currentNode.location))
+# 		else:
+# 			#Sometimes it's a call expr while not saying it's name
+# 			#It's children will though
+# 			if currentNode.spelling in func:
+# 				newCall = Call(func[currentNode.spelling], currentNode.location)
+# 				scope.add(newCall)
+# 				scope.add(newCall.scope)
+# 				build_thread(startNode, newCall.function.node, newCall.scope, eventSource)
+
+# 	if currentNode.kind == clang.cindex.CursorKind.IF_STMT:
+# 		children = list(currentNode.get_children())
+
+# 		#Build the first child as evalutation could have locking/unlocking in it
+# 		ifScope = Scope(scope.scopeClass)
+# 		scope.add(ifScope)
+# 		build_thread(startNode, children[0], ifScope, eventSource)
+
+# 		#Build inside of if statement
+# 		scopeCopy = ifScope.copy()
+# 		build_else_thread(startNode, startNode, children[1], scopeCopy.get_scope_root(), True)
+# 		scopes.append(scopeCopy.get_scope_root())
+
+# 		#only if has else statement
+# 		if len(children) >= 3:
+# 			build_else_thread(startNode, startNode, children[2], ifScope.get_scope_root(), True)
+# 	elif currentNode.kind == clang.cindex.CursorKind.WHILE_STMT:
+# 		#Doesn't work right -Leon Byrne
+
+# 		children = list(currentNode.get_children())
+
+# 		#Build condition check -No run
+# 		whileScope = Scope(scope.scopeClass)
+# 		scope.add(whileScope)
+# 		build_thread(startNode, children[0], whileScope, eventSource)
+
+# 		#Build body -One run
+# 		whileScopeOne = whileScope.copy()
+# 		scopes.append(whileScopeOne.get_scope_root())
+# 		build_thread(startNode, children[1], whileScopeOne, eventSource)
+
+# 		#Build condition check -One run
+# 		whileScopeTwo = Scope(scope.scopeClass)
+# 		whileScopeOne.parent.add(whileScopeTwo)
+# 		build_thread(startNode, children[0], whileScopeTwo, eventSource)
+
+# 		#Build body -Two runs
+# 		whileScopeTwo = whileScopeTwo.copy()
+# 		scopes.append(whileScopeTwo.get_scope_root())
+# 		build_thread(startNode, children[1], whileScopeTwo, eventSource)
+
+# 		#Build condition check -Two runs
+# 		whileScopeThree = Scope(scope.scopeClass)
+# 		whileScopeTwo.parent.add(whileScopeThree)
+# 		build_thread(startNode, children[0], whileScopeThree, eventSource)
+
+# 		#Build all else for one run
+# 		#build_else_thread(startNode, startNode, children[1], whileScopeTwo.get_scope_root(), False)
+# 		#build_else_thread(startNode, startNode, children[1], whileScopeThree.get_scope_root(), False)
+# 	else:
+# 		#Don't build if-node children. The above is required to handle that
+# 		for child in currentNode.get_children():
+# 			build_thread(startNode, child, scope, eventSource)
+
+#
+def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 	if currentNode.kind == clang.cindex.CursorKind.COMPOUND_STMT:
 		newScope = Scope(scope.scopeClass)
 		scope.add(newScope)
 		scope = newScope
 	elif currentNode.kind == clang.cindex.CursorKind.CALL_EXPR:
-		eventSource.notifyObservers(currentNode)
+		#eventSource.notifyObservers(currentNode)
 		if currentNode.spelling == "lock":
+			if len(list(currentNode.get_children())) <= 0:
+				print(currentNode.location)
+				print("huh")
+				temp = list(list(currentNode.get_children())[0].get_children())
+				print("HUH?")
 			scope.add(Lock(list(list(currentNode.get_children())[0].get_children())[0].spelling, currentNode.location))
 		elif currentNode.spelling == "unlock":
 			scope.add(Unlock(list(list(currentNode.get_children())[0].get_children())[0].spelling, currentNode.location))
@@ -59,59 +141,98 @@ def build_thread(startNode, currentNode, scope, eventSource):
 				newCall = Call(func[currentNode.spelling], currentNode.location)
 				scope.add(newCall)
 				scope.add(newCall.scope)
-				build_thread(startNode, newCall.function.node, newCall.scope, eventSource)
+				#build_thread(startFunc.node, newCall.function.node, newCall.scope, eventSource)
+
+				build_thread(startFunc, newCall.function.node, newCall.scope, eventSource, paths)
 
 	if currentNode.kind == clang.cindex.CursorKind.IF_STMT:
-		children = list(currentNode.get_children())
+		if paths.has_next():
+			children = list(currentNode.get_children())
 
-		#Build the first child as evalutation could have locking/unlocking in it
-		ifScope = Scope(scope.scopeClass)
-		scope.add(ifScope)
-		build_thread(startNode, children[0], ifScope, eventSource)
+			ifScope = Scope(scope.scopeClass)
+			scope.add(ifScope)
+			build_thread(startFunc, children[0], ifScope, eventSource, paths)
 
-		#Build inside of if statement
-		scopeCopy = ifScope.copy()
-		build_else_thread(startNode, startNode, children[1], scopeCopy, True)
-		scopes.append(scopeCopy.get_scope_root())
+			if paths.get_next():
+				build_thread(startFunc, children[1], ifScope, eventSource, paths)
+			else:
+				if len(children):
+					build_thread(startFunc, children[2], ifScope, eventSource, paths)
+		else:
+			# ifPath = paths.copy()
+			# ifPath.add(True)
+			# ifScope = Scope(startFunc.functionClass)
+			# scopes.append(ifScope)
 
-		#only if has else statement
-		if len(children) >= 3:
-			build_else_thread(startNode, startNode, children[2], ifScope, True)
-	elif currentNode.kind == clang.cindex.CursorKind.WHILE_STMT:
-		children = list(currentNode.get_children())
 
-		#Build condition check -No run
-		whileScope = Scope(scope.scopeClass)
-		scope.add(whileScope)
-		build_thread(startNode, children[0], whileScope, eventSource)
+			elsePath = paths.copy()
+			elsePath.add(False)
+			elseScope = Scope(startFunc.functionClass)
+			scopes.append(elseScope)
 
-		#Build body -One run
-		whileScopeOne = whileScope.copy()
-		scopes.append(whileScopeOne.get_scope_root())
-		build_thread(startNode, children[1], whileScopeOne, eventSource)
+			paths.add(True)
+			build_thread(startFunc, currentNode, scope, eventSource, paths)
 
-		#Build condition check -One run
-		whileScopeTwo = Scope(scope.scopeClass)
-		whileScopeOne.add(whileScopeTwo)
-		build_thread(startNode, children[0], whileScopeTwo, eventSource)
 
-		#Build body -Two runs
-		whileScopeTwo = whileScopeTwo.copy()
-		scopes.append(whileScopeTwo.get_scope_root())
-		build_thread(startNode, children[1], whileScopeTwo, eventSource)
+			# build_thread(startFunc, startFunc.node, ifScope, eventSource, ifPath)
+			build_thread(startFunc, startFunc.node, elseScope, eventSource, elsePath)	
+	elif currentNode.kind == clang.cindex.CursorKind.WHILE_STMT:	
+		if paths.has_next():
+			children = list(currentNode.get_children())
 
-		#Build condition check -Two runs
-		whileScopeThree = Scope(scope.scopeClass)
-		whileScopeTwo.add(whileScopeThree)
-		build_thread(startNode, children[0], whileScopeThree, eventSource)
+			whileScope = Scope(scope.scopeClass)
+			scope.add(whileScope)
+			build_thread(startFunc, children[0], whileScope, eventSource, paths)
 
-		#Build all else for one run
-		build_else_thread(startNode, startNode, children[1], whileScopeTwo, False)
-		build_else_thread(startNode, startNode, children[1], whileScopeThree, False)
+			firstPass = paths.has_next() and paths.get_next()
+			secondPass = firstPass and paths.has_next() and paths.get_next()
+			thirdPass = secondPass and paths.has_next() and paths.get_next()
+
+			if firstPass:
+				build_thread(startFunc, children[1], whileScope, eventSource, paths)
+
+				whileScope = Scope(scope.scopeClass)
+				scope.add(whileScope)
+				build_thread(startFunc, children[0], whileScope, eventSource, paths)
+
+				if secondPass:
+					build_thread(startFunc, children[1], whileScope, eventSource, paths)
+
+					whileScope = Scope(scope.scopeClass)
+					scope.add(whileScope)
+					build_thread(startFunc, children[0], whileScope, eventSource, paths)
+
+				
+		else:
+			#build false
+			#build true, false
+			#build true, true, false
+			children = list(currentNode.get_children())
+
+			onceScope = Scope(startFunc.functionClass)
+			scopes.append(onceScope)
+			oncePath = paths.copy()
+			oncePath.add(True)
+			oncePath.add(False)
+
+			twiceScope = Scope(startFunc.functionClass)
+			scopes.append(twiceScope)
+			twicePath = paths.copy()
+			twicePath.add(True)
+			twicePath.add(True)
+			twicePath.add(False)
+
+			paths.add(False)
+
+			build_thread(startFunc, currentNode, scope, eventSource, paths)
+			build_thread(startFunc, startFunc.node, onceScope, eventSource, oncePath)
+			build_thread(startFunc, startFunc.node, twiceScope, eventSource, twicePath)
+
 	else:
-		#Don't build if-node children. The above is required to handle that
 		for child in currentNode.get_children():
-			build_thread(startNode, child, scope, eventSource)
+			build_thread(startFunc, child, scope, eventSource, paths)
+			
+
 
 #When an else is detected this method will build it.
 #Has to restart building and only starts building once elseNode is found.
@@ -132,17 +253,24 @@ def build_else_thread(startNode, currentNode, elseNode, scope, includeElse: bool
 		if build:
 			build_thread(startNode, children[i], scope, eventSource)
 		elif children[i] == elseNode:
-			build = True
+			build = False
 			if includeElse:
 				build_thread(startNode, children[i], scope, eventSource)
-		elif node_contains(children[i], elseNode, func):
-			build_else_thread(startNode, children[i], elseNode, scope, includeElse)
-			build = True
+			return False
+		elif node_contains(children[i], elseNode, func):	
+			if children[i].kind == clang.cindex.CursorKind.COMPOUND_STMT:
+				build = build_else_thread(startNode, children[i], elseNode, scope.data[-1], includeElse)
+			elif children[i].kind == clang.cindex.CursorKind.WHILE_STMT:
+				build = build_else_thread(startNode, children[i], elseNode, scope.data[-1], includeElse)
+			else:
+				build = build_else_thread(startNode, children[i], elseNode, scope, includeElse)
 
 		if children[i].kind == clang.cindex.CursorKind.CALL_EXPR and children[i].spelling in func:
-			build_else_thread(startNode, func[children[i].spelling].node, elseNode, scope, includeElse)
-		
+			build = build_else_thread(startNode, func[children[i].spelling].node, elseNode, scope.data[-1], includeElse)
+	
 
+			
+	return build or currentNode.kind == clang.cindex.CursorKind.IF_STMT
 
 #Leon Byrne
 #Runs through a scope and examines it for locks and unlocks
@@ -230,7 +358,9 @@ def tests(filename, callAllowed, manualAllowed):
 
 	mainScope = Scope(None)
 	scopes.append(mainScope)
-	build_thread(func['main'].node, func['main'].node, mainScope, eventSource)
+	#build_thread(func['main'].node, func['main'].node, mainScope, eventSource)
+
+	build_thread(func['main'], func['main'].node, mainScope, eventSource, Paths())
 
 	warningList = WarningList()
 	for scope in scopes:
