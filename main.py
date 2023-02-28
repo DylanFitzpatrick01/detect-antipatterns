@@ -271,9 +271,10 @@ def missing_unlock(tu):
         if result == True:
             print("")
         else:
-            print(" Manual lock was found within the following scope : \n Line ", str(cursor.extent.start.line),
-             " -> Line ", str( cursor.extent.end.line), 
-             "\n No manual unlock was detected within the same scope,\n are you missing a call to '", caller, ".unlock()'?")
+            print_error(tu, cursor.extent,
+                        ("Manual lock was found within the above scope." +
+                         "\nNo manual unlock was detected within the same scope," + 
+                         "\nare you missing a call to '" + caller + ".unlock()'?"))
             errors = True
 
     if errors == False:

@@ -1,6 +1,5 @@
 import os, re
 from clang.cindex import TranslationUnit, SourceLocation, SourceRange
-import clang
 from colours import *
 
 # prints the given error message in a fancy way.
@@ -41,6 +40,7 @@ def print_error(tu: TranslationUnit,
             print(f"{index}: {lines[index-1]}")
             term_colour("native")
         else:
+            print('\033[m', end='')
             print(f"{index}: ", end='')
             if index == location.start.line:
                 print(lines[index-1][0:location.start.column-1], end=text_colours[colours[severity]])
@@ -48,7 +48,7 @@ def print_error(tu: TranslationUnit,
                 if location.start.line == location.end.line:
                     term_colour("black", colours[severity])
                     print(f"\n{' '*(location.start.column+len(str(index))+2)}", end='')
-                    print("^" + message.replace("\n", "\n"+" "*(location.start.column+len(str(index))+2)))
+                    print("^ " + message.replace("\n", "\n"+" "*(location.start.column+len(str(index))+4)))
                     print('\033[m', end='')
                     continue
                 print()
@@ -58,7 +58,7 @@ def print_error(tu: TranslationUnit,
                 print(lines[index-1][location.end.column:len(lines[index-1])], end='')
                 term_colour("black", colours[severity])
                 print(f"\n{' '*(len(str(index))+2)}", end='')
-                print("^" + message.replace("\n", "\n"+" "*(len(str(index))+2)))
+                print("^ " + message.replace("\n", "\n"+" "*(len(str(index))+4)))
                 print('\033[m', end='')
             else:
                 term_colour(colours[severity])
