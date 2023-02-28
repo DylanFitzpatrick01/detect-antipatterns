@@ -105,8 +105,9 @@ def main():
 #
 def traverse(cursor: clang.cindex.Cursor):
 
+    # For every cursor in the AST...
     c: clang.cindex.Cursor
-    for c in cursor.get_children():
+    for c in cursor.walk_preorder():
 
         # This line makes sure that the line of code our cursor points to
         # is in the same file that our translation unit is analysing.
@@ -128,16 +129,7 @@ def traverse(cursor: clang.cindex.Cursor):
             # Keep logic in this function light. You should call a function
             # outside of this one if you're running bulky code. Don't put
             # it here! Just simple if-else statements, etc.
-            #
-            #-------DELETE ME!-------
-            # print("\nDisplay name: ",str(c.displayname) + 
-            #      "\n\tAccess specifier:",str(c.access_specifier) + 
-            #      "\n\tLocation: ("+str(c.location.line)+", "+str(c.location.column)+")"
-            #      "\n\tKind:",str(c.kind)
-            #     )
-            #-------DELETE ME!-------
-            
-            traverse(c) # Recursively traverse the tree.
+            pass
 
 # Saves the tokens of a translation unit into a text file with
 # a given filename.
