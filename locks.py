@@ -286,12 +286,12 @@ def examine_thread(scope, lock_list, warnings, callAllowed, manualAllowed):
 						warnings.add("Error at: " + b.location)
 		elif type(a) == Lock:
 			if not manualAllowed:
-				warnings.add("Manual locking at :" + a.location + "\n	RAII is preferred")
+				warnings.add("Manual locking in file: " + str(a.location.file) + " at line: " + str(a.location.line) + "\n  RAII is preferred")
 			if lock_list.lock(a):
 				warnings.add("Error: locking locked mutex at:" + str(a.location))
 		elif type(a) == Unlock:
 			if not manualAllowed:
-				warnings.add("Manual unlocking at: " + a.location + "\n	RAII is preferred")
+				warnings.add("Manual unlocking in file: " + str(a.location.file) + " at line: " + str(a.location.line) + "\n  RAII is preferred")
 			lock_list.unlock(a)
 		elif type(a) == LockGuard:
 			if lock_list.lock(a):
@@ -367,22 +367,24 @@ def tests(filename, callAllowed, manualAllowed):
 		locks = Locked()
 		examine_thread(scope, locks, warningList, callAllowed, manualAllowed)
 
-	for str in warningList.warnings:
-		print(str)
+	# for str in warningList.warnings:
+	# 	print(str)
 
 	#might leve in as is useful to show that we catalogue the orders
-	for o in order.orders:
-		print("order: ")
-		for m in o:
-			print(m)
+	# for o in order.orders:
+	# 	print("order: ")
+	# 	for m in o:
+	# 		print(m)
 		#check_lock_order(o)
 
 	#Useful for debugging.
 	#Not really a demo-able thing though
 	#
-	for a in scopes:
-		print("Start")
-		print_scope(a, "")
+	# for a in scopes:
+	# 	print("Start")
+	# 	print_scope(a, "")
+
+	return warningList.warnings
 
 if __name__ == "__main__":
-	tests("while.cpp", False, True)
+	tests("cpp_tests/while.cpp", True, False)
