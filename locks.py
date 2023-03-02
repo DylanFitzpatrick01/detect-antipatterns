@@ -268,9 +268,9 @@ def run_checks(filename, callAllowed, manualAllowed):
 	#Useful for debugging.
 	#Not really a demo-able thing though
 	#
-	for a in scopes:
-		print("Start")
-		print_scope(a, "")
+	# for a in scopes:
+	# 	print("Start")
+	# 	print_scope(a, "")
 
 	return warningList.warnings
 
