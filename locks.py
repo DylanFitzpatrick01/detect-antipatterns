@@ -4,8 +4,6 @@ from observer import *
 
 #TODO some types of locking is not detected
 #TODO recursion breaks this
-#TODO no handling is given to re-assignments
-#TODO if-else branching is not handled correctly, or at all
 #TODO parse through lock orders to detect possible errors
 #TODO maybe reduce scope to widest necessary, for easy viewing
 

@@ -1,11 +1,6 @@
-import clang.cindex
-
 #Leon Byrne
 #These are class for use with my locks.py file
 #Could remove some and add some type variable instead
-
-#TODO split orders down into just two mutexes, easier to check orders
-#TODO maybe hold onto permutations of given orders too, adding one will give an error
 
 class Scope:
 	def __init__(self, scopeClass):
