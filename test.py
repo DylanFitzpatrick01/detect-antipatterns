@@ -8,34 +8,34 @@ from locks import *
 
 def test_save_tokens():
 
-		# Our C++ 'file'
-		cpp_file = '''
-		int main(int x, int y)
-		{
-				return x + y
-		}
-		'''
+	# Our C++ 'file'
+	cpp_file = '''
+	int main(int x, int y)
+	{
+		return x + y
+	}
+	'''
 
-		# The filename we'll be writing to.
-		filename = "TESTING.txt"
+	# The filename we'll be writing to.
+	filename = "TESTING.txt"
 
-		# Generate the translation unit from our 'file'.
-		idx = clang.cindex.Index.create()
-		tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
-								unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
+	# Generate the translation unit from our 'file'.
+	idx = clang.cindex.Index.create()
+	tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
+                  unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
 		
-		# Save the AST of the translation unit
-		save_tokens(tu, filename)
+	# Save the AST of the translation unit
+	save_tokens(tu, filename)
 
-		# Get the contents of the AST text file.
-		file_string = open(filename, "r").read()
+	# Get the contents of the AST text file.
+	file_string = open(filename, "r").read()
 
-		# We don't need the file anymore
-		with suppress(FileNotFoundError):
-				os.remove(filename)
+	# We don't need the file anymore
+	with suppress(FileNotFoundError):
+		os.remove(filename)
 
-		# Make sure we get the AST we expect.
-		assert file_string == '''int <- type = KEYWORD
+	# Make sure we get the AST we expect.
+	assert file_string == '''int <- type = KEYWORD
 main <- type = IDENTIFIER
 ( <- type = PUNCTUATION
 int <- type = KEYWORD
@@ -70,6 +70,77 @@ def test_count_tokens():
 		# Make sure we get the number of tokens we expect.
 		assert count_tokens(tu) == 13
 
+		# Generate the translation unit from our 'file'.
+		idx = clang.cindex.Index.create()
+		tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
+								unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
+		
+		# Make sure we get the number of tokens we expect.
+		assert count_tokens(tu) == 13
+
+def test_isUnlockCalled(): 
+
+		# Our C++ 'file'
+		cpp_file = '''
+		class ourType 
+		{
+				public:
+				void lock();
+				void unlock();
+		};
+
+		int main()
+		{
+				ourType member1;
+				member1.lock();
+				ourType member2;
+				member2.unlock();
+		}
+		'''
+
+		# Generate the translation unit from our 'file'.
+		idx = clang.cindex.Index.create()
+		tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
+								unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
+		cursor = tu.cursor
+		
+		# Make sure we get that unlock is called
+		assert isUnlockCalled(cursor, "member2") == True
+		assert isUnlockCalled(cursor,"member3") == False
+
+def test_findCaller():
+		
+		# Our C++ 'file'
+		cpp_file = '''
+		class ourType 
+		{
+				public:
+				void lock();
+				void unlock();
+		};
+
+		int main()
+		{
+				ourType member1;
+				member1.lock();
+				ourType member2;
+				member2.unlock();
+		}
+		'''
+		# Generate the translation unit from our 'file'.
+		idx = clang.cindex.Index.create()
+		tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
+								unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
+		cursor = tu.cursor
+
+		# Make sure we get “member1”
+		assert findCaller(cursor, "lock") == "member1"
+
+		# try:
+				# assert findCaller(cursor, "lock") == "member1"
+		# except AssertionError:
+		#     print(findCaller(cursor, "lock"))
+	 
 #Leon Byrne
 def test_manual_detection():
 		#Testing that nestling in if statements doesn't interfere
@@ -90,15 +161,14 @@ def test_manual_detection():
 	for str in out:
 		assert str in expected
 
-
 	#Test that locking in other functions is detected correctly
 	out = run_checks("cpp_tests/manual_detection_1.cpp", True, False)
 
 	expected = ["Manual locking in file: cpp_tests/manual_detection_1.cpp at line: 9\n	RAII is preferred",
-	     				"Manual locking in file: cpp_tests/manual_detection_1.cpp at line: 10\n	RAII is preferred",
-	     				"Manual unlocking in file: cpp_tests/manual_detection_1.cpp at line: 14\n	RAII is preferred",
-	     				"Manual unlocking in file: cpp_tests/manual_detection_1.cpp at line: 17\n	RAII is preferred",
-	     				"Manual locking in file: cpp_tests/manual_detection_1.cpp at line: 28\n	RAII is preferred"
+							 "Manual locking in file: cpp_tests/manual_detection_1.cpp at line: 10\n	RAII is preferred",
+							 "Manual unlocking in file: cpp_tests/manual_detection_1.cpp at line: 14\n	RAII is preferred",
+							 "Manual unlocking in file: cpp_tests/manual_detection_1.cpp at line: 17\n	RAII is preferred",
+							 "Manual locking in file: cpp_tests/manual_detection_1.cpp at line: 28\n	RAII is preferred"
 	]
 	
 	#Doesn't matter the order, only that all are in the output from tests()

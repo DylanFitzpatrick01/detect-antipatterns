@@ -4,6 +4,7 @@ from datapair import *
 from locks import *
 from missingUnlock import *
 from public_mutex import *
+from output import *
 # clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
 def main():
@@ -102,8 +103,9 @@ def main():
 # https://www.geeksforgeeks.org/generic-treesn-array-trees/
 #
 def traverse(cursor: clang.cindex.Cursor):
+    # For every cursor in the AST...
     c: clang.cindex.Cursor
-    for c in cursor.get_children():
+    for c in cursor.walk_preorder():
 
         # This line makes sure that the line of code our cursor points to
         # is in the same file that our translation unit is analysing.
@@ -125,16 +127,8 @@ def traverse(cursor: clang.cindex.Cursor):
             # Keep logic in this function light. You should call a function
             # outside of this one if you're running bulky code. Don't put
             # it here! Just simple if-else statements, etc.
-            #
-            #-------DELETE ME!-------
-            #print("\nDisplay name: ",str(c.displayname) +
-            #    "\n\tAccess specifier:",str(c.access_specifier) +
-            #    "\n\tLocation: ("+str(c.location.line)+", "+str(c.location.column)+")"
-            #    "\n\tKind:",str(c.kind)
-            #  )
-            #-------DELETE ME!-------
-            public_mutex_members_API(c)
-            traverse(c) # Recursively traverse the tree.
+            pass
+           
 
 
 # Saves the tokens of a translation unit into a text file with
@@ -230,9 +224,10 @@ def missing_unlock(tu):
         if result == True:
             print("")
         else:
-            print(" Manual lock was found within the following scope : \n Line ", str(cursor.extent.start.line),
-             " -> Line ", str( cursor.extent.end.line), 
-             "\n No manual unlock was detected within the same scope,\n are you missing a call to '", caller, ".unlock()'?")
+            print_error(tu, cursor.extent,
+                        ("Manual lock was found within the above scope." +
+                         "\nNo manual unlock was detected within the same scope," + 
+                         "\nare you missing a call to '" + caller + ".unlock()'?"))
             errors = True
 
     if errors == False:
