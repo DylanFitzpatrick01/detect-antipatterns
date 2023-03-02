@@ -2,7 +2,7 @@
 
 # SIDENOTE: If you think of any edge cases to test this with, or ways that I can improve the code, pls let me know! :)
 # SIDENOTE: Call the 'def checkIfMembersLockedInSomeMethods(file_path : str):' function to check for the anti-pattern
-# TODO: Add tests in test.py
+# TODO: Add handling for nested methods (e.g. calculate() in order.cpp gives a false error)
 # TODO: Add handling for if-else statements, do-while loops, while-loops etc.. (LOT of this to do, at the moment these can pass when they shouldn't)
 
 from output import *
@@ -12,13 +12,13 @@ import clang.cindex
 # Gráinne Ready
 # Looks for a node that is a class declaration, and then checks if there are class variables that are lock_guarded in some, but not all, of the class' methods
 class lockedInSomeObserver(Observer):
-    def __init__(self):
+    def __init__(self, translationUnit):
         self.classes = []
         self.foundErrors = False
+        self.output = ""
 
 
     def update(self, currentNode):
-        tu = clang.cindex.Index.create().parse('lock_in_some_methods.cpp')
         if currentNode not in self.classes:
             if currentNode.kind == clang.cindex.CursorKind.CLASS_DECL:
                 self.classes.append(currentNode)
@@ -36,6 +36,9 @@ class lockedInSomeObserver(Observer):
                                 if lock.extent.start.line < method_variable.extent.start.line:
                                     if method_variable.displayname in variables_under_lock:
                                         if variables_under_lock[method_variable.displayname] == False:
+                                            self.output += f"""Data member '{method_variable.displayname}' is accessed with a lock_guard in this method,
+but is accessed without a lock_guard in other methods
+ Are you missing a lock_guard in other methods which use '{method_variable.displayname}'?"""
                                             # At the moment, this error prints the function that contains the lock_guard. It might be better to make it print the functions which don't have a lock_guard
                                             print_error(method_variable.translation_unit, method.extent, 
                                                         f"Data member '{method_variable.displayname}' is accessed with a lock_guard in this method, "+
@@ -47,6 +50,9 @@ class lockedInSomeObserver(Observer):
                         else:
                             if method_variable.displayname in variables_under_lock:
                                 if variables_under_lock[method_variable.displayname] == True:
+                                    self.output += f"""Data member '{method_variable.displayname}' is accessed without a lock_guard in this method,
+but is accessed with a lock_guard in other methods
+ Are you missing a lock_guard before '{method_variable.displayname}'?"""
                                     print_error(method_variable.translation_unit, method.extent, 
                                                 f"Data member '{method_variable.displayname}' is accessed without a lock_guard in this method, "+
                                                 f"but is accessed with a lock_guard in other methods\n "+
@@ -55,6 +61,7 @@ class lockedInSomeObserver(Observer):
                             else:
                                 variables_under_lock[method_variable.displayname] = False
                 if (not self.foundErrors):
+                    self.output += "PASSED - For data members locked in some but not all methods"
                     print("PASSED - For data members locked in some but not all methods")
 
 
@@ -65,11 +72,13 @@ class lockedInSomeObserver(Observer):
 #    then an error is printed to the terminal which includes the name of the data member, and the scope of the method the data member is in
 # Else, it will print out 'PASSED TEST - For data members locked in some but not all methods'
 # @Param file_path: The path of the c++ file to check
+# @Return locked_in_some_observer.output: The output of the observer which checks for the antipattern (Output is also printed to terminal)
 def checkIfMembersLockedInSomeMethods(file_path : str):
     eventSrc = EventSource()
-    locked_in_some_observer = lockedInSomeObserver()
+    locked_in_some_observer = lockedInSomeObserver(clang.cindex.Index.create().parse(file_path))
     eventSrc.addObserver(locked_in_some_observer)
     searchNodes(file_path, eventSrc)
+    return locked_in_some_observer.output
         
     
 # Gráinne Ready
@@ -161,4 +170,4 @@ def getLockGuardsInMethod(methodCursor):
 
 
 if __name__ == "__main__":
-    checkIfMembersLockedInSomeMethods("lock_in_some_methods.cpp")
+    checkIfMembersLockedInSomeMethods("err_lock_in_some_methods.cpp")

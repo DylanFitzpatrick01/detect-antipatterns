@@ -28,6 +28,7 @@ void updateState(const std::string& input)
 
 void logState()
 {
+    std::lock_guard<std::mutex> lock(mDataAccess);
     std::cout << "Current state: " << mState << "\n";       // Uh-oh - reading here but, missing lock.
 }
 
