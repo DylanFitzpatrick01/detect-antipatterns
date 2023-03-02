@@ -83,7 +83,7 @@ def main():
                 missing_unlock(tu)
             elif choice == "4":
                 print("Checking the order of mutexes and whether mutexes are called out of scope\n")
-                tests(s, False, True)   
+                run_checks(s, False, True)   
             else:
                 print("Shouldn't get here.")     
 
