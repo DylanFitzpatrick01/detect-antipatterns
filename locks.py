@@ -181,7 +181,7 @@ def examine_thread(scope, lock_list, warnings, callAllowed, manualAllowed):
 			if lock_list.lock(a):
 				warnings.add("Error at: " + str(a.location))
 		elif type(a) == Call:
-			if (not callAllowed) and lock_list.order and (scope.scopeClass != a.function.functionClass or a.function.functionClass == None):
+			if (not callAllowed) and lock_list.order and (a.function.functionClass == None or scope.scopeClass != a.function.functionClass):
 				warnings.add("Called: " + a.function.node.spelling + " from a locked scope in file: " + str(a.location.file) + " at line: " + str(a.location.line))
 				
 		order.add(lock_list.get_order())
