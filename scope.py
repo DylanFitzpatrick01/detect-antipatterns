@@ -18,79 +18,6 @@ class Scope:
 		if type(statement) == Scope:
 			statement.parent = self
 
-	def get_non_empty(self):
-		returned = None
-		for a in self.data:
-			if type(a) != Scope:
-				return self
-			else:
-				if returned == None:
-					if a.get_non_empty() != None:
-						returned = a.get_non_empty
-				else:
-					if a.get_non_empty() != None:
-						return self
-		
-		return returned
-
-	def empty(self):
-		for a in self.data:
-			if type(a) != Scope:
-				return False
-			else:
-				if not a.empty():
-					return False
-
-		return True 
-
-	def contains(self, object):
-		for a in self.data:
-			if a == object:
-				return True
-			elif type(a) == Scope:
-				if a.contains(object):
-					return True
-		return False
-
-	#Returns the root of a given scope
-	def get_scope_root(self):
-		if self.parent != None:
-			return self.parent.get_scope_root()
-		else:
-			return self
-
-	#gets the rightest, or the last added scope
-	def get_rightest_leaf(self):
-		#I don't know why but if len is 1 the for loop below is skipped
-		#Weird but not an impossible fix
-		#
-		#No, this annoyed me to no end. I may be stupid but why?
-		#-Leon Byrne
-		if len(self.data) == 1 and type(self.data[0]) == Scope:
-			return self.data[0].get_rightest_leaf()
-
-		for i in range(len(self.data) - 1, -1, -1):
-			if type(self.data[i]) == Scope:
-				return self.data[i].get_rightest_leaf()
-		return self
-
-	#Copies the root node and all other nodes downwards
-	def root_copy(self):
-		copy = Scope(self.scopeClass)
-
-		for a in self.data:
-			if type(a) == Scope:
-				copy.add(a.root_copy())
-			else:
-				#No need to copy lock objects and such. Reference will do
-				copy.add(a)
-		return copy
-
-	#Copies the node's root and returns this copy afterwards
-	def copy(self):
-		rootCopy = self.get_scope_root().root_copy()
-		return rootCopy.get_rightest_leaf()
-
 class Function:
 	def __init__(self, node, functionClass):
 		self.node = node
@@ -157,31 +84,6 @@ class LockOrder:
 				newOrder = [order[i], order[j]]
 				if not newOrder in self.orders:
 					self.orders.append(newOrder)
-
-def node_contains(root, node, func):
-	if root == node:
-		return True
-	elif root.kind == clang.cindex.CursorKind.CALL_EXPR and root.spelling in func:
-		if node_contains(func[root.spelling].node, node, func):
-			return True
-	else:
-		for child in root.get_children():
-			if node_contains(child, node, func):
-				return True
-	return False
-
-def was_non_if(root, node, func):
-	if root == node:
-		return False
-	elif root.kind != clang.cindex.CursorKind.IF_STMT:
-		return True
-	else:
-		children = list(root.get_children())
-		for i in range(1, 3):
-			if was_non_if(children[i], node, func) and node_contains(children[i], node, func):
-				return True
-	return False
-
 		
 class WarningList():
 	def __init__(self):
