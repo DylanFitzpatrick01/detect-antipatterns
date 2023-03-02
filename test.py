@@ -2,6 +2,7 @@ import clang.cindex
 from main import *
 from contextlib import suppress
 import os
+import pytest
 
 from locks import *
 
