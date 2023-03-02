@@ -12,7 +12,7 @@ public:
 
     }
 
-    std::mutex mDataAccess1;                                     // Notice that the mutex is public!
+    //std::mutex mDataAccess1;                                     // Notice that the mutex is public!
     std::string getState()
     {
         std::lock_guard<std::mutex> lock(mDataAccess2);          // Correctly locking for a read
@@ -30,7 +30,7 @@ public:
         std::mutex mDataAccess4;
     }
 
-    std::mutex mDataAccess2;                                     // Notice that the mutex is public!
+    //std::mutex mDataAccess2;                                     // Notice that the mutex is public!
 
 protected:
     std::mutex mDataAccess5;                                     // protected

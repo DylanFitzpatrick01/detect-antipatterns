@@ -1,7 +1,8 @@
 import clang.cindex
-from main import *
+import main
 from contextlib import suppress
 import os
+import pytest
 
 def test_save_tokens():
 
@@ -22,7 +23,7 @@ def test_save_tokens():
                 unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
     
     # Save the AST of the translation unit
-    save_tokens(tu, filename)
+    main.save_tokens(tu, filename)
 
     # Get the contents of the AST text file.
     file_string = open(filename, "r").read()
@@ -129,3 +130,29 @@ def test_findCaller():
         # assert findCaller(cursor, "lock") == "member1"
     # except AssertionError:
     #     print(findCaller(cursor, "lock"))
+   
+
+
+def test_public_mutex_members_API():
+    #test public.cpp file
+    print("First file - with public mutexes")
+    idx = clang.cindex.Index.create()
+    tu = idx.parse("public.cpp", args=['-std=c++11'])
+    main.traverse(tu.cursor)
+    if len(main.cursor_lines) != 0:
+        print("Public mutexes found on lines " + main.cursor_lines)
+    else:
+        print("No public mutexes found")
+    assert main.cursor_lines == "15 33 " #there is 2 public mutexes each located in on of the lines of cpp file
+
+    # test public1.cpp file
+    print("Second file - without public mutexes")
+    main.cursor_lines = ""
+    idx1 = clang.cindex.Index.create()
+    tu1 = idx1.parse("public1.cpp", args=['-std=c++11'])
+    main.traverse(tu1.cursor)
+    if len(main.cursor_lines) != 0:
+        print("Public mutexes found on lines " + main.cursor_lines)
+    else:
+        print("No public mutexes found")
+    assert main.cursor_lines == "" #no public mutexes so no line number is outputed
