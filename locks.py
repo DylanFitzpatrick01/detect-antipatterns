@@ -286,12 +286,12 @@ def examine_thread(scope, lock_list, warnings, callAllowed, manualAllowed):
 						warnings.add("Error at: " + b.location)
 		elif type(a) == Lock:
 			if not manualAllowed:
-				warnings.add("Manual locking in file: " + str(a.location.file) + " at line: " + str(a.location.line) + "\n  RAII is preferred")
+				warnings.add("Manual locking in file: " + str(a.location.file) + " at line: " + str(a.location.line) + "\n	RAII is preferred")
 			if lock_list.lock(a):
 				warnings.add("Error: locking locked mutex at:" + str(a.location))
 		elif type(a) == Unlock:
 			if not manualAllowed:
-				warnings.add("Manual unlocking in file: " + str(a.location.file) + " at line: " + str(a.location.line) + "\n  RAII is preferred")
+				warnings.add("Manual unlocking in file: " + str(a.location.file) + " at line: " + str(a.location.line) + "\n	RAII is preferred")
 			lock_list.unlock(a)
 		elif type(a) == LockGuard:
 			if lock_list.lock(a):
@@ -349,8 +349,12 @@ eventSource = EventSource()
 lock_guard_observer = concreteObserver("std::lock_guard<std::mutex>")
 eventSource.addObserver(lock_guard_observer)
 
-
-def tests(filename, callAllowed, manualAllowed):
+#Renamed to not interfere with pytest
+def run_checks(filename, callAllowed, manualAllowed):
+	#I despise How long it took to notice that I needed to clear it between tests
+	scopes.clear()
+	func.clear()
+	order.orders.clear()
 	index = clang.cindex.Index.create()
 	tu = index.parse(filename)
 
@@ -367,8 +371,8 @@ def tests(filename, callAllowed, manualAllowed):
 		locks = Locked()
 		examine_thread(scope, locks, warningList, callAllowed, manualAllowed)
 
-	for str in warningList.warnings:
-		print(str)
+	# for str in warningList.warnings:
+	# 	print(str)
 
 	#might leve in as is useful to show that we catalogue the orders
 	# for o in order.orders:
@@ -380,11 +384,11 @@ def tests(filename, callAllowed, manualAllowed):
 	#Useful for debugging.
 	#Not really a demo-able thing though
 	#
-	# for a in scopes:
-	# 	print("Start")
-	# 	print_scope(a, "")
+	for a in scopes:
+		print("Start")
+		print_scope(a, "")
 
 	return warningList.warnings
 
 if __name__ == "__main__":
-	tests("cpp_tests/calling_out_of_locked_scope_1.cpp", False, True)
+	run_checks("cpp_tests/calling_out_of_locked_scope_0.cpp", False, True)
