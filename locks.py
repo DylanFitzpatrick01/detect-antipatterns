@@ -184,7 +184,7 @@ lock_guard_observer = concreteObserver("std::lock_guard<std::mutex>")
 eventSource.addObserver(lock_guard_observer)
 
 
-def tests(filename, callAllowed, manualAllowed):
+def l_tests(filename, callAllowed, manualAllowed):
 	index = clang.cindex.Index.create()
 	tu = index.parse(filename)
 
@@ -217,4 +217,4 @@ def tests(filename, callAllowed, manualAllowed):
 	# 	print_scope(a, "")
 
 if __name__ == "__main__":
-	tests("order.cpp", False, True)
+	l_tests("order.cpp", False, True)

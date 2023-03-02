@@ -7,11 +7,8 @@ def isUnlockCalled(cursor:clang.cindex.Cursor, caller_name):
     toks = list(cursor.get_tokens())
     for i in range (len(toks)):
         if(toks[i].spelling == "unlock"):
-            print("first")
             if(toks[i-2].spelling == caller_name and toks[i-1].spelling == "." ):
                 return True
-            else:
-                print(toks[i-2].spelling + toks[i-1].spelling + "unlock")
     return False
 
 
@@ -19,5 +16,5 @@ def isUnlockCalled(cursor:clang.cindex.Cursor, caller_name):
 def findCaller(cursor:clang.cindex.Cursor, name):
     toks = list(cursor.get_tokens())
     for i in range (len(toks)):
-        if(toks[i].spelling == name):
+        if(toks[i].spelling == name and toks[i-1].spelling == "."):
             return toks[i-2].spelling

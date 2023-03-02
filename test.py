@@ -66,7 +66,71 @@ def test_count_tokens():
                 unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
     
     # Make sure we get the number of tokens we expect.
-    assert main.count_tokens(tu) == 13
+    assert count_tokens(tu) == 13
+
+def test_isUnlockCalled(): 
+
+    # Our C++ 'file'
+    cpp_file = '''
+    class ourType 
+    {
+        public:
+        void lock();
+        void unlock();
+    };
+
+    int main()
+    {
+        ourType member1;
+        member1.lock();
+        ourType member2;
+        member2.unlock();
+    }
+    '''
+
+    # Generate the translation unit from our 'file'.
+    idx = clang.cindex.Index.create()
+    tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
+                unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
+    cursor = tu.cursor
+    
+    # Make sure we get that unlock is called
+    assert isUnlockCalled(cursor, "member2") == True
+    assert isUnlockCalled(cursor,"member3") == False
+
+def test_findCaller():
+    
+    # Our C++ 'file'
+    cpp_file = '''
+    class ourType 
+    {
+        public:
+        void lock();
+        void unlock();
+    };
+
+    int main()
+    {
+        ourType member1;
+        member1.lock();
+        ourType member2;
+        member2.unlock();
+    }
+    '''
+    # Generate the translation unit from our 'file'.
+    idx = clang.cindex.Index.create()
+    tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
+                unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
+    cursor = tu.cursor
+
+    # Make sure we get “member1”
+    assert findCaller(cursor, "lock") == "member1"
+
+    # try:
+        # assert findCaller(cursor, "lock") == "member1"
+    # except AssertionError:
+    #     print(findCaller(cursor, "lock"))
+   
 
 
 def test_public_mutex_members_API():
