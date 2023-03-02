@@ -123,7 +123,7 @@ def test_findCaller():
     cursor = tu.cursor
 
     # Make sure we get “member1”
-    assert findCaller(cursor, "lock()") == "member1"
+    assert findCaller(cursor, "lock") == "member1"
 
     # try:
         # assert findCaller(cursor, "lock") == "member1"
