@@ -156,7 +156,7 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 			if paths.get_next():
 				build_thread(startFunc, children[1], ifScope, eventSource, paths)
 			else:
-				if len(children):
+				if len(children) > 2:
 					build_thread(startFunc, children[2], ifScope, eventSource, paths)
 		else:
 			# ifPath = paths.copy()
@@ -298,7 +298,7 @@ def examine_thread(scope, lock_list, warnings, callAllowed, manualAllowed):
 				warnings.add("Error at: " + str(a.location))
 		elif type(a) == Call:
 			if (not callAllowed) and lock_list.order and (scope.scopeClass != a.function.functionClass or a.function.functionClass == None):
-				warnings.add("Error: called out of scope: " + a.function.node.spelling + " at: " + str(a.location))
+				warnings.add("Called: " + a.function.node.spelling + " from a locked scope in file: " + str(a.location.file) + " at line: " + str(a.location.line))
 				
 		order.add(lock_list.get_order())
 
@@ -367,8 +367,8 @@ def tests(filename, callAllowed, manualAllowed):
 		locks = Locked()
 		examine_thread(scope, locks, warningList, callAllowed, manualAllowed)
 
-	# for str in warningList.warnings:
-	# 	print(str)
+	for str in warningList.warnings:
+		print(str)
 
 	#might leve in as is useful to show that we catalogue the orders
 	# for o in order.orders:
@@ -387,4 +387,4 @@ def tests(filename, callAllowed, manualAllowed):
 	return warningList.warnings
 
 if __name__ == "__main__":
-	tests("cpp_tests/while.cpp", True, False)
+	tests("cpp_tests/calling_out_of_locked_scope_1.cpp", False, True)
