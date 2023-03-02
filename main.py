@@ -4,7 +4,7 @@ from datapair import *
 from locks import *
 from missingUnlock import *
 from public_mutex import *
-clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
+# clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
 def main():
 

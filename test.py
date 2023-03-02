@@ -2,6 +2,7 @@ import clang.cindex
 import main
 from contextlib import suppress
 import os
+import pytest
 
 def test_save_tokens():
 
