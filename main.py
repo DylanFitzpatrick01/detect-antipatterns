@@ -10,89 +10,33 @@ from output import *
 
 def main():
 
-    # Attempt to get a filename from the command line args.
-    # If that fails, ask the user.
-    # If both fail, give up.
-    quit = False
-    while quit == False:
         
-        exist = True
-        s = ""
-        try:
-            if (len(sys.argv) > 1):
-                s = sys.argv[1]
-            else:
-                s = input("\nEnter the name of the file you'd like to analyse or 'quit' to quit\n > ")
-            open(s)
+    exist = True
+    s = ""
+    try:
+        if (len(sys.argv) > 1):
+            s = sys.argv[1]
+        else:
+            s = input("\nEnter the name of the file you'd like to analyse or 'quit' to quit\n > ")
+        open(s)
 
-            # Make a txt copy of cpp code
-            shutil.copy(s, 'c++.txt')
+    except FileNotFoundError:
+        exist = False
+        if s == "quit":
+            quit = True
+        else:    
+            print("FILE DOES NOT EXIST!\n")
+            exit()
 
-        except FileNotFoundError:
-            exist = False
-            if s == "quit":
-                quit = True
-            else:    
-                print("FILE DOES NOT EXIST!\n")
 
-        if exist:
-            choice = ""
-            okInput = False
-            choice = 0
+        # Gets clang to start parsing the file, and generate
+        # a translation unit with an Abstract Syntax Tree.
+        idx = clang.cindex.Index.create()
+        tu = idx.parse(s, args=['-std=c++11'])
 
-            print("Choose what analysis you would like to run by selecting from the following options:")
-            print("Press 1 for public mutex members check")
-            print("Press 2 for immutable objects check")
-            print("Press 3 for manual lock/unlock check")
-            print("Press 4 for mutex order and out of scope mutex call checks")
-
-            while not okInput:
-                choose = input("Please enter a number between 1 and 4:\n")
-
-                if choose == "1" or choose == "2" or choose == "3" or choose == "4": 
-                    choice = choose
-                    okInput = True
-                else:
-                    print("Error invalid input...") 
-            
-
-            # Gets clang to start parsing the file, and generate
-            # a translation unit with an Abstract Syntax Tree.
-            idx = clang.cindex.Index.create()
-            tu = idx.parse(s, args=['-std=c++11'])
-
-            print(clang.cindex.SourceLocation.from_position(tu, tu.get_file(tu.spelling), 2, 4))
-
-            dataPairs = generate_pairs(tu)
-            
-            # Generate a textual representation of the tokens, in pubmut.txt.
-            save_tokens(tu, "pubmut.txt")
-
-            # Traverse the AST
-            traverse(tu.cursor)
+        # Traverse the AST
+        traverse(tu.cursor)
     
-            # Call methods
-            print("\n---------------------\n")
-
-            if choice == "1":
-                print("Checking for public mutex members...\n")   
-                #public_mutex_members(dataPairs)
-            elif choice == "2":
-                print("Checking for immutable objects...\n") 
-                immutable_objects(dataPairs)
-            elif choice == "3":
-                print("Checking for missing manual locks/unlocks...\n") 
-                missing_unlock(tu)
-            elif choice == "4":
-                print("Checking the order of mutexes and whether mutexes are called out of scope\n")
-                run_checks(s, False, True)   
-            else:
-                print("Shouldn't get here.")     
-
-            # Print the number of tokens.
-            # print("\nNumber of tokens in given file:", count_tokens(tu), "\n")
-
-    print("Program terminated.")
 
 
 # --------FUNCTIONS-------- #
