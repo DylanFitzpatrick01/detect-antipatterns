@@ -90,7 +90,7 @@ Detected variable void (const std::string &): 'updateState(const std::string &)'
 Detected variable void (): 'logState()' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 29, column 6>\n"""
     
     output_str = mutex_observer.output + lock_guard_observer.output + declared_variable_observer.output + class_observer.output + function_observer.output
-    assert(output_str) == correct_output
+    assert output_str == correct_output
 
 
 # Gráinne Ready
@@ -101,8 +101,8 @@ but is accessed with a lock_guard in other methods
     correct_pass_output = "PASSED - For data members locked in some but not all methods"
     error_output = checkIfMembersLockedInSomeMethods("err_lock_in_some_methods.cpp")
     pass_output = checkIfMembersLockedInSomeMethods("pass_lock_in_some_methods.cpp")
-    assert(error_output) == correct_error_output
-    assert(pass_output) == correct_pass_output
+    assert error_output == correct_error_output
+    assert pass_output == correct_pass_output
     
 def test_isUnlockCalled(): 
 
