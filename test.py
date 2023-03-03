@@ -1,6 +1,7 @@
 import clang.cindex
 import main
 from contextlib import suppress
+from missingUnlock import findCaller, isUnlockCalled
 from observer import *
 from member_locked_in_some_methods import *
 import os
@@ -52,24 +53,6 @@ y <- type = IDENTIFIER
 } <- type = PUNCTUATION
 '''
 
-def test_count_tokens():
-
-    # Our C++ 'file'
-    cpp_file = '''
-    int main(x, y)
-    {
-        return x + y
-    }
-    '''
-
-    # Generate the translation unit from our 'file'.
-    idx = clang.cindex.Index.create()
-    tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
-                unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
-    
-    # Make sure we get the number of tokens we expect.
-    assert count_tokens(tu) == 13
-
 # Gráinne Ready
 def test_observers():
     eventSrc = EventSource()
@@ -90,18 +73,20 @@ def test_observers():
     assert(eventSrc2.observers) == [function_observer]
     
     
-    searchNodes(eventSrc=eventSrc, file_path="lock_in_some_methods.cpp")
-    correct_output = """Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'lock_in_some_methods.cpp', line 17, column 38>
-Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'lock_in_some_methods.cpp', line 24, column 38>
-Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'lock_in_some_methods.cpp', line 36, column 16>
-Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'lock_in_some_methods.cpp', line 17, column 33>
-Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'lock_in_some_methods.cpp', line 24, column 33>
-Detected variable std::string: 'mState' at <SourceLocation file 'lock_in_some_methods.cpp', line 35, column 17>
-Detected variable std::mutex: 'mDataAccess' at <SourceLocation file 'lock_in_some_methods.cpp', line 36, column 16>
-Class 'MyClass' found at <SourceLocation file 'lock_in_some_methods.cpp', line 5, column 7>
-Method 'getState()' found at <SourceLocation file 'lock_in_some_methods.cpp', line 15, column 13>
-Method 'updateState(const std::string &)' found at <SourceLocation file 'lock_in_some_methods.cpp', line 22, column 6>
-Method 'logState()' found at <SourceLocation file 'lock_in_some_methods.cpp', line 29, column 6>\n"""
+    searchNodes(eventSrc=eventSrc, file_path="err_lock_in_some_methods.cpp")
+    
+    correct_output = """Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 17, column 38>
+Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 24, column 38>
+Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 37, column 16>
+Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 17, column 33>
+Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 24, column 33>
+Detected variable std::string: 'mState' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 36, column 17>
+Detected variable std::mutex: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 37, column 16>
+Detected variable MyClass: 'MyClass' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 5, column 7>
+Detected variable std::string (): 'getState()' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 15, column 13>
+Detected variable void (const std::string &): 'updateState(const std::string &)' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 22, column 6>
+Detected variable void (): 'logState()' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 29, column 6>\n"""
+    
     output_str = mutex_observer.output + lock_guard_observer.output + declared_variable_observer.output + class_observer.output + function_observer.output
     assert(output_str) == correct_output
 

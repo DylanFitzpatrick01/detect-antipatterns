@@ -73,7 +73,7 @@ class EventSource():
         self.observers.append(observer)
 
 
-    def addMultipleObservers(self, observers: list[Observer]):
+    def addMultipleObservers(self, observers: List[Observer]):
         for observer in observers:
             self.observers.append(observer)
 
@@ -83,7 +83,7 @@ class EventSource():
             self.observers.remove(observer)
 
 
-    def removeMultipleObservers(self, observers: list[Observer]):
+    def removeMultipleObservers(self, observers: List[Observer]):
         for observer in observers:
             if observer in self.observers:
                 self.observers.remove(observer)
