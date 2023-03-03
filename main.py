@@ -1,3 +1,5 @@
+from collections import Counter
+from gettext import translation
 import shutil
 import string
 import struct
@@ -9,6 +11,7 @@ from output import *
 from cursorSearch import *
 from missingUnlock import *
 from locks import *
+import clang.cindex 
 clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
 def main():
@@ -29,6 +32,8 @@ def main():
             open(s)
 
             # Make a txt copy of cpp code
+            index = clang.cindex.Index.create()
+            translation_unit = index.parse(s)
             shutil.copy(s, 'c++.txt')
 
         except FileNotFoundError:
@@ -78,9 +83,49 @@ def main():
             if choice == "1":
                 print("Checking for public mutex members...\n")   
                 #public_mutex_members(dataPairs)
+
+  
             elif choice == "2":
                 print("Checking for immutable objects...\n") 
-                immutable_objects(dataPairs)
+
+              #  variables = set()
+                
+               # count_constants(translation_unit.cursor,variables)
+
+               # print(len(variables))
+
+                #variables2 = set()
+               # count_variables(translation_unit.cursor, variables2)
+
+
+               # print(len(variables2))
+
+               # counts = {"constant": 0, "non_constant": 0}
+
+               # immutable_objects_API(translation_unit.cursor,counts)
+                #print(f"Number of constant variables: {counts['constant']}")
+                #print(f"Number of non-constant variables: {counts['non_constant']}")
+
+                const_vars = set()
+                count_const_vars(tu.cursor, const_vars)
+                num_const_vars = len(const_vars)
+               ## print("Number of unique const variables:", num_const_vars)
+
+
+                vars = set()
+                count_vars(translation_unit.cursor, vars)
+                num_vars = len(vars)
+               ## print("Number of unique variables:", num_vars)
+
+
+                totalVar = num_vars - num_const_vars 
+            
+                percentageOfVarsConst = (num_const_vars/totalVar) * 100
+               #
+                print( percentageOfVarsConst, "% of variables are constants in this code check immutable for an immutable class")
+              
+
+                
             elif choice == "3":
                 print("Checking for missing manual locks/unlocks...\n") 
                 missing_unlock(tu)
@@ -217,31 +262,67 @@ def public_mutex_members_API(cursor: clang.cindex.Cursor):
             print("public_mutex_members - Are you sure you want to have a public mutex called " + str(
                 cursor.displayname) + ", Line - " + str(cursor.location.line))
     
-def immutable_objects_API(cursor: clang.cindex.Cursor):
-    constCount = 0
-    varCount = 0
-    thresHold = .25
-    notConst = 0
+def immutable_objects_API(node, counts):
 
-    if str(cursor.displayname) == "const":
-        constCount +=1
-    else:
-        if str(cursor.displayname) == "int" or str(cursor.displayname) == "double" or str(cursor.displayname) == "string" or str(cursor.displayname) == "char" or str(cursor.displayname) == "bool":
-            varCount +=1
-            
-            
-   
-    if constCount > 0 and varCount > 0:
-        notConst = 1 - (constCount / varCount)
-    
-    if notConst <= thresHold and notConst > 0:
-        prettier = round(notConst, 4) * 100
-        print(prettier, "% of your variables in this struct are not constant.")
-        print("We suspect you may want to make this class immutable, however at the moment it isn't.")
-        print("We recommend you examine the code before proceeding.")
+    if node.kind.is_declaration() and node.kind.name == "VAR_DECL":
+        #check if variable is const 
+        if node.type.is_const_qualified():
+            counts["constant"] +=1
+         
+        else:
+            counts["non_constant"] +=1
+    for child_node in node.get_children():
+        immutable_objects_API( child_node ,counts)
 
-    else:
-        print("No errors found for immutable objects.")           
+def count_const_vars(node, var_set):
+    if node.kind.is_declaration():
+        if node.type.is_const_qualified():
+            type_kind = node.type.get_canonical().kind
+            if type_kind in [clang.cindex.TypeKind.INT, clang.cindex.TypeKind.DOUBLE, clang.cindex.TypeKind.CHAR_S, clang.cindex.TypeKind.BOOL, clang.cindex.TypeKind.RECORD]:
+                var_set.add(node.displayname)
+    for child_node in node.get_children():
+        count_const_vars(child_node, var_set)
+
+
+
+def count_constants(cursor, variables):
+    if cursor.kind == clang.cindex.CursorKind.VAR_DECL:
+        if cursor.type.is_const_qualified():
+            variables.add(cursor.spelling)
+
+    # Recurse into child nodes
+    for child in cursor.get_children():
+        count_constants(child, variables)
+
+def count_variables(cursor, variables):
+    if cursor.kind == clang.cindex.CursorKind.VAR_DECL:
+        variables.add(cursor.spelling)
+
+    # Recurse into child nodes
+    for child in cursor.get_children():
+        count_variables(child, variables)   
+
+
+def count_vars(node, var_set):
+    if node.kind.is_declaration():
+        type_kind = node.type.get_canonical().kind
+        if type_kind in [clang.cindex.TypeKind.INT, clang.cindex.TypeKind.DOUBLE, clang.cindex.TypeKind.CHAR_S, clang.cindex.TypeKind.BOOL, clang.cindex.TypeKind.RECORD]:
+            var_set.add(node.displayname)
+    for child_node in node.get_children():
+        count_vars(child_node, var_set)  
+       
+
+def count_const_string_vars(node, var_set):
+    if node.kind.is_declaration():
+        if node.type.is_const_qualified() and node.type.kind == clang.cindex.TypeKind.POINTER:
+            pointee_type = node.type.get_pointee()
+            if pointee_type.kind == clang.cindex.TypeKind.CHAR_S:
+                var_set.add(node.displayname)
+    for child_node in node.get_children():
+        count_const_string_vars(child_node, var_set)
+
+
+
 
 def public_mutex_members(dataPairs):
     is_public = False
