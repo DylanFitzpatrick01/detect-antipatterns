@@ -25,12 +25,13 @@ jobs:
         python-version: "3.11"
     - name: Install dependencies
       run: |
+        sudo apt-get update
+        sudo apt install clang lldb lld.
         python -m pip install --upgrade pip
         pip install clang
         pip install libclang
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        sudo apt-get update
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
