@@ -1,11 +1,12 @@
 import os, re
+from typing import Union
 from clang.cindex import TranslationUnit, SourceLocation, SourceRange
 from colours import *
 
 # prints the given error message in a fancy way.
 # 
 def print_error(tu: TranslationUnit,
-                location: tuple | SourceLocation | SourceRange,
+                location: Union[tuple, SourceLocation, SourceRange],
                 message: str,
                 severity: str="error"):
 

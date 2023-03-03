@@ -1,14 +1,11 @@
 import shutil
-import string
-import struct
-from tkinter import Variable
 import clang.cindex
-import sys
 from datapair import *
-from output import *
-from cursorSearch import *
-from missingUnlock import *
 from locks import *
+from missingUnlock import *
+from public_mutex import *
+# clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
+
 def main():
 
     # Attempt to get a filename from the command line args.
@@ -36,7 +33,7 @@ def main():
             else:    
                 print("FILE DOES NOT EXIST!\n")
 
-        if exist == True:
+        if exist:
             choice = ""
             okInput = False
             choice = 0
@@ -47,7 +44,7 @@ def main():
             print("Press 3 for manual lock/unlock check")
             print("Press 4 for mutex order and out of scope mutex call checks")
 
-            while okInput == False:
+            while not okInput:
                 choose = input("Please enter a number between 1 and 4:\n")
 
                 if choose == "1" or choose == "2" or choose == "3" or choose == "4": 
@@ -77,7 +74,7 @@ def main():
 
             if choice == "1":
                 print("Checking for public mutex members...\n")   
-                public_mutex_members(dataPairs)
+                #public_mutex_members(dataPairs)
             elif choice == "2":
                 print("Checking for immutable objects...\n") 
                 immutable_objects(dataPairs)
@@ -95,6 +92,7 @@ def main():
 
     print("Program terminated.")
 
+
 # --------FUNCTIONS-------- #
 
 # Traverses Clangs cursor tree. A cursor points to a piece of code,
@@ -104,7 +102,6 @@ def main():
 # https://www.geeksforgeeks.org/generic-treesn-array-trees/
 #
 def traverse(cursor: clang.cindex.Cursor):
-
     # For every cursor in the AST...
     c: clang.cindex.Cursor
     for c in cursor.walk_preorder():
@@ -130,6 +127,8 @@ def traverse(cursor: clang.cindex.Cursor):
             # outside of this one if you're running bulky code. Don't put
             # it here! Just simple if-else statements, etc.
             pass
+           
+
 
 # Saves the tokens of a translation unit into a text file with
 # a given filename.
@@ -156,66 +155,26 @@ def generate_pairs(translation_unit):
         dataPairs.append(data)
 
     # generate line number for each pair using txt file
-    txt = open('c++.txt', 'r')
-    line_counter = 1
-    line_string = txt.readline()
-    for index, pair in enumerate(dataPairs):
-        if dataPairs[index].variable in line_string:
-            dataPairs[index].line_number = line_counter
-            if line_string.endswith(dataPairs[index].variable+"\n"):
-                line_counter += 1
-                line_string = txt.readline()
-        else:
-            while not(dataPairs[index].variable in line_string):
-                line_counter += 1
-                line_string = txt.readline()
-            dataPairs[index].line_number = line_counter
+    # txt = open('c++.txt', 'r')
+    # line_counter = 1
+    # line_string = txt.readline()
+    # for index, pair in enumerate(dataPairs):
+    #     if dataPairs[index].variable in line_string:
+    #         dataPairs[index].line_number = line_counter
+    #         if line_string.endswith(dataPairs[index].variable+"\n"):
+    #             line_counter += 1
+    #             line_string = txt.readline()
+    #     else:
+    #         while not(dataPairs[index].variable in line_string):
+    #             line_counter += 1
+    #             line_string = txt.readline()
+    #         dataPairs[index].line_number = line_counter
     #for pair in dataPairs:
         #print(pair.variable + " " + str(pair.line_number))
 
-    txt.close()
+    #txt.close()
 
-    # generate line number for each pair using txt file
-    txt = open('c++.txt', 'r')
-    line_counter = 1
-    line_string = txt.readline()
-    for index, pair in enumerate(dataPairs):
-        if dataPairs[index].variable in line_string:
-            dataPairs[index].line_number = line_counter
-            if line_string.endswith(dataPairs[index].variable+"\n"):
-                line_counter += 1
-                line_string = txt.readline()
-        else:
-            while not(dataPairs[index].variable in line_string):
-                line_counter += 1
-                line_string = txt.readline()
-            dataPairs[index].line_number = line_counter
-    #for pair in dataPairs:
-        #print(pair.variable + " " + str(pair.line_number))
-
-    txt.close()
     return dataPairs
-
-def public_mutex_members(dataPairs):
-    is_public = False
-    war = False
-    curly_brackets_count = 0
-
-    for index, pair in enumerate(dataPairs):
-        if pair.variable == "public":
-            is_public = True
-        elif pair.variable == "private" or pair.variable == "protected":
-            is_public = False
-        elif pair.variable == "{":
-            curly_brackets_count = curly_brackets_count + 1
-        elif pair.variable == "}":
-            curly_brackets_count = curly_brackets_count - 1
-        elif is_public and curly_brackets_count == 1 and pair.variable == "mutex":
-            print("public_mutex_members - Are you sure you want to have a public mutex called " + dataPairs[index+1].variable + ", Line - " + str(dataPairs[index+1].line_number))
-            war = True
-
-    if not war:
-        print("No errors found for public mutex members.")
 
 def immutable_objects(dataPairs):
     is_struct = False
@@ -247,8 +206,9 @@ def immutable_objects(dataPairs):
         print("We recommend you examine the code before proceeding.")
 
     else:
-        print("No errors found for immutable objects.")   
+        print("No errors found for immutable objects.")
 
+cursor_lines = ""
 
 def missing_unlock(tu):
     search_string = ".lock()"
@@ -280,7 +240,9 @@ def check_lock_order(order):
         else:
             held_locks.add(mutex)
     for mutex in reversed(order):
-        held_locks.remove(mutex)               
+        held_locks.remove(mutex)
+
+
 
 if __name__ == "__main__":
     main()
