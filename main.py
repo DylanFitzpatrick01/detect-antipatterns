@@ -5,6 +5,7 @@ from locks import *
 from missingUnlock import *
 from output import print_error
 from public_mutex import *
+from output import *
 # clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
 def main():
@@ -84,7 +85,7 @@ def main():
                 missing_unlock(tu)
             elif choice == "4":
                 print("Checking the order of mutexes and whether mutexes are called out of scope\n")
-                l_tests(s, False, True)   
+                run_checks(s, False, True)   
             else:
                 print("Shouldn't get here.")     
 
