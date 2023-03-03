@@ -7,6 +7,8 @@ from member_locked_in_some_methods import *
 import os
 import pytest
 
+from missingUnlock import findCaller, isUnlockCalled
+
 def test_save_tokens():
 
     # Our C++ 'file'
