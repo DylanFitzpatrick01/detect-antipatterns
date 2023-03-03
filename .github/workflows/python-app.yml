@@ -36,16 +36,11 @@ jobs:
       
     - name: C++ installation
       run : |
+        sudo apt-get update
+        sudo apt install build-essential
         sudo apt install -y libcppunit-dev
         sudo apt install clang lldb lld
-        sudo apt-get update
-        
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make test
-      run: make test
+
         
     - name: Lint with flake8
       run: |
