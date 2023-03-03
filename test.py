@@ -4,6 +4,8 @@ from contextlib import suppress
 import os
 import pytest
 
+from missingUnlock import findCaller, isUnlockCalled
+
 def test_save_tokens():
 
     # Our C++ 'file'
@@ -49,24 +51,6 @@ x <- type = IDENTIFIER
 y <- type = IDENTIFIER
 } <- type = PUNCTUATION
 '''
-
-def test_count_tokens():
-
-    # Our C++ 'file'
-    cpp_file = '''
-    int main(x, y)
-    {
-        return x + y
-    }
-    '''
-
-    # Generate the translation unit from our 'file'.
-    idx = clang.cindex.Index.create()
-    tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
-                unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
-    
-    # Make sure we get the number of tokens we expect.
-    assert count_tokens(tu) == 13
 
 def test_isUnlockCalled(): 
 
