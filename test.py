@@ -146,7 +146,7 @@ Detected variable void (): 'logState()' at <SourceLocation file 'err_lock_in_som
 # Gráinne Ready
 def test_member_locked_in_some_methods():
     correct_error_output = ("Data member 'mState' is accessed without a lock_guard in this method, "+
-			    "but is accessed with a lock_guard in other methods\n "+
+			    "but is accessed with a lock_guard in other methods "+
 				"Are you missing a lock_guard before 'mState'?")
     correct_pass_output = "PASSED - For data members locked in some but not all methods"
     error_output = checkIfMembersLockedInSomeMethods("err_lock_in_some_methods.cpp")
