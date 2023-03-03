@@ -230,7 +230,7 @@ scopes = list()
 # Grainne Ready
 # 
 eventSource = EventSource()
-lock_guard_observer = concreteObserver("std::lock_guard<std::mutex>")
+lock_guard_observer = tagObserver("std::lock_guard<std::mutex>")
 eventSource.addObserver(lock_guard_observer)
 
 #Renamed to not interfere with pytest
