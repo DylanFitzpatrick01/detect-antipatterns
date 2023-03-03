@@ -1,6 +1,8 @@
 import clang.cindex
 import main
 from contextlib import suppress
+from observer import *
+from member_locked_in_some_methods import *
 import os
 import pytest
 
@@ -52,6 +54,7 @@ y <- type = IDENTIFIER
 } <- type = PUNCTUATION
 '''
 
+    
 def test_isUnlockCalled(): 
 
     # Our C++ 'file'
