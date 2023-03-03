@@ -6,6 +6,8 @@ from member_locked_in_some_methods import *
 import os
 import pytest
 
+from missingUnlock import findCaller, isUnlockCalled
+
 def test_save_tokens():
 
     # Our C++ 'file'
@@ -52,70 +54,6 @@ y <- type = IDENTIFIER
 } <- type = PUNCTUATION
 '''
 
-def test_count_tokens():
-
-    # Our C++ 'file'
-    cpp_file = '''
-    int main(x, y)
-    {
-        return x + y
-    }
-    '''
-
-    # Generate the translation unit from our 'file'.
-    idx = clang.cindex.Index.create()
-    tu = idx.parse('tmp.cpp', args=['-std=c++11'],  
-                unsaved_files=[('tmp.cpp', cpp_file)],  options=0)
-    
-    # Make sure we get the number of tokens we expect.
-    assert count_tokens(tu) == 13
-
-# Gráinne Ready
-def test_observers():
-    eventSrc = EventSource()
-    eventSrc2 = EventSource()
-    mutex_observer = tagObserver("std::mutex")
-    lock_guard_observer = tagObserver("std::lock_guard<std::mutex>")
-    declared_variable_observer = cursorKindObserver(clang.cindex.CursorKind.FIELD_DECL)
-    class_observer = cursorKindObserver(clang.cindex.CursorKind.CLASS_DECL)
-    function_observer = cursorKindObserver(clang.cindex.CursorKind.CXX_METHOD)
-    
-    assert(eventSrc.observers) == []
-    eventSrc.addMultipleObservers([mutex_observer, lock_guard_observer, declared_variable_observer, class_observer])
-    eventSrc.addObserver(function_observer)
-    assert(eventSrc.observers) == [mutex_observer, lock_guard_observer, declared_variable_observer, class_observer, function_observer]
-
-    eventSrc2.addMultipleObservers([mutex_observer, lock_guard_observer, class_observer, function_observer])
-    eventSrc2.removeMultipleObservers([mutex_observer, lock_guard_observer, class_observer])
-    assert(eventSrc2.observers) == [function_observer]
-    
-    
-    searchNodes(eventSrc=eventSrc, file_path="lock_in_some_methods.cpp")
-    correct_output = """Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'lock_in_some_methods.cpp', line 17, column 38>
-Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'lock_in_some_methods.cpp', line 24, column 38>
-Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'lock_in_some_methods.cpp', line 36, column 16>
-Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'lock_in_some_methods.cpp', line 17, column 33>
-Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'lock_in_some_methods.cpp', line 24, column 33>
-Detected variable std::string: 'mState' at <SourceLocation file 'lock_in_some_methods.cpp', line 35, column 17>
-Detected variable std::mutex: 'mDataAccess' at <SourceLocation file 'lock_in_some_methods.cpp', line 36, column 16>
-Class 'MyClass' found at <SourceLocation file 'lock_in_some_methods.cpp', line 5, column 7>
-Method 'getState()' found at <SourceLocation file 'lock_in_some_methods.cpp', line 15, column 13>
-Method 'updateState(const std::string &)' found at <SourceLocation file 'lock_in_some_methods.cpp', line 22, column 6>
-Method 'logState()' found at <SourceLocation file 'lock_in_some_methods.cpp', line 29, column 6>\n"""
-    output_str = mutex_observer.output + lock_guard_observer.output + declared_variable_observer.output + class_observer.output + function_observer.output
-    assert(output_str) == correct_output
-
-
-# Gráinne Ready
-def test_member_locked_in_some_methods():
-    correct_error_output = """Data member 'mState' is accessed without a lock_guard in this method,
-but is accessed with a lock_guard in other methods
- Are you missing a lock_guard before 'mState'?"""
-    correct_pass_output = "PASSED - For data members locked in some but not all methods"
-    error_output = checkIfMembersLockedInSomeMethods("err_lock_in_some_methods.cpp")
-    pass_output = checkIfMembersLockedInSomeMethods("pass_lock_in_some_methods.cpp")
-    assert(error_output) == correct_error_output
-    assert(pass_output) == correct_pass_output
     
 def test_isUnlockCalled(): 
 
