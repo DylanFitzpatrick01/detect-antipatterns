@@ -138,7 +138,6 @@ def traverse(cursor: clang.cindex.Cursor):
             traverse(c) # Recursively traverse the tree.
 
 
-
 # Saves the tokens of a translation unit into a text file with
 # a given filename.
 def save_tokens(translation_unit, filename):
