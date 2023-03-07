@@ -127,7 +127,7 @@ def test_observers():
     
     searchNodes(eventSrc=eventSrc, file_path="../cpp_tests/locked_member_in_some_err.cpp")
     
-    correct_output = """Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 17, column 38>
+    correct_output = f"""Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 17, column 38>
 Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 24, column 38>
 Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 37, column 16>
 Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 17, column 33>
