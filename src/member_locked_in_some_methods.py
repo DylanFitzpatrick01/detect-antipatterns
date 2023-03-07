@@ -2,6 +2,8 @@
 
 # SIDENOTE: If you think of any edge cases to test this with, or ways that I can improve the code, pls let me know! :)
 # SIDENOTE: Call the 'def checkIfMembersLockedInSomeMethods(file_path : str):' function to check for the anti-pattern
+# TODO: Add locks/unlocks handling (will get this done by tomorrow, should be fairly simple)
+# TODO: Refine checks for if member is in scope of locked_guard
 # TODO: Add handling for nested methods (e.g. calculate() in order.cpp gives a false error)
 # TODO: Add handling for if-else statements, do-while loops, while-loops etc.. (LOT of this to do, at the moment these can pass when they shouldn't)
 
@@ -167,7 +169,3 @@ def getLockGuardsInMethod(methodCursor):
         if child.kind == clang.cindex.CursorKind.CALL_EXPR and child.spelling == "lock_guard":
             locks.append(child)
     return locks
-
-
-if __name__ == "__main__":
-    checkIfMembersLockedInSomeMethods("err_lock_in_some_methods.cpp")

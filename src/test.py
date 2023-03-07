@@ -125,21 +125,22 @@ def test_observers():
     assert(eventSrc2.observers) == [function_observer]
     
     
-    searchNodes(eventSrc=eventSrc, file_path="err_lock_in_some_methods.cpp")
+    searchNodes(eventSrc=eventSrc, file_path="../cpp_tests/locked_member_in_some_err.cpp")
     
-    correct_output = """Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 17, column 38>
-Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 24, column 38>
-Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 37, column 16>
-Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 17, column 33>
-Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 24, column 33>
-Detected variable std::string: 'mState' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 36, column 17>
-Detected variable std::mutex: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 37, column 16>
-Detected variable MyClass: 'MyClass' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 5, column 7>
-Detected variable std::string (): 'getState()' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 15, column 13>
-Detected variable void (const std::string &): 'updateState(const std::string &)' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 22, column 6>
-Detected variable void (): 'logState()' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 29, column 6>\n"""
+    correct_output = f"""Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 17, column 38>
+Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 24, column 38>
+Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 37, column 16>
+Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 17, column 33>
+Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 24, column 33>
+Detected variable std::string: 'mState' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 36, column 17>
+Detected variable std::mutex: 'mDataAccess' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 37, column 16>
+Detected variable MyClass: 'MyClass' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 5, column 7>
+Detected variable std::string (): 'getState()' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 15, column 13>
+Detected variable void (const std::string &): 'updateState(const std::string &)' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 22, column 6>
+Detected variable void (): 'logState()' at <SourceLocation file '../cpp_tests/locked_member_in_some_err.cpp', line 29, column 6>
+"""
     
-    output_str = mutex_observer.output + lock_guard_observer.output + declared_variable_observer.output + class_observer.output + function_observer.output
+    output_str = f"{mutex_observer.output}{lock_guard_observer.output}{declared_variable_observer.output}{class_observer.output}{function_observer.output}"
     assert(output_str) == correct_output
 
 
@@ -149,8 +150,8 @@ def test_member_locked_in_some_methods():
 but is accessed with a lock_guard in other methods
  Are you missing a lock_guard before 'mState'?"""
     correct_pass_output = "PASSED - For data members locked in some but not all methods"
-    error_output = checkIfMembersLockedInSomeMethods("err_lock_in_some_methods.cpp")
-    pass_output = checkIfMembersLockedInSomeMethods("../cpp_tests/pass_lock_in_some_methods.cpp")
+    error_output = checkIfMembersLockedInSomeMethods("../cpp_tests/locked_member_in_some_err.cpp")
+    pass_output = checkIfMembersLockedInSomeMethods("../cpp_tests/locked_member_in_some_pass.cpp")
     assert(error_output) == correct_error_output
     assert(pass_output) == correct_pass_output
     
