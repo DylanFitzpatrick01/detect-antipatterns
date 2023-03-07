@@ -85,7 +85,7 @@ def test_public_mutex_members_API():
     #test public.cpp file
     print("First file - with public mutexes")
     idx = clang.cindex.Index.create()
-    tu = idx.parse("../cpp_tests/public.cpp", args=['-std=c++11'])
+    tu = idx.parse("cpp_tests/public.cpp", args=['-std=c++11'])
     main.traverse(tu.cursor)
     if len(main.cursor_lines) != 0:
         print("Public mutexes found on lines " + main.cursor_lines)
@@ -97,7 +97,7 @@ def test_public_mutex_members_API():
     print("Second file - without public mutexes")
     main.cursor_lines = ""
     idx1 = clang.cindex.Index.create()
-    tu1 = idx1.parse("../cpp_tests/public1.cpp", args=['-std=c++11'])
+    tu1 = idx1.parse("cpp_tests/public1.cpp", args=['-std=c++11'])
     main.traverse(tu1.cursor)
     if len(main.cursor_lines) != 0:
         print("Public mutexes found on lines " + main.cursor_lines)
@@ -125,21 +125,22 @@ def test_observers():
     assert(eventSrc2.observers) == [function_observer]
     
     
-    searchNodes(eventSrc=eventSrc, file_path="err_lock_in_some_methods.cpp")
+    searchNodes(eventSrc=eventSrc, file_path="cpp_tests/locked_member_in_some_err.cpp")
     
-    correct_output = """Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 17, column 38>
-Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 24, column 38>
-Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 37, column 16>
-Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 17, column 33>
-Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 24, column 33>
-Detected variable std::string: 'mState' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 36, column 17>
-Detected variable std::mutex: 'mDataAccess' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 37, column 16>
-Detected variable MyClass: 'MyClass' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 5, column 7>
-Detected variable std::string (): 'getState()' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 15, column 13>
-Detected variable void (const std::string &): 'updateState(const std::string &)' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 22, column 6>
-Detected variable void (): 'logState()' at <SourceLocation file 'err_lock_in_some_methods.cpp', line 29, column 6>\n"""
+    correct_output = """Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'cpp_tests/locked_member_in_some_err.cpp', line 17, column 38>
+Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'cpp_tests/locked_member_in_some_err.cpp', line 24, column 38>
+Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file 'cpp_tests/locked_member_in_some_err.cpp', line 37, column 16>
+Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'cpp_tests/locked_member_in_some_err.cpp', line 17, column 33>
+Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file 'cpp_tests/locked_member_in_some_err.cpp', line 24, column 33>
+Detected variable std::string: 'mState' at <SourceLocation file 'cpp_tests/locked_member_in_some_err.cpp', line 36, column 17>
+Detected variable std::mutex: 'mDataAccess' at <SourceLocation file 'cpp_tests/locked_member_in_some_err.cpp', line 37, column 16>
+Detected variable MyClass: 'MyClass' at <SourceLocation file 'cpp_tests/locked_member_in_some_err.cpp', line 5, column 7>
+Detected variable std::string (): 'getState()' at <SourceLocation file 'cpp_tests/locked_member_in_some_err.cpp', line 15, column 13>
+Detected variable void (const std::string &): 'updateState(const std::string &)' at <SourceLocation file 'cpp_tests/locked_member_in_some_err.cpp', line 22, column 6>
+Detected variable void (): 'logState()' at <SourceLocation file 'cpp_tests/locked_member_in_some_err.cpp', line 29, column 6>
+"""
     
-    output_str = mutex_observer.output + lock_guard_observer.output + declared_variable_observer.output + class_observer.output + function_observer.output
+    output_str = f"{mutex_observer.output}{lock_guard_observer.output}{declared_variable_observer.output}{class_observer.output}{function_observer.output}"
     assert(output_str) == correct_output
 
 
@@ -149,8 +150,8 @@ def test_member_locked_in_some_methods():
 but is accessed with a lock_guard in other methods
  Are you missing a lock_guard before 'mState'?"""
     correct_pass_output = "PASSED - For data members locked in some but not all methods"
-    error_output = checkIfMembersLockedInSomeMethods("err_lock_in_some_methods.cpp")
-    pass_output = checkIfMembersLockedInSomeMethods("../cpp_tests/pass_lock_in_some_methods.cpp")
+    error_output = checkIfMembersLockedInSomeMethods("cpp_tests/locked_member_in_some_err.cpp")
+    pass_output = checkIfMembersLockedInSomeMethods("cpp_tests/locked_member_in_some_pass.cpp")
     assert(error_output) == correct_error_output
     assert(pass_output) == correct_pass_output
     
@@ -220,13 +221,13 @@ def test_findCaller():
 #Leon Byrne
 def test_manual_detection():
 		#Testing that nestling in if statements doesn't interfere
-	out = run_checks("../cpp_tests/manual_detection_0.cpp", True, False)
+	out = run_checks("cpp_tests/manual_detection_0.cpp", True, False)
 	
-	expected = ["Manual locking in file: ../cpp_tests/manual_detection_0.cpp at line: 9\n	RAII is preferred",
-							"Manual locking in file: ../cpp_tests/manual_detection_0.cpp at line: 13\n	RAII is preferred",
-							"Manual unlocking in file: ../cpp_tests/manual_detection_0.cpp at line: 18\n	RAII is preferred",  
-							"Manual unlocking in file: ../cpp_tests/manual_detection_0.cpp at line: 21\n	RAII is preferred",   
-							"Manual unlocking in file: ../cpp_tests/manual_detection_0.cpp at line: 25\n	RAII is preferred"
+	expected = ["Manual locking in file: cpp_tests/manual_detection_0.cpp at line: 9\n	RAII is preferred",
+							"Manual locking in file: cpp_tests/manual_detection_0.cpp at line: 13\n	RAII is preferred",
+							"Manual unlocking in file: cpp_tests/manual_detection_0.cpp at line: 18\n	RAII is preferred",  
+							"Manual unlocking in file: cpp_tests/manual_detection_0.cpp at line: 21\n	RAII is preferred",   
+							"Manual unlocking in file: cpp_tests/manual_detection_0.cpp at line: 25\n	RAII is preferred"
 	]
 
 	#Doesn't matter the order, only that all are in the output from tests()
@@ -238,13 +239,13 @@ def test_manual_detection():
 		assert str in expected
 
 	#Test that locking in other functions is detected correctly
-	out = run_checks("../cpp_tests/manual_detection_1.cpp", True, False)
+	out = run_checks("cpp_tests/manual_detection_1.cpp", True, False)
 
-	expected = ["Manual locking in file: ../cpp_tests/manual_detection_1.cpp at line: 9\n	RAII is preferred",
-							 "Manual locking in file: ../cpp_tests/manual_detection_1.cpp at line: 10\n	RAII is preferred",
-							 "Manual unlocking in file: ../cpp_tests/manual_detection_1.cpp at line: 14\n	RAII is preferred",
-							 "Manual unlocking in file: ../cpp_tests/manual_detection_1.cpp at line: 17\n	RAII is preferred",
-							 "Manual locking in file: ../cpp_tests/manual_detection_1.cpp at line: 28\n	RAII is preferred"
+	expected = ["Manual locking in file: cpp_tests/manual_detection_1.cpp at line: 9\n	RAII is preferred",
+							 "Manual locking in file: cpp_tests/manual_detection_1.cpp at line: 10\n	RAII is preferred",
+							 "Manual unlocking in file: cpp_tests/manual_detection_1.cpp at line: 14\n	RAII is preferred",
+							 "Manual unlocking in file: cpp_tests/manual_detection_1.cpp at line: 17\n	RAII is preferred",
+							 "Manual locking in file: cpp_tests/manual_detection_1.cpp at line: 28\n	RAII is preferred"
 	]
 	
 	#Doesn't matter the order, only that all are in the output from tests()
@@ -257,11 +258,11 @@ def test_manual_detection():
 
 #Leon Byrne
 def test_calling_out_of_locked_scope():
-	out = run_checks("../cpp_tests/calling_out_of_locked_scope_0.cpp", False, True)
+	out = run_checks("cpp_tests/calling_out_of_locked_scope_0.cpp", False, True)
 
-	expected = ["Called: test1 from a locked scope in file: ../cpp_tests/calling_out_of_locked_scope_0.cpp at line: 16",
-							"Called: test1 from a locked scope in file: ../cpp_tests/calling_out_of_locked_scope_0.cpp at line: 29",
-							"Called: test1 from a locked scope in file: ../cpp_tests/calling_out_of_locked_scope_0.cpp at line: 35"
+	expected = ["Called: test1 from a locked scope in file: cpp_tests/calling_out_of_locked_scope_0.cpp at line: 16",
+							"Called: test1 from a locked scope in file: cpp_tests/calling_out_of_locked_scope_0.cpp at line: 29",
+							"Called: test1 from a locked scope in file: cpp_tests/calling_out_of_locked_scope_0.cpp at line: 35"
 	]
 
 	#Doesn't matter the order, only that all are in the output from tests()
@@ -273,9 +274,9 @@ def test_calling_out_of_locked_scope():
 		assert str in expected
 
 
-	out = run_checks("../cpp_tests/calling_out_of_locked_scope_1.cpp", False, True)
+	out = run_checks("cpp_tests/calling_out_of_locked_scope_1.cpp", False, True)
 
-	expected = ["Called: test from a locked scope in file: ../cpp_tests/calling_out_of_locked_scope_1.cpp at line: 27"
+	expected = ["Called: test from a locked scope in file: cpp_tests/calling_out_of_locked_scope_1.cpp at line: 27"
 	]
 
 	#Doesn't matter the order, only that all are in the output from tests()
@@ -288,9 +289,9 @@ def test_calling_out_of_locked_scope():
 
 	#Testing called to a classes methods while locked
 	#Allowed by the clients example
-	out = run_checks("../cpp_tests/calling_out_of_locked_scope_1.cpp", False, True)
+	out = run_checks("cpp_tests/calling_out_of_locked_scope_1.cpp", False, True)
 
-	expected = ["Called: test from a locked scope in file: ../cpp_tests/calling_out_of_locked_scope_1.cpp at line: 27"
+	expected = ["Called: test from a locked scope in file: cpp_tests/calling_out_of_locked_scope_1.cpp at line: 27"
 	]
 
 	#Doesn't matter the order, only that all are in the output from tests()
