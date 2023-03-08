@@ -58,17 +58,17 @@ class lockedInSomeObserver(Observer):
                 for method in methods:
                     locks, method_variables = findLocksAndVariablesInMethod(method, class_variables)
                     for method_variable in method_variables:
-                        if any(lock.extent.start.line < method_variable.extent.start.line for lock in locks):
-                            if method_variable.displayname in variables_under_lock and not variables_under_lock[method_variable.displayname]:
+                        if any(lock.lock_token.extent.start.line < method_variable.extent.start.line for lock in locks[2]):
+                            if method_variable.spelling in variables_under_lock and not variables_under_lock[method_variable.spelling]:
                                 self.raiseError(method, method_variable, isLockedInMethod=True)
-                            variables_under_lock[method_variable.displayname] = True
+                            variables_under_lock[method_variable.spelling] = True
                         else:
-                            if method_variable.displayname in variables_under_lock and variables_under_lock[method_variable.displayname]:
+                            if method_variable.spelling in variables_under_lock and variables_under_lock[method_variable.spelling]:
                                 self.raiseError(method, method_variable, isLockedInMethod=False)
-                            variables_under_lock[method_variable.displayname] = False
+                            variables_under_lock[method_variable.spelling] = False
 
 
-    def raiseError(self, methodNode : clang.cindex.Cursor, memberNode : clang.cindex.Cursor, isLockedInMethod : bool):
+    def raiseError(self, methodNode : clang.cindex.Cursor, memberToken : clang.cindex.Token, isLockedInMethod : bool):
         """
         Raises an error, indicating that a data member is locked in some, but not all methods
         
@@ -81,22 +81,22 @@ class lockedInSomeObserver(Observer):
             None
         """
         if (isLockedInMethod):
-            print_error(memberNode.translation_unit, methodNode.extent, 
-                f"Data member '{memberNode.displayname}' is accessed with a lock_guard in this method, "+
+            print_error(memberToken._tu, methodNode.extent, 
+                f"Data member '{memberToken.spelling}' is accessed with a lock_guard in this method, "+
                 f"but is accessed without a lock_guard in other methods\n "+
-                f"Are you missing a lock_guard in other methods which use '{memberNode.displayname}'?", "error")
-            self.errors += f"""Data member '{methodNode.displayname}' is accessed with a lock_guard in this method,
+                f"Are you missing a lock_guard in other methods which use '{memberToken.spelling}'?", "error")
+            self.errors += f"""Data member '{methodNode.spelling}' is accessed with a lock_guard in this method,
 but is accessed without a lock_guard in other methods
- Are you missing a lock_guard in other methods which use '{methodNode.displayname}'?"""
+ Are you missing a lock_guard in other methods which use '{methodNode.spelling}'?"""
  
         else:
-            print_error(memberNode.translation_unit, methodNode.extent, 
-                f"Data member '{memberNode.displayname}' is accessed without a lock_guard in this method, "+
+            print_error(memberToken._tu, methodNode.extent, 
+                f"Data member '{memberToken.spelling}' is accessed without a lock_guard in this method, "+
                 f"but is accessed with a lock_guard in other methods\n "+
-                f"Are you missing a lock_guard before '{memberNode.displayname}'?", "error")
-            self.errors += f"""Data member '{memberNode.displayname}' is accessed without a lock_guard in this method,
+                f"Are you missing a lock_guard before '{memberToken.spelling}'?", "error")
+            self.errors += f"""Data member '{memberToken.spelling}' is accessed without a lock_guard in this method,
 but is accessed with a lock_guard in other methods
- Are you missing a lock_guard before '{memberNode.displayname}'?"""
+ Are you missing a lock_guard before '{memberToken.spelling}'?"""
 
         self.foundErrors = True
 
@@ -116,7 +116,8 @@ but is accessed with a lock_guard in other methods
 def checkIfMembersLockedInSomeMethods(file_path : str):
     eventSrc = EventSource()
     locked_in_some_observer = lockedInSomeObserver()
-    eventSrc.addObserver(locked_in_some_observer)
+    compound_statement_observer = CompoundStatementObserver()
+    eventSrc.addMultipleObservers([locked_in_some_observer, compound_statement_observer])
     searchNodes(file_path, eventSrc)
     if locked_in_some_observer.foundErrors:
         return locked_in_some_observer.errors
@@ -155,16 +156,15 @@ def searchNodes(file_path : str, eventSrc: EventSource):
     """
 def getMembersInClass(classCursor : clang.cindex.Cursor):
     data_members = []
-    methods = []
+    method_names = []
     for child in classCursor.get_children():
         if child.kind == clang.cindex.CursorKind.CXX_METHOD:
-            methods.append(child)
+            method_names.append(child)
         elif child.kind == clang.cindex.CursorKind.FIELD_DECL:
             data_members.append(child)
-    return methods, data_members
+    return method_names, data_members
 
-
-# Gráinne Ready
+# Gráinne Ready TODO
     """
     Gets all the cursors which are locks and variables of a method, and returns them in two separate lists
     
@@ -176,70 +176,49 @@ def getMembersInClass(classCursor : clang.cindex.Cursor):
         locks (list of clang.cindex.Cursor): A list of lock_guards found in the method
         method_variables (list of clang.cindex.Cursor): A list of the class' data members which were used in the method
     """
-def findLocksAndVariablesInMethod(methodCursor : clang.cindex.Cursor, class_variables):
-    lock_guards = []
-    locks = []
-    unlocks = []
-    lock_pairs = []
-    method_variables = []
 
-    for child in methodCursor.walk_preorder():
-        for variable in class_variables:
-            if child.spelling == variable.spelling and child.type.spelling == variable.type.spelling:
-                method_variables.append(child)
-        if child.kind == clang.cindex.CursorKind.CALL_EXPR and child.spelling == "lock_guard":
-            lock_guards.append(child)
-        elif child.spelling == "lock":
-            locks.append(child)
-        elif child.spelling == "unlock":
-            unlocks.append(child)
-    
-    for lock in locks:
-        for unlock in unlocks:
-            if lock.semantic_parent == unlock.semantic_parent:
-                lock_pairs.append((lock, unlock))
+def findLocksAndVariablesInMethod(methodCursor : clang.cindex.Cursor, class_variables):
+    unnamed_locked_guards = []
+    method_variables = []
+    lock_guards = [ [], [], [] ]
+    for child in methodCursor.get_children():
+        if child.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+            for token in child.get_tokens():
+                for variable in class_variables:
+                    if token.spelling == variable.spelling:
+                        method_variables.append(token)
+                if token.kind == clang.cindex.TokenKind.IDENTIFIER:
+                    if token.spelling == "lock_guard":
+                        lock_guards[0].append(lock_guard(token, None, None))
+                    else:
+                        checkIfPartOfLockedGuard(token, lock_guards)
     return lock_guards, method_variables
 
 
-# *******NOT USED*******
-# Gráinne Ready
-# Given a cursor that is a class declaration, it will search through the children of the cursor for all methods in that class,
-#   and return a list of all method cursors that are children of that class
-# @Param classCursor:   A cursor of kind 'clang.cindex.CursorKind.CLASS_DECL
-# @Returns methodsList: A list of cursors which are of kind 'clang.cindex.CursorKind.CXX_METHOD' that are children of the class
-def getMethodsInClass(classCursor : clang.cindex.Cursor):
-    methodsList = []
-    for child in classCursor.get_children():
-        if child.kind == clang.cindex.CursorKind.CXX_METHOD:
-            methodsList.append(child)
-    return methodsList
-
-
-# *******NOT USED*******
-# Gráinne Ready
-# Gets all variable cursors that are children of a class and returns them in a list
-# @Param classCursor:   A cursor of kind 'clang.cindex.CursorKind.CLASS_DECL'
-# @Returns variables:   A list of the variables found in the class
-def getVariablesInClass(classCursor : clang.cindex.Cursor):
-    variables = []
-    for child in classCursor.get_children():
-        if child.kind == clang.cindex.CursorKind.FIELD_DECL:
-            variables.append(child)
-    return variables
-
-
-# *******NOT USED*******
-# Gráinne Ready
-# Given a cursor that is a method declaration, it will search through the method for lock_guards, and then return a list of the mutexes which are in lock_guards
-# @Param methodCursor:      A cursor of kind 'clang.cindex.CursorKind.CXX_METHOD'
-# @Returns guardedMutexes:  The list of all mutexes in the method
-def getLockGuardsInMethod(methodCursor : clang.cindex.Cursor):
-    lock_guards = [] 
-    for child in methodCursor.walk_preorder():
-        if child.kind == clang.cindex.CursorKind.CALL_EXPR and child.spelling == "lock_guard":
-            lock_guards.append(child)
+def checkIfPartOfLockedGuard(token : clang.cindex.Token, lock_guards : list):
+    """
+    lists should be a 2d array containing 3 different lists
+    lists = [lock_guards_without_lock_name, lock_guards_without_mutex_name, complete_lock_guards]
+    """
+    if len(lock_guards[0]) > 0:
+        found_lock_name = False
+        while (not found_lock_name):
+            for lock_grd in lock_guards[0]:
+                if (token.location.column - 23 == lock_grd.lock_token.location.column):
+                    lock_grd.setLockName(token)
+                    lock_guards[1].append(lock_grd)
+                    lock_guards[0].remove(lock_grd)
+                    found_lock_name = True
+            break
+    
+    if len(lock_guards[1]) > 0:
+        found_mutex_name = False
+        while (not found_mutex_name):
+            for lock_grd in lock_guards[1]:
+                if (token.location.column - 28 == lock_grd.lock_token.location.column and token.location.line == lock_grd.lock_token.location.line):
+                    lock_grd.setMutexName(token)
+                    lock_guards[2].append(lock_grd)
+                    lock_guards[1].remove(lock_grd)
+                    found_mutex_name = True
+            break
     return lock_guards
-
-
-if __name__ == "__main__":
-    checkIfMembersLockedInSomeMethods("err_lock_in_some_methods.cpp")
