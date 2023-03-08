@@ -56,9 +56,7 @@ class cursorKindObserver(Observer):
 
 class CompoundStatementObserver(Observer):
     def __init__(self):
-        self.unnamed_lock_guards = []
-        self.lock_guards_missing_mutex = []
-        self.complete_lock_guards = []
+        self.lock_guards = []
         self.output = ""
 
 
@@ -67,39 +65,15 @@ class CompoundStatementObserver(Observer):
             for token in currentNode.get_tokens():
                 if (token.kind == clang.cindex.TokenKind.IDENTIFIER):
                     if (token.spelling == "lock_guard"):
-                        self.unnamed_lock_guards.append(lock_guard(token, None, None))
-                    else:
-                        self.checkIfPartOfLockGuards(token)
+                        self.lock_guards.append(lock_guard(token, None, None))
+                    elif len(self.lock_guards) > 0:
+                        if checkIfPartOfLockGuards(token, self.lock_guards[-1]):
+                            self.output += f"Detected a lock_guard called '{self.lock_guards[-1].lock_name.spelling}' guarding mutex called '{self.lock_guards[-1].mutex_name.spelling}' at {self.lock_guards[-1].lock_token.location}\n"
 
-
-    def checkIfPartOfLockGuards(self, token : clang.cindex.Token):
-
-        if len(self.unnamed_lock_guards) > 0:
-            found_lock_name = False
-            while (not found_lock_name):
-                for lock_grd in self.unnamed_lock_guards:
-                    if (token.location.column - 23 == lock_grd.lock_token.location.column and token.location.line == lock_grd.lock_token.location.line):
-                        lock_grd.setLockName(token)
-                        self.lock_guards_missing_mutex.append(lock_grd)
-                        self.unnamed_lock_guards.remove(lock_grd)
-                        found_lock_name = True
-                break
-
-        if len(self.lock_guards_missing_mutex) > 0:
-            found_mutex_name = False
-            while (not found_mutex_name):
-                for lock_grd in self.lock_guards_missing_mutex:
-                    if (token.location.column - 28 == lock_grd.lock_token.location.column and token.location.line == lock_grd.lock_token.location.line):
-                        lock_grd.setMutexName(token)
-                        self.complete_lock_guards.append(lock_grd)
-                        self.output += f"Detected a lock_guard called '{lock_grd.lock_name.spelling}' guarding mutex called '{lock_grd.mutex_name.spelling}' at {lock_grd.lock_token.location}\n"
-                        self.lock_guards_missing_mutex.remove(lock_grd)
-                        found_mutex_name = True
-                break
 
 
     def printLockGuards(self):
-        for lock in self.complete_lock_guards:
+        for lock in self.lock_guards:
             print(f"Detected a lock_guard called '{lock.lock_name.spelling}' guarding mutex called '{lock.mutex_name.spelling}' at {lock.lock_token.location}\n")
                         
 
@@ -152,3 +126,24 @@ class lock_guard():
     
     def setLockName(self, name_token : clang.cindex.Token):
         self.lock_name = name_token
+
+
+def checkIfPartOfLockGuards(token : clang.cindex.Token, lock_grd : lock_guard):
+    """Will check if a specific token is part of a line which declares a lock_guard
+
+    Args:
+        token (clang.cindex.Token): The token to check
+        lock_grd (lock_guard): The lock_guard object to check if the token is a part of
+
+    Returns:
+        bool: If the lock_guard object is now complete (has no more None members)
+       
+    """
+    if lock_grd.lock_name is None:
+        if (token.location.column - 23 == lock_grd.lock_token.location.column and token.location.line == lock_grd.lock_token.location.line):
+            lock_grd.setLockName(token)
+    elif lock_grd.mutex_name is None:
+        if (token.location.column - 28 == lock_grd.lock_token.location.column and token.location.line == lock_grd.lock_token.location.line):
+            lock_grd.setMutexName(token)
+            return True
+    return False

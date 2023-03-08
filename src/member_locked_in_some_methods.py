@@ -2,9 +2,8 @@
 
 # SIDENOTE: If you think of any edge cases to test this with, or ways that I can improve the code, pls let me know! :)
 # SIDENOTE: Call the 'def checkIfMembersLockedInSomeMethods(file_path : str):' function to check for the anti-pattern
+# TODO: Add Scope handling
 # TODO: Add handling for manual locks/unlocks
-# TODO: Add handling for nested methods (e.g. calculate() in order.cpp gives a false error)
-# TODO: Add handling for if-else statements, do-while loops, while-loops etc.. (LOT of this to do, at the moment these can pass when they shouldn't)
 
 from output import *
 from observer import *
@@ -58,7 +57,7 @@ class lockedInSomeObserver(Observer):
                 for method in methods:
                     locks, method_variables = findLocksAndVariablesInMethod(method, class_variables)
                     for method_variable in method_variables:
-                        if any(lock.lock_token.extent.start.line < method_variable.extent.start.line for lock in locks[2]):
+                        if any(lock.lock_token.extent.start.line < method_variable.extent.start.line for lock in locks):
                             if method_variable.spelling in variables_under_lock and not variables_under_lock[method_variable.spelling]:
                                 self.raiseError(method, method_variable, isLockedInMethod=True)
                             variables_under_lock[method_variable.spelling] = True
@@ -122,8 +121,8 @@ def checkIfMembersLockedInSomeMethods(file_path : str):
     if locked_in_some_observer.foundErrors:
         return locked_in_some_observer.errors
     return "PASSED - For data members locked in some but not all methods"
-        
-    
+
+
 # Gráinne Ready
     """
     Searches through every node in a c++ file (AST) and notifies Observers in the EventSource about it
@@ -164,7 +163,8 @@ def getMembersInClass(classCursor : clang.cindex.Cursor):
             data_members.append(child)
     return method_names, data_members
 
-# Gráinne Ready TODO
+
+# Gráinne Ready
     """
     Gets all the cursors which are locks and variables of a method, and returns them in two separate lists
     
@@ -173,14 +173,25 @@ def getMembersInClass(classCursor : clang.cindex.Cursor):
         class_variables (list of clang.cindex.Cursor): A list of all data members of the class the method is inside of
     
     Returns:
-        locks (list of clang.cindex.Cursor): A list of lock_guards found in the method
-        method_variables (list of clang.cindex.Cursor): A list of the class' data members which were used in the method
+        lock_guards (list of lock_guard): A list of lock_guards found in the method
+        method_variables (list of clang.cindex.Token): A list of the class' data members which were used in the method
     """
 
+
 def findLocksAndVariablesInMethod(methodCursor : clang.cindex.Cursor, class_variables):
-    unnamed_locked_guards = []
+    """
+    Gets all the cursors which are locks and variables of a method, and returns them in two separate lists
+    
+    Args:
+        methodCursor (clang.cindex.Cursor): A cursor of kind 'clang.cindex.CXX_METHOD' which is a member of a class
+        class_variables (list of clang.cindex.Cursor): A list of all data members of the class the method is inside of
+    
+    Returns:
+        lock_guards (list of lock_guard): A list of lock_guards found in the method
+        method_variables (list of clang.cindex.Token): A list of the class' data members which were used in the method
+    """
     method_variables = []
-    lock_guards = [ [], [], [] ]
+    lock_guards = []
     for child in methodCursor.get_children():
         if child.kind == clang.cindex.CursorKind.COMPOUND_STMT:
             for token in child.get_tokens():
@@ -189,36 +200,27 @@ def findLocksAndVariablesInMethod(methodCursor : clang.cindex.Cursor, class_vari
                         method_variables.append(token)
                 if token.kind == clang.cindex.TokenKind.IDENTIFIER:
                     if token.spelling == "lock_guard":
-                        lock_guards[0].append(lock_guard(token, None, None))
-                    else:
-                        checkIfPartOfLockedGuard(token, lock_guards)
+                        lock_guards.append(lock_guard(token, None, None))
+                    elif len(lock_guards) > 0:
+                        if (lock_guards[-1].lock_name is None or lock_guards[-1].mutex_name is None):
+                            checkIfPartOfLockedGuard(token, lock_guards[-1])
     return lock_guards, method_variables
 
+# Grainne Ready
+def checkIfPartOfLockedGuard(token : clang.cindex.Token, lock_grd : lock_guard):
+    """Will check if a specific token is part of a line which declares a lock_guard
 
-def checkIfPartOfLockedGuard(token : clang.cindex.Token, lock_guards : list):
+    Args:
+        token (clang.cindex.Token): The token to check
+        lock_grd (lock_guard): The lock_guard object to check if the token is a part of
+
+    Returns:
+        None
+       
     """
-    lists should be a 2d array containing 3 different lists
-    lists = [lock_guards_without_lock_name, lock_guards_without_mutex_name, complete_lock_guards]
-    """
-    if len(lock_guards[0]) > 0:
-        found_lock_name = False
-        while (not found_lock_name):
-            for lock_grd in lock_guards[0]:
-                if (token.location.column - 23 == lock_grd.lock_token.location.column):
-                    lock_grd.setLockName(token)
-                    lock_guards[1].append(lock_grd)
-                    lock_guards[0].remove(lock_grd)
-                    found_lock_name = True
-            break
-    
-    if len(lock_guards[1]) > 0:
-        found_mutex_name = False
-        while (not found_mutex_name):
-            for lock_grd in lock_guards[1]:
-                if (token.location.column - 28 == lock_grd.lock_token.location.column and token.location.line == lock_grd.lock_token.location.line):
-                    lock_grd.setMutexName(token)
-                    lock_guards[2].append(lock_grd)
-                    lock_guards[1].remove(lock_grd)
-                    found_mutex_name = True
-            break
-    return lock_guards
+    if lock_grd.lock_name is None:
+        if (token.location.column - 23 == lock_grd.lock_token.location.column and token.location.line == lock_grd.lock_token.location.line):
+            lock_grd.setLockName(token)
+    elif lock_grd.mutex_name is None:
+        if (token.location.column - 28 == lock_grd.lock_token.location.column and token.location.line == lock_grd.lock_token.location.line):
+            lock_grd.setMutexName(token)
