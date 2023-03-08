@@ -297,6 +297,3 @@ def test_calling_out_of_locked_scope():
 	#But we need to make sure that all predicted are present and all present were predicted
 	for str in out:
 		assert str in expected
-
-if __name__ == "__main__":
-	test_member_locked_in_some_methods()
