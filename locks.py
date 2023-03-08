@@ -104,13 +104,13 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 		if paths.has_next():
 			children = list(currentNode.get_children())
 
+			firstPass = paths.has_next() and paths.get_next()
+			secondPass = firstPass and paths.has_next() and paths.get_next()
+			thirdPass = secondPass and paths.has_next() and paths.get_next() #Needed anyways
+
 			whileScope = Scope(scope.scopeClass)
 			scope.add(whileScope)
 			build_thread(startFunc, children[0], whileScope, eventSource, paths)
-
-			firstPass = paths.has_next() and paths.get_next()
-			secondPass = firstPass and paths.has_next() and paths.get_next()
-			thirdPass = secondPass and paths.has_next() and paths.get_next()
 
 			if firstPass:
 				build_thread(startFunc, children[1], whileScope, eventSource, paths)
@@ -125,8 +125,98 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 					whileScope = Scope(scope.scopeClass)
 					scope.add(whileScope)
 					build_thread(startFunc, children[0], whileScope, eventSource, paths)
-
+	
 				
+		else:
+			#build false
+			#build true, false
+			#build true, true, false
+			children = list(currentNode.get_children())
+
+			onceScope = Scope(startFunc.functionClass)
+			scopes.append(onceScope)
+			oncePath = paths.copy()
+			oncePath.add(True)
+			oncePath.add(False)
+
+			twiceScope = Scope(startFunc.functionClass)
+			scopes.append(twiceScope)
+			twicePath = paths.copy()
+			twicePath.add(True)
+			twicePath.add(True)
+			twicePath.add(False)
+
+			paths.add(False)
+
+			build_thread(startFunc, currentNode, scope, eventSource, paths)
+			build_thread(startFunc, startFunc.node, onceScope, eventSource, oncePath)
+			build_thread(startFunc, startFunc.node, twiceScope, eventSource, twicePath)
+
+	elif currentNode.kind == clang.cindex.CursorKind.DO_STMT:
+		if paths.has_next():
+
+			children = list(currentNode.get_children())
+			doScope = Scope(scope.scopeClass)
+			scope.add(doScope)
+
+			#In do-while loops the first pass always happens
+			secondPass = paths.has_next() and paths.get_next()
+			thirdPass = secondPass and paths.has_next() and paths.get_next()
+
+			build_thread(startFunc, children[0], doScope, eventSource, paths)
+			build_thread(startFunc, children[1], doScope, eventSource, paths)
+
+			if secondPass:
+				doScope = Scope(scope.scopeClass)
+				scope.add(doScope)
+
+				build_thread(startFunc, children[0], doScope, eventSource, paths)
+				build_thread(startFunc, children[1], scope, eventSource, paths)
+		else:			
+			
+			#No need for a once scope, that is the 'paths.add(False)' one
+			twiceScope = Scope(startFunc.functionClass)
+			scopes.append(twiceScope)
+			twicePath = paths.copy()
+			twicePath.add(True)
+			twicePath.add(False)
+
+			paths.add(False)
+
+			build_thread(startFunc, currentNode, scope, eventSource, paths)
+			build_thread(startFunc, startFunc.node, twiceScope, eventSource, twicePath)
+	
+	elif currentNode.kind == clang.cindex.CursorKind.FOR_STMT:
+		if paths.has_next():
+			children = list(currentNode.get_children())
+
+			firstPass = paths.has_next() and paths.get_next()
+			secondPass = firstPass and paths.has_next() and paths.get_next()
+			thirdPass = secondPass and paths.has_next() and paths.get_next() #Needed anyways
+
+
+			forScope = Scope(scope.scopeClass)
+			scope.add(forScope)
+
+			build_thread(startFunc, children[0], forScope, eventSource, paths)
+			build_thread(startFunc, children[2], forScope, eventSource, paths)
+
+			if firstPass :
+				build_thread(startFunc, children[4], forScope, eventSource, paths)
+
+				forScope = Scope(scope.scopeClass)
+				scope.add(forScope)
+				build_thread(startFunc, children[3], forScope, eventSource, paths)
+				build_thread(startFunc, children[2], forScope, eventSource, paths)
+
+				if secondPass :
+					build_thread(startFunc, children[4], forScope, eventSource, paths)
+
+					forScope = Scope(scope.scopeClass)
+					scope.add(forScope)
+
+					build_thread(startFunc, children[3], forScope, eventSource, paths)
+					build_thread(startFunc, children[2], forScope, eventSource, paths)
 		else:
 			#build false
 			#build true, false
