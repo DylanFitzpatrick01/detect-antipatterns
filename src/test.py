@@ -306,7 +306,7 @@ def test_calling_out_of_locked_scope():
 def test_multiple_lock_order():
 	result = multi_lock_test("../cpp_tests/multiple_locks_order.cpp")
 
-	expected = ["Error!: mutex mMutex1 is in the incorrect order!\n"]
+	expected = ["Error!: mutex mMutex1 is in the incorrect order!"]
 
 	for str in expected:
 		assert str in result
