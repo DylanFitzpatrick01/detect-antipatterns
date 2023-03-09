@@ -69,6 +69,8 @@ def main():
             idx = clang.cindex.Index.create()
             tu = idx.parse(s, args=['-std=c++11'])
 
+
+
             dataPairs = generate_pairs(tu)
             
             # Generate a textual representation of the tokens, in pubmut.txt.
@@ -86,9 +88,15 @@ def main():
 
   
             elif choice == "2":
-                print("Checking for immutable objects...\n") 
+                    print("Checking for immutable objects...\n") 
+                    print(s)
+                    print_variables(s)
+                  
 
-              #  variables = set()
+
+   
+
+           
                 
                # count_constants(translation_unit.cursor,variables)
 
@@ -106,24 +114,13 @@ def main():
                 #print(f"Number of constant variables: {counts['constant']}")
                 #print(f"Number of non-constant variables: {counts['non_constant']}")
 
-                const_vars = set()
-                count_const_vars(tu.cursor, const_vars)
-                num_const_vars = len(const_vars)
+               
                ## print("Number of unique const variables:", num_const_vars)
 
 
-                vars = set()
-                count_vars(translation_unit.cursor, vars)
-                num_vars = len(vars)
-               ## print("Number of unique variables:", num_vars)
 
 
-                totalVar = num_vars - num_const_vars 
-            
-                percentageOfVarsConst = (num_const_vars/totalVar) * 100
-               #
-                print( percentageOfVarsConst, "% of variables are constants in this code check immutable for an immutable class")
-              
+         
 
                 
             elif choice == "3":
@@ -274,6 +271,24 @@ def immutable_objects_API(node, counts):
     for child_node in node.get_children():
         immutable_objects_API( child_node ,counts)
 
+
+def print_variables(filename):
+    index = clang.cindex.Index.create()
+    translation_unit = index.parse(filename)
+    cursor = translation_unit.cursor
+
+    for child in cursor.walk_preorder():
+        if child.kind.is_declaration():
+            if child.kind == clang.cindex.CursorKind.VAR_DECL:
+                print(child.spelling)
+
+def print_variable_info(decl):
+    if decl.kind == clang.cindex.CursorKind.VAR_DECL:
+        print("Variable name: ", decl.spelling)
+        print("Variable type: ", decl.type.spelling)
+        print("Variable location: ", decl.location)
+
+
 def count_const_vars(node, var_set):
     if node.kind.is_declaration():
         if node.type.is_const_qualified():
@@ -282,6 +297,14 @@ def count_const_vars(node, var_set):
                 var_set.add(node.displayname)
     for child_node in node.get_children():
         count_const_vars(child_node, var_set)
+
+
+def get_variables(tu,variables):
+    for node in tu.cursor.walk_preorder():
+        if node.kind.is_declaration() and node.kind.name.startswith('VAR_DECL'):
+            variables.append(node.displayname)
+
+    
 
 
 
