@@ -208,7 +208,3 @@ def getScopePair(Cursor : clang.cindex.Cursor, compound_statements : list):
         if compound_statement.extent.start.line <= Cursor.extent.start.line and compound_statement.extent.end.line >= Cursor.extent.end.line:
             return (Cursor, compound_statement)
     return None
-
-
-if __name__ == "__main__":
-    print(checkIfMembersLockedInSomeMethods("cpp_tests/member_locked_in_some_methods/error_in_method_with_nested_scopes.cpp"))
