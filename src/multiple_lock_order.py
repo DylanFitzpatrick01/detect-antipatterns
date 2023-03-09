@@ -28,22 +28,25 @@ def check_lock_order_conflict(multi_order):
 			else:
 				order_flag = 1
 				line_number = inspect.currentframe().f_lineno
-				print("Error!: mutex", mutex, "is in the incorrect order!")
+				error_message = "Error!: mutex " + str(mutex) + " is in the incorrect order!"
 		else:
 			heldLocks.append(mutex)
 	if order_flag == 0:
-		print("No lock order errors detected!")
-	return(error_message)
+		error_message = "No lock order errors detected!"
+	return error_message
 
 def multi_lock_test(file_selected):
     with open(file_selected, 'r') as file:
         contents = file.read()
+	
     matches = re.findall(r'std::lock_guard<std::mutex>\s+lock\((\w+)\);', contents)
     mutex_names = []
     for match in matches:
         mutex_names.append(match)
     multi_order = list(mutex_names)
+    
     error_message = check_lock_order_conflict(multi_order)
+    print(error_message)
     return error_message
 
 if __name__ == "__main__":
