@@ -46,7 +46,6 @@ def multi_lock_test(file_selected):
     multi_order = list(mutex_names)
     
     error_message = check_lock_order_conflict(multi_order)
-    print(error_message)
     return error_message
 
 if __name__ == "__main__":
