@@ -1,5 +1,6 @@
 from collections import Counter
 from gettext import translation
+import subprocess
 import shutil
 import string
 import struct
@@ -90,7 +91,17 @@ def main():
             elif choice == "2":
                     print("Checking for immutable objects...\n") 
                     print(s)
-                    print_variables(s)
+                    #print_variables(s) #prints nothing
+                    #print_variables2(s) #prints eveyrthing
+                    #print_variables3(s) #prints everything
+                    index =clang.cindex.Index.create()
+                    tus = index.parse(s)
+                    root = tus.cursor
+                    var_decl_count = count_var_decls(root)
+                    print(var_decl_count)
+                  
+              
+                    
                   
 
 
@@ -271,6 +282,54 @@ def immutable_objects_API(node, counts):
     for child_node in node.get_children():
         immutable_objects_API( child_node ,counts)
 
+def count_var_decls(node):
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if node.type.spelling == "std::string":
+            count += 1
+            print("std::string variable declaration: " + node.displayname)
+    for child in node.get_children():
+        count += count_var_decls(child)
+    return count
+
+
+
+
+def print_variables3(filename):
+    index = clang.cindex.Index.create()
+    translation_unit = index.parse(filename)
+    cursor = translation_unit.cursor
+
+    for child in cursor.walk_preorder():
+        if child.kind.is_declaration():
+            name = child.spelling
+            kind = child.kind.name
+            if child.kind.is_reference():
+                print(f"{kind} {name} (reference)")
+            else:
+                print(f"{kind} {name}")
+
+
+
+
+
+
+def print_variables2(filename):
+    index = clang.cindex.Index.create()
+    translation_unit = index.parse(filename)
+    cursor = translation_unit.cursor
+
+    for child in cursor.walk_preorder():
+        if child.kind.is_declaration():
+            name = child.spelling
+            kind = child.kind.name
+            if child.kind.is_reference():
+                print(f"{kind} {name} (reference)")
+            else:
+                print(f"{kind} {name}")
+
 
 def print_variables(filename):
     index = clang.cindex.Index.create()
@@ -278,8 +337,8 @@ def print_variables(filename):
     cursor = translation_unit.cursor
 
     for child in cursor.walk_preorder():
-        if child.kind.is_declaration():
-            if child.kind == clang.cindex.CursorKind.VAR_DECL:
+        if child.kind.is_declaration() and child.type.kind == clang.cindex.TypeKind.POINTER:
+            if child.type.get_pointee().kind == clang.cindex.TypeKind.RECORD and child.type.get_pointee().spelling == 'string':
                 print(child.spelling)
 
 def print_variable_info(decl):
