@@ -4,9 +4,9 @@ from typing import List
 
 # Observer INTERFACE, declares update method to be used in implementations of Observer interface
 class Observer():            
+    # Remember that Observer class is an INTERFACE, so update() remains EMPTY here
     def update(self, event: str):
         pass
-
 
 # Observer IMPLEMENTATION, has a dedicated tag that it will detect, once that tag has been detected, it will update by printing
 # said tag along with the event message. update() is to be called by eventSource()
@@ -33,9 +33,8 @@ class tagObserver(Observer):
                 elif self.tagToDetect == "std::lock_guard<std::mutex>" and currentNode.spelling == "lock_guard":
                     if currentNode.spelling == "lock_guard":
                         self.output += f"Detected a '{self.tagToDetect}' Lockguard's Name: '{currentNode.spelling}' at {currentNode.location}\n"
-                        #print(f"Detected a '{self.tagToDetect}' Lockguard's Name: '{currentNode.spelling}' at {currentNode.location}")  
-
-
+                        #print(f"Detected a '{self.tagToDetect}' Lockguard's Name: '{currentNode.spelling}' at {currentNode.location}")
+                
 # Gráinne Ready
 # An Observer which looks for a specific clang.cindex.CursorKind
 # @Param kindToDetect:  The clang.cindex.cursorKind to find
@@ -48,37 +47,11 @@ class cursorKindObserver(Observer):
 
     def update(self, currentNode):
         if currentNode not in self.kindList:
+            self.kindList.append(currentNode)
             if currentNode.kind == self.kindToDetect:
-                self.output += f"Detected {currentNode.type.spelling}: '{currentNode.displayname}' at {currentNode.location}\n"
-                print(f"Detected {currentNode.type.spelling}: '{currentNode.displayname}' at {currentNode.location}\n")
+                self.output += f"Detected variable {currentNode.type.spelling}: '{currentNode.displayname}' at {currentNode.location}\n"
+                #print(f"{currentNode.displayname} found at {currentNode.location}")
                 self.kindList.append(currentNode)
-
-
-class CompoundStatementObserver(Observer):
-    def __init__(self):
-        self.lock_guards = []
-        self.output = ""
-
-
-    def update(self, currentNode):
-        if currentNode.kind == clang.cindex.CursorKind.COMPOUND_STMT:
-            for token in currentNode.get_tokens():
-                if (token.kind == clang.cindex.TokenKind.IDENTIFIER):
-                    if (token.spelling == "lock_guard"):
-                        self.lock_guards.append(lock_guard(token, None, None))
-                    elif len(self.lock_guards) > 0:
-                        if checkIfPartOfLockGuards(token, self.lock_guards[-1]):
-                            self.output += f"Detected a lock_guard called '{self.lock_guards[-1].lock_name.spelling}' guarding mutex called '{self.lock_guards[-1].mutex_name.spelling}' at {self.lock_guards[-1].lock_token.location}\n"
-
-
-
-    def printLockGuards(self):
-        for lock in self.lock_guards:
-            print(f"Detected a lock_guard called '{lock.lock_name.spelling}' guarding mutex called '{lock.mutex_name.spelling}' at {lock.lock_token.location}\n")
-                        
-
-                        
-                    
 
 
 # Gráinne Ready
@@ -114,36 +87,3 @@ class EventSource():
         for observer in observers:
             if observer in self.observers:
                 self.observers.remove(observer)
-
-class lock_guard():
-    def __init__(self, lock_token : clang.cindex.Token, lock_name: clang.cindex.Token, mutex_name : clang.cindex.Token):
-        self.lock_token = lock_token
-        self.lock_name = lock_name
-        self.mutex_name = mutex_name
-    
-    def setMutexName(self, name_token : clang.cindex.Token):
-        self.mutex_name = name_token
-    
-    def setLockName(self, name_token : clang.cindex.Token):
-        self.lock_name = name_token
-
-
-def checkIfPartOfLockGuards(token : clang.cindex.Token, lock_grd : lock_guard):
-    """Will check if a specific token is part of a line which declares a lock_guard
-
-    Args:
-        token (clang.cindex.Token): The token to check
-        lock_grd (lock_guard): The lock_guard object to check if the token is a part of
-
-    Returns:
-        bool: If the lock_guard object is now complete (has no more None members)
-       
-    """
-    if lock_grd.lock_name is None:
-        if (token.location.column - 23 == lock_grd.lock_token.location.column and token.location.line == lock_grd.lock_token.location.line):
-            lock_grd.setLockName(token)
-    elif lock_grd.mutex_name is None:
-        if (token.location.column - 28 == lock_grd.lock_token.location.column and token.location.line == lock_grd.lock_token.location.line):
-            lock_grd.setMutexName(token)
-            return True
-    return False

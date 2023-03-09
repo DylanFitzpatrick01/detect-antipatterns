@@ -28,11 +28,29 @@ void updateState(const std::string& input)
 
 void logState()
 {
-    std::lock_guard<std::mutex> lock(mDataAccess);
-    std::cout << "Current state: " << mState << "\n";       // Uh-oh - reading here but, missing lock.
+    int i = 5;
+    if (i == 5)
+    {
+        {
+            {
+                {
+                    if (i == 5)
+                    {
+                        std::lock_guard<std::mutex> lock(mDataAccess2);
+                    }
+                    else
+                    {
+                        std::cout << "Current state: " << mState << "\n";
+                    }
+                }
+            }
+        }
+    }
+    //std::cout << "Current state: " << mState << "\n";       // Uh-oh - reading here but, missing lock.
 }
 
 private:
     std::string mState;
+    std::mutex mDataAccess2;
     std::mutex mDataAccess;
 };
