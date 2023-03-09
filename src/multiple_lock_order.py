@@ -27,7 +27,6 @@ def check_lock_order_conflict(multi_order):
 				highestIndex = heldLocks.index(mutex)
 			else:
 				order_flag = 1
-				line_number = inspect.currentframe().f_lineno
 				error_message = "Error!: mutex " + str(mutex) + " is in the incorrect order!"
 		else:
 			heldLocks.append(mutex)
