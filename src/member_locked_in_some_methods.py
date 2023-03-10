@@ -2,9 +2,12 @@
 
 # SIDENOTE: If you think of any edge cases to test this with, or ways that I can improve the code, pls let me know! :)
 # SIDENOTE: Call the 'def checkIfMembersLockedInSomeMethods(file_path : str):' function to check for the anti-pattern
-# TODO: Add handling for manual locks/unlocks
-# TODO: Add handling for function calls inside of locked_guards (order.cpp is a good example of this)
 # TODO: Test with c++ code that includes do-while loops, while-loops etc..
+# TODO: Improve code - If I store the compound_statement of the class in lockedInSomeObserver, I could check when all the
+#                      nodes in the class have been read. It may not seem like it on paper, but this would actually highly
+#                      boost efficiency, as I could then make it so it only reads nodes once, as atm some nodes are read more
+#                      than once since I use walk_preorder() in some functions. I would be able to remove those walks if I
+#                      do this. This could take time, so I'd prefer to prioritise getting the other antipatterns first.
 from output import *
 from observer import *
 import clang.cindex
@@ -50,9 +53,13 @@ class lockedInSomeObserver(Observer):
             variables_under_lock = {}
             methods, class_variables = getMembersInClass(currentNode)
             for method in methods:
-                lock_scope_pairs, method_variables = findLocksAndVariablesInMethod(method, class_variables)
+                lock_scope_pairs, method_variables, lock_unlock_pairs = findLocksAndVariablesInMethod(method, class_variables)
                 for method_variable in method_variables:
                     if any(lock[0].extent.start.line <= method_variable.extent.start.line and lock[1].extent.end.line >= method_variable.extent.end.line for lock in lock_scope_pairs):
+                        if method_variable.displayname in variables_under_lock and not variables_under_lock[method_variable.displayname]:
+                            self.raiseError(method, method_variable, isLockedInMethod=True)
+                        variables_under_lock[method_variable.displayname] = True
+                    elif any(lock_unlock_pair[0].extent.start.line <= method_variable.extent.start.line and lock_unlock_pair[2].extent.end.line >= method_variable.extent.end.line for lock_unlock_pair in lock_unlock_pairs):
                         if method_variable.displayname in variables_under_lock and not variables_under_lock[method_variable.displayname]:
                             self.raiseError(method, method_variable, isLockedInMethod=True)
                         variables_under_lock[method_variable.displayname] = True
@@ -136,7 +143,7 @@ def searchNodes(file_path : str, eventSrc: EventSource):
 
 # Gráinne Ready
     """Gets all the cursors which are data members and methods, which are the children of a class and returns them in two separate lists
-    
+    This won't get the data members inside of the methods, just the data members of the class itself.
     Args:
         classCursor (clang.cindex.Cursor): A cursor of kind 'clang.cindex.CursorKind.CLASS_DECL'
     
@@ -169,14 +176,26 @@ def getMembersInClass(classCursor : clang.cindex.Cursor):
         method_variables (list of clang.cindex.Cursor): A list of the class' data members which were used in the method
     """
 def findLocksAndVariablesInMethod(methodCursor : clang.cindex.Cursor, class_variables):
-    lock_scope_pairs = []
+    lockguard_scope_pairs = []
+    lock_unlock_pairs = []
+    lock_member_pairs = []
+    unlock_member_pairs = []
     method_variables = []
     compound_statements = []
+    nextMemberIsInLock = False
+    nextMemberIsInUnlock = False
     for child in methodCursor.walk_preorder():
-        if (child.type.spelling == "std::lock_guard<std::mutex>" and child.displayname == "lock_guard"):
-            scope_pair = getScopePair(child, reversed(compound_statements))
-            if scope_pair:
-                lock_scope_pairs.append(scope_pair)
+        if (child.kind == clang.cindex.CursorKind.CALL_EXPR):
+            if (child.type.spelling == "std::lock_guard<std::mutex>" and child.displayname == "lock_guard"):
+                scope_pair = getScopePair(child, reversed(compound_statements))
+                if scope_pair:
+                    lockguard_scope_pairs.append(scope_pair)
+            elif(child.displayname == "lock"):
+                currentLock = child
+                nextMemberIsInLock = True
+            elif (child.displayname == "unlock"):
+                currentUnlock = child
+                nextMemberIsInUnlock = True
         elif child.kind == clang.cindex.CursorKind.COMPOUND_STMT:
             compound_statements.append(child)
         elif child.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR or child.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR:
@@ -186,10 +205,29 @@ def findLocksAndVariablesInMethod(methodCursor : clang.cindex.Cursor, class_vari
                 # The type and kind of our variables isn't rigid, which is why I'm not comparing them
                 if (child.spelling == variable.spelling) and (child.kind != clang.cindex.CursorKind.NAMESPACE_REF):
                     method_variables.append(child)
-    return lock_scope_pairs, method_variables
-# Kind: MEMBER_REF_EXPR, TypeKind.ELABORATED
-# Kind: CursorKind.UNEXPOSED_EXPR, TypeKind.RECORD
+            if child.type.spelling == 'std::_Mutex_base':
+                if nextMemberIsInLock and child.extent.start.line == currentLock.extent.start.line:
+                    lock_member_pairs.append( (currentLock, child) )
+                    nextMemberIsInLock = False
+                elif nextMemberIsInUnlock and child.extent.start.line == currentUnlock.extent.start.line:
+                    unlock_member_pairs.append( (currentUnlock, child) )
+                    nextMemberIsInUnlock = False
+    if (unlock_member_pairs):
+        lock_unlock_pairs = getLockUnlockPairs(lock_member_pairs, unlock_member_pairs, method_variables)
+    return lockguard_scope_pairs, method_variables, lock_unlock_pairs
 
+def getLockUnlockPairs(lock_member_pairs : list, unlock_member_pairs : list, method_variables : list):
+    lock_unlock_member_pairs = [] # [ (lock_node, member_node.spelling, unlock_node) ]
+    for lock_pair in lock_member_pairs:
+        for unlock_pair in unlock_member_pairs:
+            if lock_pair[1].spelling == unlock_pair[1].spelling:
+                lock_unlock_member_pairs.append( (lock_pair[0], lock_pair[1].spelling, unlock_pair[0]) )
+                unlock_member_pairs.remove(unlock_pair)
+                break
+    return lock_unlock_member_pairs
+            
+
+        
 
 def getScopePair(Cursor : clang.cindex.Cursor, compound_statements : list):
     """Given a Cursor and a list of scopes (compound statements), this will return
