@@ -132,12 +132,12 @@ Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file '../cpp_tes
 Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 37, column 16>
 Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 17, column 33>
 Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 24, column 33>
-Detected variable std::string: 'mState' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 36, column 17>
-Detected variable std::mutex: 'mDataAccess' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 37, column 16>
-Detected variable MyClass: 'MyClass' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 5, column 7>
-Detected variable std::string (): 'getState()' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 15, column 13>
-Detected variable void (const std::string &): 'updateState(const std::string &)' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 22, column 6>
-Detected variable void (): 'logState()' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 29, column 6>
+Detected std::string: 'mState' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 36, column 17>
+Detected std::mutex: 'mDataAccess' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 37, column 16>
+Detected MyClass: 'MyClass' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 5, column 7>
+Detected std::string (): 'getState()' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 15, column 13>
+Detected void (const std::string &): 'updateState(const std::string &)' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 22, column 6>
+Detected void (): 'logState()' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 29, column 6>
 """
 
     output_str = f"{mutex_observer.output}{lock_guard_observer.output}{declared_variable_observer.output}{class_observer.output}{function_observer.output}"

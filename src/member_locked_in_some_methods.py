@@ -84,16 +84,19 @@ class lockedInSomeObserver(Observer):
                             # If the node isn't a compound statement, check if it is a data member
                             else:
                                 self.checkIfDataMemberOfClass(currentNode)
-                    # Else, if this node is the not in the method (like the previous nodes)
+                                # If it isn't a data member, we don't need it, so wait until the next cursor is fed into update()
+
+                    # Else, if this node is the not in the method (but the previous nodes were)
                     else:
-                        self.currentNode_is_in_method = False
-                        # Check for the antipattern
+                        # Check for the antipattern and then clear the method information from the observer
                         self.checkForAntipattern()
                         self.clearObserverAfterMethod()
                         # Check if the currentNode is a different method
                         if currentNode.kind == clang.cindex.CursorKind.CXX_METHOD:
                             self.currentNode_is_in_method = True
                             self.currentMethod = currentNode
+                        else:
+                            self.currentNode_is_in_method = False
 
                 # Otherwise check if the currentNode is a method
                 elif currentNode.kind == clang.cindex.CursorKind.CXX_METHOD:
@@ -117,25 +120,24 @@ class lockedInSomeObserver(Observer):
             bool: True if it is a data member of the class
                   False if it is not a data member of the class
         """
-        if currentNode.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR or currentNode.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR or currentNode.kind == clang.cindex.CursorKind.DECL_REF_EXPR:
-            if currentNode.type.spelling == 'std::_Mutex_base' or currentNode.type.spelling == "std::mutex":
+        if not (self.nextMemberIsInLock or self.nextMemberIsInUnlock):
+            if currentNode.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR or currentNode.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR or currentNode.kind == clang.cindex.CursorKind.DECL_REF_EXPR:
+                # If the next member we're looking for is in a lock (e.g. mDataAccess in mDataAccess.lock())
                 if self.nextMemberIsInLock and currentNode.extent.start.line == self.currentLock.extent.start.line:
+                    # Add the (lock cursor, member cursor) tuple to the lock_member_pairs list
                     self.lock_member_pairs.append( (self.currentLock, currentNode) )
                     self.nextMemberIsInLock = False
-                    self.method_variables.append(currentNode)
-                    return True
+                # Else If the next member we're looking for is in a unlock (e.g. mDataAccess in mDataAccess.unlock())
                 elif self.nextMemberIsInUnlock and currentNode.extent.start.line == self.currentUnlock.extent.start.line:
+                    # Add the (unlock cursor, member cursor) tuple to the unlock_member_pairs list
                     self.unlock_member_pairs.append( (self.currentUnlock, currentNode) )
                     self.nextMemberIsInUnlock = False
-                    self.method_variables.append(currentNode)
-                    return True
-            for variable in self.data_members:
-                # I have the namespace_ref check here so that if the variable has a name like 'std' it won't confuse it with the std namespace reference
-                # Although it is bad coding practice to name things after what's in the namespace, this will still perform as it should if variables are named in such a way
-                # The type and kind of our variables isn't rigid, which is why I'm not comparing them
-                if (currentNode.spelling == variable.spelling) and (currentNode.kind != clang.cindex.CursorKind.NAMESPACE_REF):
-                    self.method_variables.append(currentNode)
-                    break
+                # Check if currentNode is a data member of the class itself
+                for variable in self.data_members:
+                    if (currentNode.spelling == variable.spelling):
+                        # If it is, add it to the method_variables list
+                        self.method_variables.append(currentNode)
+                        return True
         return False
 
 
@@ -150,30 +152,31 @@ class lockedInSomeObserver(Observer):
             bool: True if it is a call expression
                   False if it is not a call expression
         """
-        if (currentNode.kind == clang.cindex.CursorKind.CALL_EXPR):
-            # if the currentNode is a lock_guard
-            if (currentNode.type.spelling == "std::lock_guard<std::mutex>" and currentNode.displayname == "lock_guard"):
-                # get the compound_statement the lock_guard is inside and combine the lock_guard and compound_statement
-                # into a tuple (lock_guard_cursor, compound_statement_cursor)
-                scope_pair = getScopePair(currentNode, reversed(self.compound_statements))
-                if scope_pair:
-                    self.lockguard_scope_pairs.append(scope_pair)
-                return True
-            # Otherwise, if the currentNode is a lock
-            elif(currentNode.displayname == "lock"):
-                # Store it as the current lock, we know that the next data member we come across will be the mutex being locked, so set
-                # the bool which determines this to true for when we run into it in checkIfDataMemberOfClass()
-                self.currentLock = currentNode
-                self.nextMemberIsInLock = True
-                return True
-            # Otherwise, if the currentNode is an unlock
-            elif (currentNode.displayname == "unlock"):
-                # Store it as the current unlock, we know that the next data member we come across will be the mutex being unlocked, so set
-                # the bool which determines this to true for when we run into it in checkIfDataMemberOfClass()
-                self.currentUnlock = currentNode
-                self.nextMemberIsInUnlock = True
-                return True
-            return False
+        if not (self.nextMemberIsInLock or self.nextMemberIsInUnlock):
+            if (currentNode.kind == clang.cindex.CursorKind.CALL_EXPR):
+                # if the currentNode is a lock_guard
+                if (currentNode.type.spelling == "std::lock_guard<std::mutex>" and currentNode.displayname == "lock_guard"):
+                    # get the compound_statement the lock_guard is inside and combine the lock_guard and compound_statement
+                    # into a tuple (lock_guard_cursor, compound_statement_cursor)
+                    scope_pair = getScopePair(currentNode, reversed(self.compound_statements))
+                    if scope_pair:
+                        self.lockguard_scope_pairs.append(scope_pair)
+                    return True
+                # Otherwise, if the currentNode is a lock
+                elif(currentNode.displayname == "lock"):
+                    # Store it as the current lock, we know that the next data member we come across will be the mutex being locked, so set
+                    # the bool which determines this to true for when we run into it in checkIfDataMemberOfClass()
+                    self.currentLock = currentNode
+                    self.nextMemberIsInLock = True
+                    return True
+                # Otherwise, if the currentNode is an unlock
+                elif (currentNode.displayname == "unlock"):
+                    # Store it as the current unlock, we know that the next data member we come across will be the mutex being unlocked, so set
+                    # the bool which determines this to true for when we run into it in checkIfDataMemberOfClass()
+                    self.currentUnlock = currentNode
+                    self.nextMemberIsInUnlock = True
+                    return True
+        return False
 
 
     def clearObserverAfterMethod(self):
