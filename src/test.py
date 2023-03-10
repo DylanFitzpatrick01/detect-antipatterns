@@ -4,6 +4,7 @@ from contextlib import suppress
 from missingUnlock import findCaller, isUnlockCalled
 from observer import *
 from member_locked_in_some_methods import *
+from multiple_lock_order import *
 import os
 import pytest
 
@@ -320,3 +321,10 @@ def test_calling_out_of_locked_scope():
 	#But we need to make sure that all predicted are present and all present were predicted
 	for str in out:
 		assert str in expected
+
+def test_multiple_lock_order():
+	result = multi_lock_test("../cpp_tests/multiple_locks_order.cpp")
+	assert result == "Error!: mutex mMutex1 is in the incorrect order!"
+
+	result = multi_lock_test("../cpp_tests/order.cpp")
+	assert result == "No lock order errors detected!"
