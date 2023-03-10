@@ -1,20 +1,14 @@
 # Gráinne Ready
-
-# SIDENOTE: If you think of any edge cases to test this with, or ways that I can improve the code, pls let me know! :)
 # SIDENOTE: Call the 'def checkIfMembersLockedInSomeMethods(file_path : str):' function to check for the anti-pattern
-# TODO: Test with c++ code that includes do-while loops, while-loops etc..
-# TODO: Improve code - If I store the compound_statement of the class in lockedInSomeObserver, I could check when all the
-#                      nodes in the class have been read. It may not seem like it on paper, but this would actually highly
-#                      boost efficiency, as I could then make it so it only reads nodes once, as atm some nodes are read more
-#                      than once since I use walk_preorder() in some functions. I would be able to remove those walks if I
-#                      do this. This could take time, so I'd prefer to prioritise getting the other antipatterns first.
 from output import *
 from observer import *
 import clang.cindex
 
 
 class lockedInSomeObserver(Observer):
-
+    """
+    NOTE: This expects the nodes being fed into it to be in a PREORDER traversal
+    """
 
     def __init__(self):
         """
@@ -27,6 +21,21 @@ class lockedInSomeObserver(Observer):
             None
         """
         self.errors = ""
+        self.classFound = False
+        self.currentNode_is_in_method = False
+        self.currentClass = None
+        self.currentMethod = None
+        self.data_members = []
+        self.method_data_members = []
+        self.lockguard_scope_pairs = []
+        self.lock_unlock_pairs = []
+        self.lock_member_pairs = []
+        self.unlock_member_pairs = []
+        self.method_variables = []
+        self.compound_statements = []
+        self.variables_under_lock = {}
+        self.nextMemberIsInLock = False
+        self.nextMemberIsInUnlock = False
 
 
     def update(self, currentNode : clang.cindex.Cursor):
@@ -39,34 +48,193 @@ class lockedInSomeObserver(Observer):
             None
         
         Detailed Description:
-            Updates the lockedInSomeObserver with the currentNode. If the node is a class (aka if it is of kind clang.cindex.cursorKind.CLASS_DECL) then
-            it will gather all the methods and data members.
-            Then, it will run through and see where locks are inside these methods. 
-            If a data member is within a lock_guard's scope in one method, but is not within a lock_guard's scope in another, 
-              it will raise an error about the data member, which will then be printed to the terminal
+            Checks if the currentNode is the declaration of a class
+            If it is, it will get all data members of the class.
+            
+            If the currentNode is a method inside the class, it will
+            take note of this and store information about lock_guards, locks, unlocks, compound statements and class data members being used in the method
+            
+            If the previous node was inside a method, and the currentNode is not inside that method, then the method has ended, and we will check
+            if any of the data members of the class were guarded or not in the method and compare this state to if they were guarded or not in a previous method.
+            If either a data member was guarded in this method but not in another, or a data member was not guarded in this method but guarded in another, it will raise an error (and store it).
+            After an error was raised or not, it will clear information of that method from the observer to make way for any future methods.
+            
+            If the previous node was inside a class, and the currentNode is not inside that class, then the class has ended, and we will clear
+            all information about that class from the observer except the errors that class had, so it can make way for any future classes in the file.
         """
+        # If the current node is the declaration of a class
         if currentNode.kind == clang.cindex.CursorKind.CLASS_DECL:
-            # variables_under_lock is what we'll use to keep track of which variables are accessed in a lock_guard and which aren't
-            #    key = data member node (clang.cindex.Cursor), 
-            #    value = Was the data member accessed in a lock or not (bool)
-            #    Because if we go to change it from True -> False or False -> True, then we know that it is accessed both in a lock_guard and outside a lock_guard (ERROR CASE)
-            variables_under_lock = {}
-            methods, class_variables = getMembersInClass(currentNode)
-            for method in methods:
-                lock_scope_pairs, method_variables, lock_unlock_pairs = findLocksAndVariablesInMethod(method, class_variables)
-                for method_variable in method_variables:
-                    if any(lock[0].extent.start.line <= method_variable.extent.start.line and lock[1].extent.end.line >= method_variable.extent.end.line for lock in lock_scope_pairs):
-                        if method_variable.displayname in variables_under_lock and not variables_under_lock[method_variable.displayname]:
-                            self.raiseError(method, method_variable, isLockedInMethod=True)
-                        variables_under_lock[method_variable.displayname] = True
-                    elif any(lock_unlock_pair[0].extent.start.line <= method_variable.extent.start.line and lock_unlock_pair[2].extent.end.line >= method_variable.extent.end.line for lock_unlock_pair in lock_unlock_pairs):
-                        if method_variable.displayname in variables_under_lock and not variables_under_lock[method_variable.displayname]:
-                            self.raiseError(method, method_variable, isLockedInMethod=True)
-                        variables_under_lock[method_variable.displayname] = True
+            self.classFound = True
+            self.currentClass = currentNode
+            # Get the data members of the class
+            self.data_members = getDataMembersInClass(currentNode)
+
+        if (self.classFound):
+            # If the currentNode's line is less than or equal to the end of the class scope's line
+            if (currentNode.extent.start.line <= self.currentClass.extent.end.line):
+                # If the previous nodes were in a method
+                if (self.currentNode_is_in_method):
+                    # If this node is still in the method
+                    if (currentNode.extent.start.line <= self.currentMethod.extent.end.line):
+                        # Check if the currentNode is a call expression (if it is, it could be a lock_guard, lock, or unlock)
+                        if (not self.checkIfCallExpr(currentNode)):
+                            # If the node isn't a call expression, check if it is a compound statement aka '{}'
+                            if currentNode.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+                                self.compound_statements.append(currentNode)
+                            # If the node isn't a compound statement, check if it is a data member
+                            else:
+                                self.checkIfDataMemberOfClass(currentNode)
+                    # Else, if this node is the not in the method (like the previous nodes)
                     else:
-                        if method_variable.displayname in variables_under_lock and variables_under_lock[method_variable.displayname]:
-                            self.raiseError(method, method_variable, isLockedInMethod=False)
-                        variables_under_lock[method_variable.displayname] = False
+                        self.currentNode_is_in_method = False
+                        # Check for the antipattern
+                        self.checkForAntipattern()
+                        self.clearObserverAfterMethod()
+                        # Check if the currentNode is a different method
+                        if currentNode.kind == clang.cindex.CursorKind.CXX_METHOD:
+                            self.currentNode_is_in_method = True
+                            self.currentMethod = currentNode
+
+                # Otherwise check if the currentNode is a method
+                elif currentNode.kind == clang.cindex.CursorKind.CXX_METHOD:
+                    self.currentNode_is_in_method = True
+                    self.currentMethod = currentNode
+            # Else, we ran through all the nodes in that class, and the current node is not in the class
+            # Clear the observer
+            else:
+                self.clearObserverAfterClass()
+                if currentNode.kind != clang.cindex.CursorKind.CLASS_DECL:
+                    self.classFound = False
+
+
+    def checkIfDataMemberOfClass(self, currentNode):
+        """Checks if the currentNode is a data member of the class
+
+        Args:
+            currentNode (clang.cindex.Cursor): The cursor to check
+
+        Returns:
+            bool: True if it is a data member of the class
+                  False if it is not a data member of the class
+        """
+        if currentNode.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR or currentNode.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR or currentNode.kind == clang.cindex.CursorKind.DECL_REF_EXPR:
+            if currentNode.type.spelling == 'std::_Mutex_base' or currentNode.type.spelling == "std::mutex":
+                if self.nextMemberIsInLock and currentNode.extent.start.line == self.currentLock.extent.start.line:
+                    self.lock_member_pairs.append( (self.currentLock, currentNode) )
+                    self.nextMemberIsInLock = False
+                    self.method_variables.append(currentNode)
+                    return True
+                elif self.nextMemberIsInUnlock and currentNode.extent.start.line == self.currentUnlock.extent.start.line:
+                    self.unlock_member_pairs.append( (self.currentUnlock, currentNode) )
+                    self.nextMemberIsInUnlock = False
+                    self.method_variables.append(currentNode)
+                    return True
+            for variable in self.data_members:
+                # I have the namespace_ref check here so that if the variable has a name like 'std' it won't confuse it with the std namespace reference
+                # Although it is bad coding practice to name things after what's in the namespace, this will still perform as it should if variables are named in such a way
+                # The type and kind of our variables isn't rigid, which is why I'm not comparing them
+                if (currentNode.spelling == variable.spelling) and (currentNode.kind != clang.cindex.CursorKind.NAMESPACE_REF):
+                    self.method_variables.append(currentNode)
+                    break
+        return False
+
+
+    def checkIfCallExpr(self, currentNode : clang.cindex.Cursor):
+        """Checks if the currentNode is a call expression. If so, it will check if it is a lock_guard, lock, or unlock and
+        add it to the respective list if is.
+
+        Args:
+            currentNode (clang.cindex.Cursor): The cursor to check
+
+        Returns:
+            bool: True if it is a call expression
+                  False if it is not a call expression
+        """
+        if (currentNode.kind == clang.cindex.CursorKind.CALL_EXPR):
+            # if the currentNode is a lock_guard
+            if (currentNode.type.spelling == "std::lock_guard<std::mutex>" and currentNode.displayname == "lock_guard"):
+                # get the compound_statement the lock_guard is inside and combine the lock_guard and compound_statement
+                # into a tuple (lock_guard_cursor, compound_statement_cursor)
+                scope_pair = getScopePair(currentNode, reversed(self.compound_statements))
+                if scope_pair:
+                    self.lockguard_scope_pairs.append(scope_pair)
+                return True
+            # Otherwise, if the currentNode is a lock
+            elif(currentNode.displayname == "lock"):
+                # Store it as the current lock, we know that the next data member we come across will be the mutex being locked, so set
+                # the bool which determines this to true for when we run into it in checkIfDataMemberOfClass()
+                self.currentLock = currentNode
+                self.nextMemberIsInLock = True
+                return True
+            # Otherwise, if the currentNode is an unlock
+            elif (currentNode.displayname == "unlock"):
+                # Store it as the current unlock, we know that the next data member we come across will be the mutex being unlocked, so set
+                # the bool which determines this to true for when we run into it in checkIfDataMemberOfClass()
+                self.currentUnlock = currentNode
+                self.nextMemberIsInUnlock = True
+                return True
+            return False
+
+
+    def clearObserverAfterMethod(self):
+        """Clears all the information about a method from the observer
+        To be used once all the cursors in a method were ran through, and the current cursor (if there still is one) is the first cursor outside of the method
+        """
+        self.currentMethod = None
+        self.method_data_members = []
+        self.lockguard_scope_pairs = []
+        self.lock_unlock_pairs = []
+        self.method_variables = []
+        self.nextMemberIsInLock = False
+        self.nextMemberIsInUnlock = False
+
+
+    def clearObserverAfterClass(self):
+        """Clears all the information about a class from the observer
+        To be used once all the cursors in a class were ran through, and the current cursor (if there still is one) is the first cursor outside of the class
+        """
+        self.currentNode_is_in_method = False
+        self.currentClass = None
+        self.methods = []
+        self.data_members = []
+        self.lockguard_scope_pairs = []
+        self.lock_unlock_pairs = []
+        self.method_variables = []
+        self.compound_statements = []
+        self.variables_under_lock = {}
+        self.nextMemberIsInLock = False
+        self.nextMemberIsInUnlock = False
+
+
+    def checkForAntipattern(self):
+        """
+        Checks if any of the data members of the class were guarded or not in the method and compare this state to if they were guarded or not in a previous method.
+        If either a data member was guarded in this method but not in another, or a data member was not guarded in this method but guarded in another, it will raise an error (and store it).
+        """
+        # If there are unlocks in the method, get the lock/unlock pairs. These are tuples ( lock_cursor, name_of_member_being_locked, unlock_cursor )
+        if (self.unlock_member_pairs):
+            self.lock_unlock_pairs = getLockUnlockPairs(self.lock_member_pairs, self.unlock_member_pairs)
+            self.lock_member_pairs = []
+            self.unlock_member_pairs = []
+        for method_variable in self.method_variables:
+            # If the data member is within the guarded scope of a lock_guard, log in the dictionary that it is locked in the method
+            if any(lock[0].extent.start.line <= method_variable.extent.start.line and lock[1].extent.end.line >= method_variable.extent.end.line for lock in self.lockguard_scope_pairs):
+                # If the data member was not guarded in a previous method, raise an error
+                if method_variable.displayname in self.variables_under_lock and not self.variables_under_lock[method_variable.displayname]:
+                    self.raiseError(self.currentMethod, method_variable, isLockedInMethod=True)
+                self.variables_under_lock[method_variable.displayname] = True
+            # Otherwise, If the data member is within the guarded scope of a lock/unlock combiantion, log in the dictionary that it is locked in the method
+            elif any(lock_unlock_pair[0].extent.start.line <= method_variable.extent.start.line and lock_unlock_pair[2].extent.end.line >= method_variable.extent.end.line for lock_unlock_pair in self.lock_unlock_pairs):
+                # If the data member was not guarded in a previous method, raise an error
+                if method_variable.displayname in self.variables_under_lock and not self.variables_under_lock[method_variable.displayname]:
+                    self.raiseError(self.currentMethod, method_variable, isLockedInMethod=True)
+                self.variables_under_lock[method_variable.displayname] = True
+            # Otherwise, it is not guarded, so log in the dictionary that it isn't locked
+            else:
+                # If the data member was guarded in a previous method, raise an error
+                if method_variable.displayname in self.variables_under_lock and self.variables_under_lock[method_variable.displayname]:
+                    self.raiseError(self.currentMethod, method_variable, isLockedInMethod=False)
+                self.variables_under_lock[method_variable.displayname] = False
 
 
     def raiseError(self, methodNode : clang.cindex.Cursor, memberNode : clang.cindex.Cursor, isLockedInMethod : bool):
@@ -83,46 +251,49 @@ class lockedInSomeObserver(Observer):
         """
         if (isLockedInMethod):
             print_error(memberNode.translation_unit, methodNode.extent, 
-                f"Data member '{memberNode.displayname}' at (line: {memberNode.extent.start.line}, column: {memberNode.extent.start.column}) is accessed with a lock_guard in this method, "+
-                f"but is accessed without a lock_guard in other methods\n "+
-                f"Are you missing a lock_guard in other methods which use '{memberNode.displayname}'?", "error")
-            self.errors += f"""Data member '{methodNode.displayname}' at (line: {memberNode.extent.start.line}, column: {memberNode.extent.start.column}) is accessed with a lock_guard in this method,
-but is accessed without a lock_guard in other methods
- Are you missing a lock_guard in other methods which use '{methodNode.displayname}'?"""
+                f"Data member '{memberNode.displayname}' at (line: {memberNode.extent.start.line}, column: {memberNode.extent.start.column}) is accessed with a lock_guard or lock/unlock combination in this method, "+
+                f"\nbut is not accessed with a lock_guard or lock/unlock combination in other methods\n "+
+                f"Are you missing a lock_guard or lock/unlock combination in other methods which use '{memberNode.displayname}'?", "error")
+            self.errors += f"""Data member '{methodNode.displayname}' at (line: {memberNode.extent.start.line}, column: {memberNode.extent.start.column}) is accessed with a lock_guard or lock/unlock combination in this method,
+but is not accessed with a lock_guard or lock/unlock combination in other methods
+ Are you missing a lock_guard or lock/unlock combination in other methods which use '{methodNode.displayname}'?"""
  
         else:
             print_error(memberNode.translation_unit, methodNode.extent, 
-                f"Data member '{memberNode.displayname}' at (line: {memberNode.extent.start.line}, column: {memberNode.extent.start.column}) is accessed without a lock_guard in this method, "+
-                f"but is accessed with a lock_guard in other methods\n "+
+                f"Data member '{memberNode.displayname}' at (line: {memberNode.extent.start.line}, column: {memberNode.extent.start.column}) is not accessed with a lock_guard or lock/unlock combination in this method, "+
+                f"\nbut is accessed with a lock_guard or lock/unlock combination in other methods\n "+
                 f"Are you missing a lock_guard before '{memberNode.displayname}'?", "error")
-            self.errors += f"""Data member '{memberNode.displayname}' at (line: {memberNode.extent.start.line}, column: {memberNode.extent.start.column}) is accessed without a lock_guard in this method,
-but is accessed with a lock_guard in other methods
+            self.errors += f"""Data member '{memberNode.displayname}' at (line: {memberNode.extent.start.line}, column: {memberNode.extent.start.column}) is not accessed with a lock_guard or lock/unlock combination in this method,
+but is accessed with a lock_guard or lock/unlock combination in other methods
  Are you missing a lock_guard before '{memberNode.displayname}'?"""
 
 
 # MAIN FUNCTION FOR THIS ANTI-PATTERN AT THE MOMENT
 # Gráinne Ready
-        """
-        Checks for 'data members locked in some, but not all methods' antipattern
-        
-        Args:
-            file_path (str): The path of the c++ file to check for the antipattern
-        
-        Returns:
-            errors (str): Information about the errors found, if there were instances of the antipattern detected in the file
-            "PASSED - For data members locked in some, but not all methods" (str): If there were no errors detected
-        """
 def checkIfMembersLockedInSomeMethods(file_path : str):
+    """
+    Checks for 'data members locked in some, but not all methods' antipattern
+    
+    Args:
+        file_path (str): The path of the c++ file to check for the antipattern
+    
+    Returns:
+        errors (str): Information about the errors found, if there were instances of the antipattern detected in the file
+        "PASSED - For data members locked in some, but not all methods" (str): If there were no errors detected
+    """
     eventSrc = EventSource()
     locked_in_some_observer = lockedInSomeObserver()
     eventSrc.addObserver(locked_in_some_observer)
     searchNodes(file_path, eventSrc)
+    # If the observer's errors string is not empty, there were errors so return it. Otherwise, no errors were found so return that the file passed
     if locked_in_some_observer.errors:
         return locked_in_some_observer.errors
-    return "PASSED - For data members locked in some but not all methods"
+    print("PASSED - For data members locked in some, but not all methods")
+    return "PASSED - For data members locked in some, but not all methods"
 
 
 # Gráinne Ready
+def searchNodes(file_path : str, eventSrc: EventSource):
     """
     Searches through every node in a c++ file (AST) and notifies Observers in the EventSource about it
     
@@ -133,107 +304,64 @@ def checkIfMembersLockedInSomeMethods(file_path : str):
     Returns:
         None
     """
-def searchNodes(file_path : str, eventSrc: EventSource):
     index = clang.cindex.Index.create()
     tu = index.parse(file_path)
     for cursor in tu.cursor.walk_preorder():
+        # This if statement makes sure only nodes that are inside the file itself are fed into the Observers
         if(str(cursor.translation_unit.spelling) == str(cursor.location.file)):
             eventSrc.notifyObservers(cursor)
 
 
 # Gráinne Ready
-    """Gets all the cursors which are data members and methods, which are the children of a class and returns them in two separate lists
+def getDataMembersInClass(classCursor : clang.cindex.Cursor):
+    """Gets all the cursors which are data members that are the children of a class and returns them in a list
     This won't get the data members inside of the methods, just the data members of the class itself.
     Args:
         classCursor (clang.cindex.Cursor): A cursor of kind 'clang.cindex.CursorKind.CLASS_DECL'
     
     Returns:
-        methods (list of clang.cindex.Cursor): A list of cursors which represent the methods of the class
         data_members (list of clang.cindex.Cursor): A list of cursors which represent the data members of the class (class variables)
     """
-def getMembersInClass(classCursor : clang.cindex.Cursor):
     data_members = []
-    methods = []
     for child in classCursor.get_children():
-        if child.kind == clang.cindex.CursorKind.CXX_METHOD:
-            methods.append(child)
-        elif child.kind == clang.cindex.CursorKind.FIELD_DECL:
+        # If the child is a field declaration, we know it's a data member
+        if child.kind == clang.cindex.CursorKind.FIELD_DECL:
             data_members.append(child)
-    return methods, data_members
+    return data_members
 
 
-# TODO: Add handling for parameters (Can give false positives otherwise)
-# Gráinne Ready
+def getLockUnlockPairs(lock_member_pairs : list, unlock_member_pairs : list):
     """
-    Gets all the cursors which are locks and variables of a method, and returns them in two separate lists
+    Compares a list of tuples that are lock cursors paired with their respective member cursors, and unlock cursors paired with their respective member
+    cursors, and matches the lock cursor to its unlock. When they are matched, it will add a tuple (lock_cursor, member_being_locked_cursor, unlock_cursor) to
+    a list and return a list of such tuples at the end.
     
     Args:
-        methodCursor (clang.cindex.Cursor): A cursor of kind 'clang.cindex.CXX_METHOD' which is a member of a class
-        class_variables (list of clang.cindex.Cursor): A list of all data members of the class the method is inside of
-    
-    Returns:
-        locks (list of clang.cindex.Cursor): A list of lock_guards found in the method
-        method_variables (list of clang.cindex.Cursor): A list of the class' data members which were used in the method
-    """
-def findLocksAndVariablesInMethod(methodCursor : clang.cindex.Cursor, class_variables):
-    lockguard_scope_pairs = []
-    lock_unlock_pairs = []
-    lock_member_pairs = []
-    unlock_member_pairs = []
-    method_variables = []
-    compound_statements = []
-    nextMemberIsInLock = False
-    nextMemberIsInUnlock = False
-    for child in methodCursor.walk_preorder():
-        if (child.kind == clang.cindex.CursorKind.CALL_EXPR):
-            if (child.type.spelling == "std::lock_guard<std::mutex>" and child.displayname == "lock_guard"):
-                scope_pair = getScopePair(child, reversed(compound_statements))
-                if scope_pair:
-                    lockguard_scope_pairs.append(scope_pair)
-            elif(child.displayname == "lock"):
-                currentLock = child
-                nextMemberIsInLock = True
-            elif (child.displayname == "unlock"):
-                currentUnlock = child
-                nextMemberIsInUnlock = True
-        elif child.kind == clang.cindex.CursorKind.COMPOUND_STMT:
-            compound_statements.append(child)
-        elif child.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR or child.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR:
-            for variable in class_variables:
-                # I have the namespace_ref check here so that if the variable has a name like 'std' it won't confuse it with the std namespace reference
-                # Although it is bad coding practice to name things after what's in the namespace, this will still perform as it should if variables are named in such a way
-                # The type and kind of our variables isn't rigid, which is why I'm not comparing them
-                if (child.spelling == variable.spelling) and (child.kind != clang.cindex.CursorKind.NAMESPACE_REF):
-                    method_variables.append(child)
-            if child.type.spelling == 'std::_Mutex_base':
-                if nextMemberIsInLock and child.extent.start.line == currentLock.extent.start.line:
-                    lock_member_pairs.append( (currentLock, child) )
-                    nextMemberIsInLock = False
-                elif nextMemberIsInUnlock and child.extent.start.line == currentUnlock.extent.start.line:
-                    unlock_member_pairs.append( (currentUnlock, child) )
-                    nextMemberIsInUnlock = False
-    if (unlock_member_pairs):
-        lock_unlock_pairs = getLockUnlockPairs(lock_member_pairs, unlock_member_pairs, method_variables)
-    return lockguard_scope_pairs, method_variables, lock_unlock_pairs
+        lock_member_pairs (list): A list of tuples where each element is a clang.cindex.Cursor (lock_cursor, member_being_locked_cursor)
+        unlock_member_pairs (list): A list of tuples where each element is a clang.cindex.Cursor (unlock_cursor, member_being_unlocked_cursor)
 
-def getLockUnlockPairs(lock_member_pairs : list, unlock_member_pairs : list, method_variables : list):
-    lock_unlock_member_pairs = [] # [ (lock_node, member_node.spelling, unlock_node) ]
+    Returns:
+        list: A list of tuples that pair the lock cursor, member name that's being locked, and the unlock cursor together 
+                Tuple format: ( lock_cursor(clang.cindex.Cursor), name of member being locked(str), unlock_cursor(clang.cindex.Cursor) ) 
+    """
+    lock_unlock_member_pairs = []
+    unlock_prs = unlock_member_pairs.copy()
     for lock_pair in lock_member_pairs:
-        for unlock_pair in unlock_member_pairs:
+        for unlock_pair in unlock_prs:
+            # If the spelling of the member being locked in the lock_cursor is the same as the unlock_cursor
             if lock_pair[1].spelling == unlock_pair[1].spelling:
+                # Add the matching lock/member/unlock tuple to the return list
                 lock_unlock_member_pairs.append( (lock_pair[0], lock_pair[1].spelling, unlock_pair[0]) )
-                unlock_member_pairs.remove(unlock_pair)
+                unlock_prs.remove(unlock_pair)
                 break
     return lock_unlock_member_pairs
             
 
-        
-
 def getScopePair(Cursor : clang.cindex.Cursor, compound_statements : list):
     """Given a Cursor and a list of scopes (compound statements), this will return
-    a tuple of the (Cursor, scope) pairing.
+    a tuple of the respective (Cursor, scope) pairing.
     If the scope isn't found in the list, it will return None
-    It would be wise to reverse() the list, as AST's typically find nested scopes last,
+    It would be wise to reverse() the list when calling this function, as AST's typically find nested scopes last
 
     Args:
         Cursor (clang.cindex.Cursor) : The cursor to find the scope of

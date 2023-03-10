@@ -22,7 +22,6 @@ std::string getState()
 void updateState(const std::string& input)
 {
     std::lock_guard<std::mutex> lock(mDataAccess);          // Correctly locking for a write
-
     mState = input;
 }
 
@@ -41,14 +40,16 @@ void logState()
                     }
                     else
                     {
+                        {
+                            std::lock_guard<std::mutex> lock(mDataAccess2);
+                        }
                         std::cout << "Current state: " << mState << "\n";
-                        mDataAccess.unlock();
                     }
                 }
+                mDataAccess.unlock();
             }
         }
     }
-    //std::cout << "Current state: " << mState << "\n";       // Uh-oh - reading here but, missing lock.
 }
 
 private:

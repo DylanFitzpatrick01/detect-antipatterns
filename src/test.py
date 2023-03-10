@@ -149,13 +149,13 @@ def test_member_locked_in_some_methods():
     # These tests are a little slow, but that's because each time we read a cpp file, it also reads all the nodes in the #include methods recursively
     # Don't worry, only the nodes that are located inside the cpp test file itself will be fed into the checks
 
-    correct_pass_output = "PASSED - For data members locked in some but not all methods"
+    correct_pass_output = "PASSED - For data members locked in some, but not all methods"
 
     # Test 1 - Error Check: Data member not guarded in method with no scopes other than the method scope
-    correct_error_output = """Data member 'mState' at (line: 32, column: 39) is accessed without a lock_guard in this method,
-but is accessed with a lock_guard in other methods
+    correct_error_output = """Data member 'mState' at (line: 35, column: 39) is not accessed with a lock_guard or lock/unlock combination in this method,
+but is accessed with a lock_guard or lock/unlock combination in other methods
  Are you missing a lock_guard before 'mState'?"""
-    error_output = checkIfMembersLockedInSomeMethods("../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp")
+    error_output = checkIfMembersLockedInSomeMethods("../cpp_tests/member_locked_in_some_methods/error_in_method_scope_locks.cpp")
     assert(error_output) == correct_error_output
 
     # Test 2 - Pass Check: Data member guarded in method with no scopes other than the method scope
@@ -163,14 +163,14 @@ but is accessed with a lock_guard in other methods
     assert(pass_output) == correct_pass_output
 
     # Test 3 - Error Check: Data member not guarded in method with nested scopes, including if-else statement
-    correct_error_output = """Data member 'mState' at (line: 43, column: 59) is accessed without a lock_guard in this method,
-but is accessed with a lock_guard in other methods
+    correct_error_output = """Data member 'mState' at (line: 43, column: 59) is not accessed with a lock_guard or lock/unlock combination in this method,
+but is accessed with a lock_guard or lock/unlock combination in other methods
  Are you missing a lock_guard before 'mState'?"""
     error_output = checkIfMembersLockedInSomeMethods("../cpp_tests/member_locked_in_some_methods/error_in_method_with_nested_scopes.cpp")
     assert(error_output) == correct_error_output
 
     # Test 4 - Pass Check:
-    pass_output = checkIfMembersLockedInSomeMethods("../cpp_tests/member_locked_in_some_methods/pass_in_method_with_nested_scopes.cpp")
+    pass_output = checkIfMembersLockedInSomeMethods("../cpp_tests/member_locked_in_some_methods/pass_in_method_with_nested_scopes_locks.cpp")
     assert(pass_output) == correct_pass_output
 
 

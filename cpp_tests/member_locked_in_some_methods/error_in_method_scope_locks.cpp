@@ -21,11 +21,12 @@ std::string getState()
 
 void updateState(const std::string& input)
 {
-    mDataAccess.lock();         // Correctly locking for a write
+    std::mutex mDataAccess2;
+    mDataAccess2.lock();         // Correctly locking for a write
 
     mState = input;
 
-    mDataAccess.unlock();
+    mDataAccess2.unlock();
 }
 
 void logState()
@@ -38,3 +39,4 @@ private:
     std::string mState;
     std::mutex mDataAccess;
 };
+int i = 5;
