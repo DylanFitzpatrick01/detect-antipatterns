@@ -1,5 +1,6 @@
 from collections import Counter
 from gettext import translation
+from itertools import count
 import subprocess
 import shutil
 import string
@@ -90,15 +91,45 @@ def main():
   
             elif choice == "2":
                     print("Checking for immutable objects...\n") 
-                    print(s)
-                    #print_variables(s) #prints nothing
-                    #print_variables2(s) #prints eveyrthing
-                    #print_variables3(s) #prints everything
+                   
+              
                     index =clang.cindex.Index.create()
                     tus = index.parse(s)
                     root = tus.cursor
-                    var_decl_count = count_var_decls(root)
-                    print(var_decl_count)
+                    immutable_objects_API(root)
+
+
+
+
+
+                    #var_decl_constcount = count_const_string_var_decls(root) # prints only const string variaables 
+                    #print(var_decl_constcount)
+                    #var_decl_count = count_string_var_decls(root)        # prints only  string variaables
+           
+                    #print(var_decl_count)
+
+
+                    #var_decl_total_bool_count = count_bool_total_var_decls(root)
+                    #print(var_decl_total_bool_count)
+
+                    #var_decl_const_bool = count_const_bool_var_decls(root)
+                    #print(var_decl_const_bool)
+
+                    #var_decl_total_int_count = count_int_total_var_decls(root)
+                    #print(var_decl_total_int_count)
+                    #var_decl_const_int = count_const_int_var_decls(root)
+                    #print(var_decl_const_int)
+
+                    #total_double_count = count_const_double_var_decls(root)
+                    #print(total_double_count)
+                    #doublt_const_count = count_double_total_var_decls(root)
+                    #print(doublt_const_count)
+
+                    #total_char_count = count_char_total_var_decls(root)
+                    #print(total_char_count)
+                    #char_const_count = count_const_char_var_decls(root)
+                    #print(char_const_count)
+                    
                   
               
                     
@@ -106,29 +137,6 @@ def main():
 
 
    
-
-           
-                
-               # count_constants(translation_unit.cursor,variables)
-
-               # print(len(variables))
-
-                #variables2 = set()
-               # count_variables(translation_unit.cursor, variables2)
-
-
-               # print(len(variables2))
-
-               # counts = {"constant": 0, "non_constant": 0}
-
-               # immutable_objects_API(translation_unit.cursor,counts)
-                #print(f"Number of constant variables: {counts['constant']}")
-                #print(f"Number of non-constant variables: {counts['non_constant']}")
-
-               
-               ## print("Number of unique const variables:", num_const_vars)
-
-
 
 
          
@@ -270,138 +278,185 @@ def public_mutex_members_API(cursor: clang.cindex.Cursor):
             print("public_mutex_members - Are you sure you want to have a public mutex called " + str(
                 cursor.displayname) + ", Line - " + str(cursor.location.line))
     
-def immutable_objects_API(node, counts):
+def immutable_objects_API(node):
+    constant_variable_count = 0
+    variable_count = 0
 
-    if node.kind.is_declaration() and node.kind.name == "VAR_DECL":
-        #check if variable is const 
-        if node.type.is_const_qualified():
-            counts["constant"] +=1
-         
-        else:
-            counts["non_constant"] +=1
-    for child_node in node.get_children():
-        immutable_objects_API( child_node ,counts)
+    constant_variable_count +=count_const_string_var_decls(node)
+    constant_variable_count += count_const_bool_var_decls(node)
+    constant_variable_count += count_const_int_var_decls(node)
+    constant_variable_count += count_const_double_var_decls(node)
+    constant_variable_count += count_const_char_var_decls(node)
 
-def count_var_decls(node):
-    count = 0
-    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
-                     clang.cindex.CursorKind.FIELD_DECL,
-                     clang.cindex.CursorKind.PARM_DECL]:
-        if node.type.spelling == "std::string":
-            count += 1
-            print("std::string variable declaration: " + node.displayname)
-    for child in node.get_children():
-        count += count_var_decls(child)
-    return count
+    #print(constant_variable_count)
+
+    variable_count += count_string_var_decls(node)
+    variable_count += count_bool_total_var_decls(node)
+    variable_count += count_int_total_var_decls(node)
+    variable_count += count_double_total_var_decls(node)
+    variable_count += count_char_total_var_decls(node)
+
+    #print(variable_count)
 
 
+    threshold = 0.70
 
 
-def print_variables3(filename):
-    index = clang.cindex.Index.create()
-    translation_unit = index.parse(filename)
-    cursor = translation_unit.cursor
+    ratio = constant_variable_count / variable_count
 
-    for child in cursor.walk_preorder():
-        if child.kind.is_declaration():
-            name = child.spelling
-            kind = child.kind.name
-            if child.kind.is_reference():
-                print(f"{kind} {name} (reference)")
-            else:
-                print(f"{kind} {name}")
-
-
-
-
-
-
-def print_variables2(filename):
-    index = clang.cindex.Index.create()
-    translation_unit = index.parse(filename)
-    cursor = translation_unit.cursor
-
-    for child in cursor.walk_preorder():
-        if child.kind.is_declaration():
-            name = child.spelling
-            kind = child.kind.name
-            if child.kind.is_reference():
-                print(f"{kind} {name} (reference)")
-            else:
-                print(f"{kind} {name}")
-
-
-def print_variables(filename):
-    index = clang.cindex.Index.create()
-    translation_unit = index.parse(filename)
-    cursor = translation_unit.cursor
-
-    for child in cursor.walk_preorder():
-        if child.kind.is_declaration() and child.type.kind == clang.cindex.TypeKind.POINTER:
-            if child.type.get_pointee().kind == clang.cindex.TypeKind.RECORD and child.type.get_pointee().spelling == 'string':
-                print(child.spelling)
-
-def print_variable_info(decl):
-    if decl.kind == clang.cindex.CursorKind.VAR_DECL:
-        print("Variable name: ", decl.spelling)
-        print("Variable type: ", decl.type.spelling)
-        print("Variable location: ", decl.location)
-
-
-def count_const_vars(node, var_set):
-    if node.kind.is_declaration():
-        if node.type.is_const_qualified():
-            type_kind = node.type.get_canonical().kind
-            if type_kind in [clang.cindex.TypeKind.INT, clang.cindex.TypeKind.DOUBLE, clang.cindex.TypeKind.CHAR_S, clang.cindex.TypeKind.BOOL, clang.cindex.TypeKind.RECORD]:
-                var_set.add(node.displayname)
-    for child_node in node.get_children():
-        count_const_vars(child_node, var_set)
-
-
-def get_variables(tu,variables):
-    for node in tu.cursor.walk_preorder():
-        if node.kind.is_declaration() and node.kind.name.startswith('VAR_DECL'):
-            variables.append(node.displayname)
-
+    if ( ratio) >= threshold:
+        ratio = ratio * 100
+        ratio = round(ratio,0)
+        print(str(ratio) + "% of Variables are constant. This may cause an immutable object error")
     
 
 
 
-def count_constants(cursor, variables):
-    if cursor.kind == clang.cindex.CursorKind.VAR_DECL:
-        if cursor.type.is_const_qualified():
-            variables.add(cursor.spelling)
+def count_const_string_var_decls(node):
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if node.type.spelling == "const std::string":
+            count += 1
+            #print("std::string variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
 
-    # Recurse into child nodes
-    for child in cursor.get_children():
-        count_constants(child, variables)
+            count += count_const_string_var_decls(child)
+    return count
 
-def count_variables(cursor, variables):
-    if cursor.kind == clang.cindex.CursorKind.VAR_DECL:
-        variables.add(cursor.spelling)
+def count_const_bool_var_decls(node):
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if  node.type.spelling == "const bool" :
+            count += 1
+            #print("bool variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
+            count += count_const_bool_var_decls(child)
+    return count 
 
-    # Recurse into child nodes
-    for child in cursor.get_children():
-        count_variables(child, variables)   
+def count_const_int_var_decls(node):
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if  node.type.spelling == "const int" :
+            count += 1
+            #print("bool variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
+            count += count_const_int_var_decls(child)
+    return count 
+
+def count_const_double_var_decls(node):
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if  node.type.spelling == "const double" :
+            count += 1
+            #print("bool variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
+            count += count_const_double_var_decls(child)
+    return count
+
+def count_const_char_var_decls(node):
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if  node.type.spelling == "const char" :
+            count += 1
+            #print("bool variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
+            count += count_const_char_var_decls(child)
+    return count   
 
 
-def count_vars(node, var_set):
-    if node.kind.is_declaration():
-        type_kind = node.type.get_canonical().kind
-        if type_kind in [clang.cindex.TypeKind.INT, clang.cindex.TypeKind.DOUBLE, clang.cindex.TypeKind.CHAR_S, clang.cindex.TypeKind.BOOL, clang.cindex.TypeKind.RECORD]:
-            var_set.add(node.displayname)
-    for child_node in node.get_children():
-        count_vars(child_node, var_set)  
-       
 
-def count_const_string_vars(node, var_set):
-    if node.kind.is_declaration():
-        if node.type.is_const_qualified() and node.type.kind == clang.cindex.TypeKind.POINTER:
-            pointee_type = node.type.get_pointee()
-            if pointee_type.kind == clang.cindex.TypeKind.CHAR_S:
-                var_set.add(node.displayname)
-    for child_node in node.get_children():
-        count_const_string_vars(child_node, var_set)
+def count_string_var_decls(node):
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if  node.type.spelling == "const std::string" or  node.type.spelling == "std::string" :
+            count += 1
+            #print(" std::string variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
+            count += count_string_var_decls(child)
+    return count
+
+def count_bool_total_var_decls(node):
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if  node.type.spelling == "const bool" or  node.type.spelling == "bool" :
+            count += 1
+            #print("bool variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
+            count += count_bool_total_var_decls(child)
+    return count
+
+def count_int_total_var_decls(node):
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if  node.type.spelling == "const int" or  node.type.spelling == "int" :
+            count += 1
+            #print("bool variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
+            count += count_int_total_var_decls(child)
+    return count
+
+def count_double_total_var_decls(node):
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if  node.type.spelling == "const double" or  node.type.spelling == "double" :
+            count += 1
+            #print("bool variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
+            count += count_double_total_var_decls(child)
+    return count
+
+def count_char_total_var_decls(node):
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+       if  node.type.spelling == "const char" or node.type.spelling == "char":
+            count += 1
+            #print("bool variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
+            count += count_char_total_var_decls(child)
+    return count
+
+           
+
+
+
+
+
+
+
+
+
+
+
 
 
 

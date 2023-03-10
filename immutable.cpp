@@ -8,6 +8,8 @@ struct Contact
     const std::string timezone;
     const bool isActive;
     std::string dateOfBirth;
+    std::string test = "";
+    const int test1 = 1;
 };
 
 
