@@ -437,14 +437,14 @@ def run_checks(filename, callAllowed, manualAllowed):
 		locks = Locked()
 		examine_thread(scope, locks, warningList, callAllowed, manualAllowed)
 
-	# for str in warningList.warnings:
-	# 	print(str)
+	for str in warningList.warnings:
+		print(str)
 
 	#might leve in as is useful to show that we catalogue the orders
-	for o in order.orders:
-		print("order: ")
-		for m in o:
-			print(m)
+	# for o in order.orders:
+	# 	print("order: ")
+	# 	for m in o:
+	# 		print(m)
 		#check_lock_order(o)
 
 	#Useful for debugging.

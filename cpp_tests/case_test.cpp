@@ -3,10 +3,24 @@
 std::mutex a;
 std::mutex b;
 std::mutex c;
+std::mutex d;
+
+void test()
+{
+
+}
 
 int main()
 {
   int x = 6;
+
+  switch(x)
+  {
+    case 0:
+      std::lock_guard<std::mutex> lock(d);
+  }
+
+  test();   //Should be unlocked
 
   switch(x)
   {
@@ -27,6 +41,8 @@ int main()
       break;
 
   }
+
+  test();   //Should be locked
 
   return 0;
 }
