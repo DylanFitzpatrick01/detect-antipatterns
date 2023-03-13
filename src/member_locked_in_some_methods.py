@@ -120,8 +120,8 @@ class lockedInSomeObserver(Observer):
             bool: True if it is a data member of the class
                   False if it is not a data member of the class
         """
-        if not (self.nextMemberIsInLock or self.nextMemberIsInUnlock):
-            if currentNode.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR or currentNode.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR or currentNode.kind == clang.cindex.CursorKind.DECL_REF_EXPR:
+        if currentNode.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR or currentNode.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR or currentNode.kind == clang.cindex.CursorKind.DECL_REF_EXPR:
+            if (currentNode.type.spelling == "std::_Mutex_base"):
                 # If the next member we're looking for is in a lock (e.g. mDataAccess in mDataAccess.lock())
                 if self.nextMemberIsInLock and currentNode.extent.start.line == self.currentLock.extent.start.line:
                     # Add the (lock cursor, member cursor) tuple to the lock_member_pairs list
@@ -132,12 +132,12 @@ class lockedInSomeObserver(Observer):
                     # Add the (unlock cursor, member cursor) tuple to the unlock_member_pairs list
                     self.unlock_member_pairs.append( (self.currentUnlock, currentNode) )
                     self.nextMemberIsInUnlock = False
-                # Check if currentNode is a data member of the class itself
-                for variable in self.data_members:
-                    if (currentNode.spelling == variable.spelling):
-                        # If it is, add it to the method_variables list
-                        self.method_variables.append(currentNode)
-                        return True
+            # Check if currentNode is a data member of the class itself
+            for variable in self.data_members:
+                if (currentNode.spelling == variable.spelling):
+                    # If it is, add it to the method_variables list
+                    self.method_variables.append(currentNode)
+                    return True
         return False
 
 
