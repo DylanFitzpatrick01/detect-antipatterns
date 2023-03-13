@@ -7,7 +7,6 @@ std::mutex d;
 
 void test()
 {
-
 }
 
 int main()
@@ -20,7 +19,7 @@ int main()
       std::lock_guard<std::mutex> lock(d);
   }
 
-  test();   //Should be unlocked
+  test();   //Should be unlocked, lock is gone from scope
 
   switch(x)
   {

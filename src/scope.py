@@ -1,6 +1,8 @@
 #Leon Byrne
 #These are class for use with my locks.py file
 #Could remove some and add some type variable instead
+import clang
+import math
 
 class Scope:
 	def __init__(self, scopeClass):
@@ -110,3 +112,28 @@ class Paths():
 	
 	def has_next(self):
 		return self.nextPath + 1 < len(self.paths)
+	
+class Calls():
+	def __init__(self):
+		self.callList = list()
+
+	def add(self, call : clang.cindex.Cursor):
+		self.callList.append(call.location)
+
+	#Leon Byrne
+	#
+	#Checks if the next call made would enter an already done recursive loop
+	def check_recursion(self, call : clang.cindex.Cursor):
+		for i in range(math.floor(len(self.callList) / 2), 1, -1):
+			#If group does not start with call, skip group
+			if call.location == self.callList[-(i)]:
+				copy = True
+				
+				for j in range(0, i):
+					if self.callList[-(1 + j)] != self.callList[-(1 + j + i)]:
+						copy = False
+
+				if copy:
+					return True
+				
+		return False

@@ -2,6 +2,8 @@ import clang.cindex
 from scope import *
 from observer import *
 
+import traceback
+
 #TODO some types of locking is not detected
 #TODO recursion breaks this
 #TODO parse through lock orders to detect possible errors
@@ -38,9 +40,9 @@ def get_function(node, dict, functionClass):
 # @Param startNode:   the node that analysis is started on, used a bit
 # @Param currentNode: the node from which building the thread is done
 # @Param scope: 			the current scope which we're in
-# @Param eventSource:       EventSource to notify observers about currentNode       <- Added by Gráinne Ready
+# @Param eventSource: EventSource to notify observers about currentNode       <- Added by Gráinne Ready
 # @Param paths:       a list of booleans dictating how to respond to branching
-def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
+def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths, calls : Calls):
 	if currentNode.kind == clang.cindex.CursorKind.COMPOUND_STMT:
 		newScope = Scope(scope.scopeClass)
 		scope.add(newScope)
@@ -48,11 +50,6 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 	elif currentNode.kind == clang.cindex.CursorKind.CALL_EXPR:
 		#eventSource.notifyObservers(currentNode)
 		if currentNode.spelling == "lock":
-			if len(list(currentNode.get_children())) <= 0:
-				print(currentNode.location)
-				print("huh")
-				temp = list(list(currentNode.get_children())[0].get_children())
-				print("HUH?")
 			scope.add(Lock(list(list(currentNode.get_children())[0].get_children())[0].spelling, currentNode.location))
 		elif currentNode.spelling == "unlock":
 			scope.add(Unlock(list(list(currentNode.get_children())[0].get_children())[0].spelling, currentNode.location))
@@ -61,13 +58,15 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 		else:
 			#Sometimes it's a call expr while not saying it's name
 			#It's children will though
-			if currentNode.spelling in func:
+			if currentNode.spelling in func and not calls.check_recursion(currentNode):
 				newCall = Call(func[currentNode.spelling], currentNode.location)
 				scope.add(newCall)
 				scope.add(newCall.scope)
 				#build_thread(startFunc.node, newCall.function.node, newCall.scope, eventSource)
 
-				build_thread(startFunc, newCall.function.node, newCall.scope, eventSource, paths)
+				calls.add(currentNode)
+
+				build_thread(startFunc, newCall.function.node, newCall.scope, eventSource, paths, calls)
 
 	if currentNode.kind == clang.cindex.CursorKind.IF_STMT:
 		if paths.has_next():
@@ -75,13 +74,13 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 
 			ifScope = Scope(scope.scopeClass)
 			scope.add(ifScope)
-			build_thread(startFunc, children[0], ifScope, eventSource, paths)
+			build_thread(startFunc, children[0], ifScope, eventSource, paths, calls)
 
 			if paths.get_next():
-				build_thread(startFunc, children[1], ifScope, eventSource, paths)
+				build_thread(startFunc, children[1], ifScope, eventSource, paths, calls)
 			else:
 				if len(children) > 2:
-					build_thread(startFunc, children[2], ifScope, eventSource, paths)
+					build_thread(startFunc, children[2], ifScope, eventSource, paths, calls)
 		else:
 			# ifPath = paths.copy()
 			# ifPath.add(True)
@@ -95,11 +94,11 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 			scopes.append(elseScope)
 
 			paths.add(True)
-			build_thread(startFunc, currentNode, scope, eventSource, paths)
+			build_thread(startFunc, currentNode, scope, eventSource, paths, calls)
 
 
 			# build_thread(startFunc, startFunc.node, ifScope, eventSource, ifPath)
-			build_thread(startFunc, startFunc.node, elseScope, eventSource, elsePath)	
+			build_thread(startFunc, startFunc.node, elseScope, eventSource, elsePath, Calls())	
 	elif currentNode.kind == clang.cindex.CursorKind.WHILE_STMT:	
 		if paths.has_next():
 			children = list(currentNode.get_children())
@@ -110,21 +109,21 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 
 			whileScope = Scope(scope.scopeClass)
 			scope.add(whileScope)
-			build_thread(startFunc, children[0], whileScope, eventSource, paths)
+			build_thread(startFunc, children[0], whileScope, eventSource, paths, calls)
 
 			if firstPass:
-				build_thread(startFunc, children[1], whileScope, eventSource, paths)
+				build_thread(startFunc, children[1], whileScope, eventSource, paths, calls)
 
 				whileScope = Scope(scope.scopeClass)
 				scope.add(whileScope)
-				build_thread(startFunc, children[0], whileScope, eventSource, paths)
+				build_thread(startFunc, children[0], whileScope, eventSource, paths, calls)
 
 				if secondPass:
-					build_thread(startFunc, children[1], whileScope, eventSource, paths)
+					build_thread(startFunc, children[1], whileScope, eventSource, paths, calls)
 
 					whileScope = Scope(scope.scopeClass)
 					scope.add(whileScope)
-					build_thread(startFunc, children[0], whileScope, eventSource, paths)
+					build_thread(startFunc, children[0], whileScope, eventSource, paths, calls)
 	
 				
 		else:
@@ -148,9 +147,9 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 
 			paths.add(False)
 
-			build_thread(startFunc, currentNode, scope, eventSource, paths)
-			build_thread(startFunc, startFunc.node, onceScope, eventSource, oncePath)
-			build_thread(startFunc, startFunc.node, twiceScope, eventSource, twicePath)
+			build_thread(startFunc, currentNode, scope, eventSource, paths, calls)
+			build_thread(startFunc, startFunc.node, onceScope, eventSource, oncePath, Calls())
+			build_thread(startFunc, startFunc.node, twiceScope, eventSource, twicePath, Calls())
 
 	elif currentNode.kind == clang.cindex.CursorKind.DO_STMT:
 		if paths.has_next():
@@ -163,15 +162,15 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 			secondPass = paths.has_next() and paths.get_next()
 			thirdPass = secondPass and paths.has_next() and paths.get_next()
 
-			build_thread(startFunc, children[0], doScope, eventSource, paths)
-			build_thread(startFunc, children[1], doScope, eventSource, paths)
+			build_thread(startFunc, children[0], doScope, eventSource, paths, calls)
+			build_thread(startFunc, children[1], doScope, eventSource, paths, calls)
 
 			if secondPass:
 				doScope = Scope(scope.scopeClass)
 				scope.add(doScope)
 
-				build_thread(startFunc, children[0], doScope, eventSource, paths)
-				build_thread(startFunc, children[1], scope, eventSource, paths)
+				build_thread(startFunc, children[0], doScope, eventSource, paths, calls)
+				build_thread(startFunc, children[1], scope, eventSource, paths, calls)
 		else:			
 			
 			#No need for a once scope, that is the 'paths.add(False)' one
@@ -183,8 +182,8 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 
 			paths.add(False)
 
-			build_thread(startFunc, currentNode, scope, eventSource, paths)
-			build_thread(startFunc, startFunc.node, twiceScope, eventSource, twicePath)
+			build_thread(startFunc, currentNode, scope, eventSource, paths, calls)
+			build_thread(startFunc, startFunc.node, twiceScope, eventSource, twicePath, Calls())
 	
 	elif currentNode.kind == clang.cindex.CursorKind.FOR_STMT:
 		if paths.has_next():
@@ -198,25 +197,25 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 			forScope = Scope(scope.scopeClass)
 			scope.add(forScope)
 
-			build_thread(startFunc, children[0], forScope, eventSource, paths)
-			build_thread(startFunc, children[2], forScope, eventSource, paths)
+			build_thread(startFunc, children[0], forScope, eventSource, paths, calls)
+			build_thread(startFunc, children[2], forScope, eventSource, paths, calls)
 
 			if firstPass :
-				build_thread(startFunc, children[4], forScope, eventSource, paths)
+				build_thread(startFunc, children[4], forScope, eventSource, paths, calls)
 
 				forScope = Scope(scope.scopeClass)
 				scope.add(forScope)
-				build_thread(startFunc, children[3], forScope, eventSource, paths)
-				build_thread(startFunc, children[2], forScope, eventSource, paths)
+				build_thread(startFunc, children[3], forScope, eventSource, paths, calls)
+				build_thread(startFunc, children[2], forScope, eventSource, paths, calls)
 
 				if secondPass :
-					build_thread(startFunc, children[4], forScope, eventSource, paths)
+					build_thread(startFunc, children[4], forScope, eventSource, paths, calls)
 
 					forScope = Scope(scope.scopeClass)
 					scope.add(forScope)
 
-					build_thread(startFunc, children[3], forScope, eventSource, paths)
-					build_thread(startFunc, children[2], forScope, eventSource, paths)
+					build_thread(startFunc, children[3], forScope, eventSource, paths, calls)
+					build_thread(startFunc, children[2], forScope, eventSource, paths, calls)
 		else:
 			#build false
 			#build true, false
@@ -238,9 +237,9 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 
 			paths.add(False)
 
-			build_thread(startFunc, currentNode, scope, eventSource, paths)
-			build_thread(startFunc, startFunc.node, onceScope, eventSource, oncePath)
-			build_thread(startFunc, startFunc.node, twiceScope, eventSource, twicePath)
+			build_thread(startFunc, currentNode, scope, eventSource, paths, calls)
+			build_thread(startFunc, startFunc.node, onceScope, eventSource, oncePath, Calls())
+			build_thread(startFunc, startFunc.node, twiceScope, eventSource, twicePath, Calls())
 	elif currentNode.kind == clang.cindex.CursorKind.SWITCH_STMT:
 		if paths.has_next():
 			#Have it go through the list
@@ -267,13 +266,13 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 						body = child
 						while body.kind == clang.cindex.CursorKind.CASE_STMT:
 							body = list(body.get_children())[1]
-						build_thread(startFunc, body, switchScope, eventSource, paths)
+						build_thread(startFunc, body, switchScope, eventSource, paths, calls)
 						fallThrough = True
 				elif child.kind == clang.cindex.CursorKind.BREAK_STMT and fallThrough:
 					switchBools.get_next()
 					return
 				elif fallThrough:
-					build_thread(startFunc, child, switchScope, eventSource, paths)
+					build_thread(startFunc, child, switchScope, eventSource, paths), calls
 
 
 		elif len(list(currentNode.get_children())) > 1:
@@ -320,7 +319,7 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 
 
 			for i in range(0, len(switchScopes)):
-				build_thread(startFunc, startFunc.node, switchScopes[i], eventSource, switchPaths[i])
+				build_thread(startFunc, startFunc.node, switchScopes[i], eventSource, switchPaths[i], Calls())
 
 			#Only if I search for a defualt
 			#build_thread(startFunc, currentNode, scope, eventSource, paths)
@@ -334,7 +333,7 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 		continueBuild = True
 		for child in currentNode.get_children():
 			if continueBuild:
-				returnBuild = build_thread(startFunc, child, scope, eventSource, paths)
+				returnBuild = build_thread(startFunc, child, scope, eventSource, paths, calls)
 				if returnBuild != None:
 					continueBuild = returnBuild
 
@@ -430,15 +429,15 @@ def run_checks(filename, callAllowed, manualAllowed):
 	scopes.append(mainScope)
 	#build_thread(func['main'].node, func['main'].node, mainScope, eventSource)
 
-	build_thread(func['main'], func['main'].node, mainScope, eventSource, Paths())
+	build_thread(func['main'], func['main'].node, mainScope, eventSource, Paths(), Calls())
 
 	warningList = WarningList()
 	for scope in scopes:
 		locks = Locked()
 		examine_thread(scope, locks, warningList, callAllowed, manualAllowed)
 
-	for str in warningList.warnings:
-		print(str)
+	# for str in warningList.warnings:
+	# 	print(str)
 
 	#might leve in as is useful to show that we catalogue the orders
 	# for o in order.orders:
@@ -457,5 +456,4 @@ def run_checks(filename, callAllowed, manualAllowed):
 	return warningList.warnings
 
 if __name__ == "__main__":
-	run_checks("cpp_tests/case_test.cpp", False, True)
-	print("Done")
+	run_checks("../cpp_tests/case_test.cpp", False, True)
