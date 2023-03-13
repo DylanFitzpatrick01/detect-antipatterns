@@ -7,14 +7,15 @@ class MyClass
 public:
 
     MyClass(const std::string& input)
-        : mState(input)                                         // No need to lock in a constructor. By definition, only the thread that creates the object has access to the object
+        : mState(input)                                          // No need to lock in a constructor. By definition, only the thread that creates the object has access to the object
     {
 
     }
 
-    //std::mutex mDataAccess1;                                     // Notice that the mutex is public!
+    //std::mutex mDataAccess1;                                   // Notice that the mutex is public!
     std::string getState()
     {
+        std::mutex mDataAccess2;                                 // mutex in scope so not public
         std::lock_guard<std::mutex> lock(mDataAccess2);          // Correctly locking for a read
 
         return mState;
@@ -22,6 +23,7 @@ public:
 
     void updateState(const std::string& input)
     {
+        std::mutex mDataAccess2;                                 // mutex in scope so not public
         std::lock_guard<std::mutex> lock(mDataAccess2);          // Correctly locking for a write
         mState = input;
         if(true){
@@ -30,13 +32,13 @@ public:
         std::mutex mDataAccess4;
     }
 
-    //std::mutex mDataAccess2;                                     // Notice that the mutex is public!
+
 
 protected:
     std::mutex mDataAccess5;                                     // protected
 
 private:
-    std::string mState;                                     // private, not a mutex
+    std::string mState;                                          // private, not a mutex
     std::mutex mDataAccess6;                                     // private
 };
 
@@ -45,8 +47,8 @@ int main()
 {
     auto instance = MyClass("test123");
 
-    std::cout << instance.getState() << "\n";                  // Good!
+    std::cout << instance.getState() << "\n";                    // Good!
 
-    instance.mDataAccess2.lock();                               // Oh no!
+    //instance.mDataAccess2.lock();                              // Oh no!
 
 }
