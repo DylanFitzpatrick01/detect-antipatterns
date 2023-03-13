@@ -241,10 +241,102 @@ def build_thread(startFunc, currentNode, scope, eventSource, paths : Paths):
 			build_thread(startFunc, currentNode, scope, eventSource, paths)
 			build_thread(startFunc, startFunc.node, onceScope, eventSource, oncePath)
 			build_thread(startFunc, startFunc.node, twiceScope, eventSource, twicePath)
+	elif currentNode.kind == clang.cindex.CursorKind.SWITCH_STMT:
+		if paths.has_next():
+			#Have it go through the list
+			children = list(list(currentNode.get_children())[1].get_children())
+			
+			switchScope = Scope(scope.scopeClass)
+			scope.add(switchScope)
+
+			#Pull all switch path booleans
+			targetFound = False
+			switchBools = Paths()
+			while True:
+				switchBools.add(paths.get_next())
+
+				if switchBools.paths[-1]:
+					targetFound = True
+				elif targetFound:
+					break
+
+			fallThrough = False
+			for child in children:
+				if child.kind == clang.cindex.CursorKind.CASE_STMT:
+					if fallThrough or switchBools.get_next():
+						body = child
+						while body.kind == clang.cindex.CursorKind.CASE_STMT:
+							body = list(body.get_children())[1]
+						build_thread(startFunc, body, switchScope, eventSource, paths)
+						fallThrough = True
+				elif child.kind == clang.cindex.CursorKind.BREAK_STMT and fallThrough:
+					switchBools.get_next()
+					return
+				elif fallThrough:
+					build_thread(startFunc, child, switchScope, eventSource, paths)
+
+
+		elif len(list(currentNode.get_children())) > 1:
+			#Count the number of case statements
+			#Make new paths for them
+			#If there is fall through one path is True until a break and the others
+			#start True at different parts
+			#
+			# EG
+			#	case 1:
+			# case 2:
+			# case 3:
+			#		break;
+			#
+			#	True, True, True
+			# False, True, True
+			# False, False, True
+			#
+			#Then start them from the top
+			children = list(list(currentNode.get_children())[1].get_children())
+			cases = 0
+
+			#Get number of cases
+			for child in children:
+				if child.kind == clang.cindex.CursorKind.CASE_STMT:
+					cases += 1
+
+			#Get list of new scopes and paths
+			switchPaths = list()
+			switchScopes = list()
+
+			#Fill new lists
+			for i in range(0, cases):
+				switchPaths.append(paths.copy())
+				switchScopes.append(Scope(startFunc.functionClass))
+				scopes.append(switchScopes[i])
+
+
+			for i in range(0, cases):
+				for j in range(0, i):
+					switchPaths[i].add(False)
+				switchPaths[i].add(True)
+				switchPaths[i].add(False)
+
+
+			for i in range(0, len(switchScopes)):
+				build_thread(startFunc, startFunc.node, switchScopes[i], eventSource, switchPaths[i])
+
+			#Only if I search for a defualt
+			#build_thread(startFunc, currentNode, scope, eventSource, paths)
+
+
+		
+
+
 
 	else:
+		continueBuild = True
 		for child in currentNode.get_children():
-			build_thread(startFunc, child, scope, eventSource, paths)
+			if continueBuild:
+				returnBuild = build_thread(startFunc, child, scope, eventSource, paths)
+				if returnBuild != None:
+					continueBuild = returnBuild
 
 #Leon Byrne
 #Runs through a scope and examines it for locks and unlocks
@@ -349,10 +441,10 @@ def run_checks(filename, callAllowed, manualAllowed):
 	# 	print(str)
 
 	#might leve in as is useful to show that we catalogue the orders
-	# for o in order.orders:
-	# 	print("order: ")
-	# 	for m in o:
-	# 		print(m)
+	for o in order.orders:
+		print("order: ")
+		for m in o:
+			print(m)
 		#check_lock_order(o)
 
 	#Useful for debugging.
@@ -365,4 +457,5 @@ def run_checks(filename, callAllowed, manualAllowed):
 	return warningList.warnings
 
 if __name__ == "__main__":
-	run_checks("cpp_tests/calling_out_of_locked_scope_0.cpp", False, True)
+	run_checks("cpp_tests/case_test.cpp", False, True)
+	print("Done")
