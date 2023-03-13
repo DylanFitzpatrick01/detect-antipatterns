@@ -415,7 +415,7 @@ lock_guard_observer = tagObserver("std::lock_guard<std::mutex>")
 eventSource.addObserver(lock_guard_observer)
 
 #Renamed to not interfere with pytest
-def run_checks(filename, callAllowed, manualAllowed):
+def run_checks(filename, callAllowed, manualAllowed, missingUnlockAllowed):
 	#I despise How long it took to notice that I needed to clear it between tests
 	scopes.clear()
 	func.clear()
@@ -436,8 +436,12 @@ def run_checks(filename, callAllowed, manualAllowed):
 		locks = Locked()
 		examine_thread(scope, locks, warningList, callAllowed, manualAllowed)
 
-	# for str in warningList.warnings:
-	# 	print(str)
+		if not missingUnlockAllowed:
+			for l in locks.order:
+				warningList.add("Warning: " + str(l.mutex) + " is locked in " + str(l.location.file) + " in line: " + str(l.location.line) + " but may not be unlocked in the thread")
+
+	for string in warningList.warnings:
+		print(string)
 
 	#might leve in as is useful to show that we catalogue the orders
 	# for o in order.orders:
@@ -456,4 +460,4 @@ def run_checks(filename, callAllowed, manualAllowed):
 	return warningList.warnings
 
 if __name__ == "__main__":
-	run_checks("../cpp_tests/case_test.cpp", False, True)
+	run_checks("../cpp_tests/case_test.cpp", False, True, False)
