@@ -1,5 +1,6 @@
 import re, os
 from clang.cindex import TranslationUnit, SourceLocation, SourceRange
+from typing import Union
 
 
 # A class for to hold information about something that's gone wrong.
@@ -11,15 +12,15 @@ class Alert:
     # Constructor!
     def __init__(self,
                  tu: TranslationUnit,
-                 location: tuple | SourceLocation | SourceRange,
+                 location: Union[tuple, SourceLocation, SourceRange],
                  message: str,
                  severity: str="error") -> None:
 
         # Initialise the values of the Alert.
-        self.tu: TranslationUnit = tu
-        self.location: tuple | SourceLocation | SourceRange = location
-        self.message: str = message
-        self.severity: str = severity
+        self.tu = tu
+        self.location = location
+        self.message = message
+        self.severity = severity
 
         # If the location is a tuple or SourceLocation, turn it into a SourceRange.
         if (type(location) == tuple):
@@ -42,13 +43,9 @@ class Alert:
         # Gets the C++ file, removes comments, then saves it  as an array, with one entry per line.
         lines = remove_comments("".join(open(self.tu.spelling).readlines()[0:])).splitlines()
 
-        # Tell the user the file name and location.
-        term_colour(colours["greyed out"])
-        print(f"{'-'*8}In '{self.tu.spelling}', starting at ({self.location.start.line}, {self.location.start.column}){'-'*8}")
-
         # for: the line before the error line (if it exists), the error line,
         # and the line after the error line (if it exists).
-        for index in range(max(self.location.start.line-1,1),min(self.location.end.line+2,len(lines))):
+        for index in range(max(self.location.start.line-1,1),min(self.location.end.line+2,len(lines)+1)):
 
             # If the line isn't in our location, grey it out!
             if (index < self.location.start.line or index > self.location.end.line):
@@ -63,19 +60,21 @@ class Alert:
                 term_colour(colours[self.severity])
                 print(lines[index-1], end= '' if index == self.location.end.line else '\n')
 
-                # If it's the last line in our location, display the error message.
-                if index == self.location.end.line:
-                    term_colour("black", colours[self.severity])
-                    print(f"\n{' '*(len(str(index))+2)}", end='')
-                    print("^ " + self.message.replace("\n", "\n"+" "*(len(str(index))+4)), end='')
-                    print('\033[m', end='\n')
+            # If it's the last line in our location, display the error message.
+            if index == self.location.end.line:
+                
+                term_colour("black", colours[self.severity])
+                print(f"\n{' '*(len(str(index))+2)}^ ", end='')
+                print(f"{'-'*8}In '{self.tu.spelling}', starting at ({self.location.start.line}, {self.location.start.column}){'-'*8}")
+                print(f"{' '*(len(str(index))+4)}" + self.message.replace("\n", "\n"+" "*(len(str(index))+4)), end='')
+                print('\033[m', end='\n')
 
 
 # Inspired by https://stackoverflow.com/questions/241327/remove-c-and-c-comments-using-python
 # Removes C-Style comments in a multi-line string.
 def remove_comments(text):
     return re.sub(
-        re.compile(r'\s*//.*?$|\s*/\*.*?\*/|\s*\'(?:\\.|\s*[^\\\'])*\'|\s*"(?:\\.|\s*[^\\"])*"',
+        re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
         re.DOTALL | re.MULTILINE), "", text
     )
 

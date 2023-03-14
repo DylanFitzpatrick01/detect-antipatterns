@@ -40,6 +40,7 @@ def main():
 
         for alert in alerts:
             alert.display()
+            print()
 
 # --------FUNCTIONS-------- #
 
