@@ -38,7 +38,8 @@ def main():
         # Traverse the AST
         alerts = traverse(tu.cursor, check_list)
 
-        alerts[0].display()
+        for alert in alerts:
+            alert.display()
 
 # --------FUNCTIONS-------- #
 
