@@ -278,7 +278,8 @@ def public_mutex_members_API(cursor: clang.cindex.Cursor):
             print("public_mutex_members - Are you sure you want to have a public mutex called " + str(
                 cursor.displayname) + ", Line - " + str(cursor.location.line))
     
-def immutable_objects_API(node):
+def immutable_objects_API(cursor: clang.cindex.Cursor):
+    node = cursor
     constant_variable_count = 0
     variable_count = 0
 
