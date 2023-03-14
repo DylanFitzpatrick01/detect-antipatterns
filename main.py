@@ -96,7 +96,7 @@ def main():
                     index =clang.cindex.Index.create()
                     tus = index.parse(s)
                     root = tus.cursor
-                    immutable_objects_API(root)
+                    immutable_objects_API(tus.cursor)
 
 
 
