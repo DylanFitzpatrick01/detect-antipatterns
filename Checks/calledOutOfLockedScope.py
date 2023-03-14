@@ -8,7 +8,6 @@ class Check(FormalCheckInterface):
 		self.scopeLevel = 0
 
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
-		#Implement
 		if cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
 			if cursor.spelling == "lock":
 				self.locks.append(Lock(cursor))
