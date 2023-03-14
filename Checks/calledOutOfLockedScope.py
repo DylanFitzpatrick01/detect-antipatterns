@@ -18,19 +18,19 @@ class Check(FormalCheckInterface):
 			elif cursor.spelling == "lock_guard":
 				self.lock_gaurds.append(Lock_Guard(cursor, self.scopeLevel))
 			elif self.locks or self.lock_gaurds:
-				msg = "Called out of locked scope in file: " + str(cursor.location.file) + " at: " + str(cursor.location.line)
-
+				msg = "Called: " + str(cursor.spelling) + " out of locked scope"
 				for lock in self.locks:
 					msg = msg + "\n  " + lock.mutex + " is locked in: " + lock.file + " at: " + lock.line
 
 				for lock_guard in self.lock_gaurds:
 					msg = msg + "\n  " + lock_guard.mutex + " is locked in: " + lock_guard.file + " at: " + lock_guard.line
 
+				newAlert = Alert(cursor.translation_unit, cursor.extent, msg)
 				for alert in alerts:
-					if msg == alert.message:
+					if alert.equal(newAlert):
 						return
 
-				alerts.append(Alert(cursor.translation_unit, cursor.extent, msg))
+				alerts.append(newAlert)
 
 	def equal_state(self, other) -> bool:
 		#The numbers can only change if new lock guard made

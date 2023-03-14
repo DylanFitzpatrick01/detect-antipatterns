@@ -2,7 +2,7 @@ import clang.cindex
 import sys, os, importlib.util
 from typing import List
 from formalCheckInterface import FormalCheckInterface
-from alerts import Alert
+from alerts import *
 # clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
 # Relative directory that contains our check files.

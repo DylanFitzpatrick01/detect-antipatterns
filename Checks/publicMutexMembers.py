@@ -17,9 +17,15 @@ class Check():
 					if count > 2:
 						break
 				if contains and count == 2:
-					alerts.append(Alert(cursor.translation_unit, cursor.extent,
+					newAlert = Alert(cursor.translation_unit, cursor.extent,
 											"Are you sure you want to have a public mutex called '" + cursor.displayname + "'?\n"
-											"Consider making this mutex private."))
+											"Consider making this mutex private.")
+					
+					for alert in alerts:
+						if alert.equal(newAlert):
+							return
+					
+					alerts.append(newAlert)
 	
 		
 	def copy(self):
