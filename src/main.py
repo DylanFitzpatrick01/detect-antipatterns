@@ -1,46 +1,54 @@
 import clang.cindex
-import sys, os, importlib
+import sys, os, importlib.util
 from typing import List
-from Core.formalCheckInterface import FormalCheckInterface
-from Core.alerts import Alert
+from formalCheckInterface import FormalCheckInterface
+from alerts import Alert
+clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
-checks_dir = './Checks'
+# Relative directory that contains our check files.
+checks_dir = '../checks'
 
 def main():
-        
+    
     # Attempt to get a filename from the command line args.
     # If that fails, ask the user.
     # If both fail, give up.
-        s = ""
-        try:
-            if (len(sys.argv) > 1):
-                s = sys.argv[1]
-            else:
-                s = input("\nEnter the name of the file you'd like to analyse or 'quit' to quit\n > ")
-            open(s)
-        except FileNotFoundError:
-            print("FILE DOES NOT EXIST!\n")
-            exit()
-            
+    s = ""
+    try:
+        if (len(sys.argv) > 1):
+            s = sys.argv[1]
+        else:
+            s = input("\nEnter the name of the file you'd like to analyse or 'quit' to quit\n > ")
+        open(s)
+    except FileNotFoundError:
+        print("FILE DOES NOT EXIST!\n")
+        exit()
+        
 
-        # Gets clang to start parsing the file, and generate
-        # a translation unit with an Abstract Syntax Tree.
-        idx = clang.cindex.Index.create()
-        tu = idx.parse(s, args=['-std=c++11'])
+    # Gets clang to start parsing the file, and generate
+    # a translation unit with an Abstract Syntax Tree.
+    idx = clang.cindex.Index.create()
+    tu = idx.parse(s, args=['-std=c++11'])
 
-        # Import all of our checks!
+    # Import all of our checks!
+    try:
         check_list = list()
-        for file in os.listdir(checks_dir):
-            if (file.endswith(".py")):
-                module_name = checks_dir.removeprefix("./").replace("/",".")+"."+file.removesuffix(".py")
-                check_list.append(importlib.import_module(module_name, '.').Check())
+        for file in os.listdir(os.path.abspath(os.path.join(os.path.dirname( __file__ ), checks_dir))):
+            if (file.endswith(".py") and file != "alerts.py"):
+                spec = importlib.util.spec_from_file_location(file.removesuffix(".py"), os.path.abspath(os.path.join(os.path.dirname( __file__ ), checks_dir, file)))
+                check_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(check_module)
+                check_list.append(check_module.Check())
+    except FileNotFoundError:
+        print(f"checks_dir '{checks_dir}' does not exist! Make sure it's a relative directory to main.py!")
+        exit()
 
-        # Traverse the AST
-        alerts = traverse(tu.cursor, check_list)
+    # Traverse the AST
+    alerts = traverse(tu.cursor, check_list)
 
-        for alert in alerts:
-            alert.display()
-            print()
+    for alert in alerts:
+        alert.display()
+        print()
 
 # --------FUNCTIONS-------- #
 

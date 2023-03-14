@@ -1,7 +1,7 @@
 import abc
 import clang.cindex
 from typing import List
-from .alerts import Alert
+from alerts import Alert
 
 # An interface for all Checks, which should inherit this class.
 class FormalCheckInterface(metaclass=abc.ABCMeta):

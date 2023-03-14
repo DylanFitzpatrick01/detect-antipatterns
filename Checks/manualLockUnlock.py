@@ -1,5 +1,5 @@
-from Core.formalCheckInterface import *
-from typing import List
+import clang.cindex
+from alerts import Alert
 
 """
 A Check for a manual lock/unlock. If found issue a warning.
@@ -7,9 +7,9 @@ HOWEVER!! if we find a lock without an unlock, issue an error.#
 Analyse_cursor() runs for EVERY cursor.
 """
 
-class Check(FormalCheckInterface):
-    def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
-        alert_list: List[Alert] = list()
+class Check():
+    def analyse_cursor(self, cursor: clang.cindex.Cursor):
+        alert_list = list()
 
         if (cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT):
             lock_caller = find_caller(cursor, "lock")
@@ -28,6 +28,8 @@ class Check(FormalCheckInterface):
         
         return alert_list
     
+                                 
+
 # Given a function name 'func', if "class.func()" is found, return class.
 def find_caller(cursor:clang.cindex.Cursor, name):
     toks = list(cursor.get_tokens())
