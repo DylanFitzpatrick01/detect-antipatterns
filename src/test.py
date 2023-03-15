@@ -6,19 +6,19 @@ from formalCheckInterface import FormalCheckInterface
 def test_manual_lock_unlock():
 
     # Check a file with manual locks.
-    alerts: List[Alert] = run_test_on_file("../Checks/manualLockUnlock.py", "../cpp_tests/public.cpp")
+    alerts: List[Alert] = run_check_on_file("../Checks/manualLockUnlock.py", "../cpp_tests/public.cpp")
     assert alerts[0].message == ("A manual lock is used in this scope without an unlock!.\n" +
                                  "Please either replace 'mDataAccess.lock();' with 'std::lock_guard<std::mutex> lock(mDataAccess);' (RECCOMMENDED),\n" +
                                  "or add 'mDataAccess.unlock();' at the end of this critical section.")
     
     # Check a file without them.
-    alerts: List[Alert] = run_test_on_file("../Checks/manualLockUnlock.py", "../cpp_tests/immutable.cpp")
+    alerts: List[Alert] = run_check_on_file("../Checks/manualLockUnlock.py", "../cpp_tests/immutable.cpp")
     assert len(alerts) == 0
 
 
 # --------FUNCTIONS-------- #
 
-def run_test_on_file(check_path: str, file_path: str = None) -> List[Alert]:
+def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
     
     if (not os.path.isabs(file_path)):
         abs_file_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), file_path))
