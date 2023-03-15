@@ -1,4 +1,5 @@
 import clang.cindex
+from typing import List
 from alerts import Alert
 
 """
@@ -6,9 +7,9 @@ TODO Write Description
 """
 
 class Check():
-    def analyse_cursor(self, cursor: clang.cindex.Cursor):
+    def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
         alert_list = list()
-        
+
         if str(cursor.access_specifier) == "AccessSpecifier.PUBLIC":
                 count = 0
                 contains = False

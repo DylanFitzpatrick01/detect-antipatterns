@@ -1,4 +1,5 @@
 import clang.cindex
+from typing import List
 from alerts import Alert
 
 """
@@ -8,7 +9,7 @@ Analyse_cursor() runs for EVERY cursor.
 """
 
 class Check():
-    def analyse_cursor(self, cursor: clang.cindex.Cursor):
+    def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
         alert_list = list()
 
         if (cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT):
