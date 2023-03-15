@@ -1,5 +1,6 @@
 from formalCheckInterface import *
 from typing import List
+from Util import *
 
 class Check(FormalCheckInterface):
 	def __init__(self):
@@ -33,11 +34,14 @@ class Check(FormalCheckInterface):
 				alerts.append(newAlert)
 
 	def equal_state(self, other) -> bool:
+		if not super().equal_state(other):
+			return False
+
 		#The numbers can only change if new lock guard made
-		if len(self.lock_gaurds) != len(other.lock_guards):
+		if len(self.lock_gaurds) != len(other.lock_gaurds):
 			return False
 		
-		for i in range(0, len(self.locks)):
+		for i in range(0, len(self.lock_gaurds)):
 			if not self.lock_gaurds[i].equals(other.lock_guards[i]):
 				return False
 
@@ -69,76 +73,13 @@ class Check(FormalCheckInterface):
 	# Removes all Lock_Guards in the current scope before movinng back to a lesser
 	# scope
 	def scope_decreased(self):
-		for lockGuard in self.lock_gaurds:
-			if lockGuard.scopeLevel == self.scopeLevel:
-				self.lock_gaurds.remove(lockGuard)
 
 		self.scopeLevel -= 1
+		for lockGuard in self.lock_gaurds:
+			if lockGuard.scopeLevel >= self.scopeLevel:
+				self.lock_gaurds.remove(lockGuard)
 
-class Lock:
-	def __init__(self, cursor):
-		if cursor is None:
-			pass
-		else:
-			self.mutex = str(list(list(cursor.get_children())[0].get_children())[0].spelling)
-			self.file = str(cursor.location.file)
-			self.line = str(cursor.location.line)
-
-	def equals(self, other) -> bool:
-		if self.mutex != other.mutex:
-			return False
-		
-		if self.file != other.file:
-			return False
-		
-		if self.line != other.line:
-			return False
-		
-		return True
-
-	def copy(self):
-		copy = Lock()
-
-		copy.mutex = self.mutex
-		copy.file = self.file
-		copy.line = self.line
-
-		return copy
-
-class Lock_Guard:
-	def __init__(self, cursor, scopeLevel):
-		#TODO implement this
-		#Store data as strings, cursors hanve different pointers even if same data
-		if cursor is None or scopeLevel is None:
-			pass
-		else:
-			self.mutex = str(list(cursor.get_children())[0].spelling)
-			self.file = str(cursor.location.file)
-			self.line = str(cursor.location.line)
-			self.scopeLevel = scopeLevel
-
-	def equals(self, other) -> bool:
-		if self.mutex != other.mutex:
-			return False
-		
-		if self.file != other.file:
-			return False
-		
-		if self.line != other.line:
-			return False
-		
-		#TODO might not be possible
-		if self.scopeLevel != other.scopeLevel:
-			return False
-		
-		return True
-	
-	def copy(self):
-		copy = Lock_Guard(None, None)
-
-		copy.mutex = self.mutex
-		copy.file = self.file
-		copy.line = self.line
-		copy.scopeLevel = self.scopeLevel
-
-		return copy
+	def new_function(self):
+		self.lock_gaurds = list()
+		self.locks = list()
+		self.scopeLevel = 0

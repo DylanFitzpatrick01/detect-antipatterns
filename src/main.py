@@ -3,6 +3,7 @@ import sys, os, importlib.util
 from typing import List
 from formalCheckInterface import FormalCheckInterface
 from alerts import *
+from Util import Function
 # clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
 # Relative directory that contains our check files.
@@ -53,6 +54,16 @@ def main():
 
 # --------FUNCTIONS-------- #
 
+# Gets all possible entry points to execution. 
+# Eg main is an entry point
+# Any creation of a thread is also one
+def get_threads(cursor: clang.cindex.Cursor, threadList: List[clang.cindex.Cursor]):
+	for node in cursor.walk_preorder():
+		if node.kind == clang.cindex.CursorKind.CALL_EXPR and node.spelling == "thread":
+			threadList.append(list(node.get_children())[0])
+		if node.kind == clang.cindex.CursorKind.FUNCTION_DECL and node.spelling == "main":
+			threadList.append(cursor)
+
 # Traverses Clangs cursor tree. A cursor points to a piece of code,
 # and has extremely useful values and functions. The cursor tree is
 # a generic tree. More info:
@@ -65,27 +76,83 @@ def main():
 # All of those alerts, and returns them.
 #
 def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface], alerts):
-	#TODO handle branching
-	#			I have experience doing so and an idea of how best to do so
+	# if cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
+	# 	if cursor.referenced is not None:
+	# 		print("call to: ", cursor.referenced.get_usr())
+	
+	# if cursor.kind == clang.cindex.CursorKind.CXX_METHOD:
+	# 	print("func to: ", cursor.get_usr())
 
-	if cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+	#When a call is encountered, used cursor.referenced to get to the node of it
+	#Only if it isn't in namespace std, found in get_usr()
+	#
+
+	if str(cursor.translation_unit.spelling) == str(cursor.location.file):				
 		for check in check_list:
-			check.scope_increased()
+			check.analyse_cursor(cursor, alerts)
 
-		for child in cursor.get_children():
-			traverse(child, check_list, alerts)
+		if cursor.kind == clang.cindex.CursorKind.FUNCTION_DECL:
+			for check in check_list:
+				check.new_function()
+
+			#Only keep unique checks, ie one of each in list
+			for i in range(0, len(check_list) - 1):
+				for j in range(i + 1, len(check_list)):
+					if check_list[i].equal_state(check_list[j]):
+						check_list.remove(check_list[j])
+
+		elif cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+			for check in check_list:
+				check.scope_increased()
+
+			for child in cursor.get_children():
+				traverse(child, check_list, alerts)
 		
-		for check in check_list:
-			check.scope_decreased()
-	else:
+			for check in check_list:
+				check.scope_decreased()
+		elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
+			#First we evaluate the arguements, they may be function calls
+			#We can just traverse all the children of the call
+			for child in cursor.get_children():
+				traverse(child, check_list, alerts)
+
+			#This will skip the FUNCTION_DECL node
+			if cursor.referenced is not None:
+				traverse(list(cursor.referenced.get_children())[0], check_list, alerts)
+		elif cursor.kind == clang.cindex.CursorKind.IF_STMT:
+			#traverse condition
+			traverse(list(cursor.get_children())[0], check_list, alerts)
+
+			#duplicate checks
+			copies = list()
+			for check in check_list:
+				copies.append(check.copy())
+
+			#traverse if-true body
+			traverse(list(cursor.get_children())[1], copies, alerts)
+
+			#traverse if-false body (if present)
+			if len(list(cursor.get_children())) > 2:
+				traverse(list(cursor.get_children())[2], check_list, alerts)
+
+			#needs to be evaluated before for loops
+			checkLen = len(check_list)
+
+			for i in range(0, checkLen):
+				if not copies[i].equal_state(check_list[i]):
+					check_list.append(copies[i])
+
+			for i in range(checkLen, len(copies)):
+				check_list.append(copies[i])
+		
 		# if(str(cursor.translation_unit.spelling) == str(child_cursor.location.file)):
 		# 	for check in check_list:
 		# 		check.analyse_cursor(cursor, alerts)
 		
 		for child in cursor.get_children():
-			if(str(cursor.translation_unit.spelling) == str(child.location.file)):
-				for check in check_list:
-					check.analyse_cursor(cursor, alerts)
+			traverse(child, check_list, alerts)
+	else:
+		for child in cursor.get_children():		
 			traverse(child, check_list, alerts)
 
 	# alerts: List[Alert] = list()

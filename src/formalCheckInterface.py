@@ -22,7 +22,8 @@ class FormalCheckInterface(metaclass=abc.ABCMeta):
     # A check should return true if the states of self and other are the same
     #Unless otherwise implemented all return true
     def equal_state(self, other) -> bool:
-        return True
+        return type(self) == type(other)
+
     
     # All checks must be able to be duplicated
     def copy(self):
@@ -34,4 +35,7 @@ class FormalCheckInterface(metaclass=abc.ABCMeta):
 
     # Check may not implement this unless they need to
     def scope_decreased(self):
+        pass
+
+    def new_function(self):
         pass
