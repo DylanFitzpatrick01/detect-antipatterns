@@ -3,6 +3,7 @@ from typing import List
 from alerts import Alert
 from formalCheckInterface import FormalCheckInterface
 
+# Unit test for manualLockUnlock.py
 def test_manual_lock_unlock():
 
     # Check a file with manual locks.
@@ -20,12 +21,16 @@ def test_manual_lock_unlock():
 
 def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
     
+    # Convert any relative paths to absolute.
     if (not os.path.isabs(file_path)):
         abs_file_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), file_path))
     if (not os.path.isabs(check_path)):
         abs_check_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), check_path))
-    test_filename = os.path.basename(check_path)
+    
+    # Get our check filename, so we can import the check!
+    check_filename = os.path.basename(check_path)
 
+    # Make sure all of our files exist!
     try:
         open(abs_file_path)
     except FileNotFoundError:
@@ -35,9 +40,10 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
     except FileNotFoundError:
         raise FileNotFoundError(f"\nCHECK PATH '{check_path}' DOES NOT EXIST")
 
+    # Import the check.
     check_list: List[FormalCheckInterface] = list()
-    if (test_filename.endswith(".py")):
-        spec = importlib.util.spec_from_file_location(test_filename.removesuffix(".py"), abs_check_path)
+    if (check_filename.endswith(".py")):
+        spec = importlib.util.spec_from_file_location(check_filename.removesuffix(".py"), abs_check_path)
         check_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(check_module)
         check_list.append(check_module.Check())
