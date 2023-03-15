@@ -65,6 +65,9 @@ def main():
 # All of those alerts, and returns them.
 #
 def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface], alerts):
+	#TODO handle branching
+	#			I have experience doing so and an idea of how best to do so
+
 	if cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT:
 		for check in check_list:
 			check.scope_increased()

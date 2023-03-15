@@ -1,11 +1,12 @@
 import clang.cindex
 from alerts import Alert
+from formalCheckInterface import *
 
 """
 TODO Write Description
 """
 
-class Check():
+class Check(FormalCheckInterface):
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
 		if str(cursor.access_specifier) == "AccessSpecifier.PUBLIC":
 				count = 0
@@ -27,19 +28,3 @@ class Check():
 					
 					alerts.append(newAlert)
 	
-		
-	def copy(self):
-		#TODO evaluate whether the copy needs an data to be passed on
-		return Check()
-	
-	def equal_state(self, other):
-		#TODO evaluate whether this and tother might have differing data
-		return True
-			
-	#Checks may not implement this unless they need to
-	def scope_increased(self):
-		pass
-
-	# Check may not implement this unless they need to
-	def scope_decreased(self):
-		pass

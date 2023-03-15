@@ -1,5 +1,6 @@
 import clang.cindex
 from alerts import *
+from formalCheckInterface import *
 
 """
 A Check for a manual lock/unlock. If found issue a warning.
@@ -7,7 +8,7 @@ HOWEVER!! if we find a lock without an unlock, issue an error.#
 Analyse_cursor() runs for EVERY cursor.
 """
 
-class Check():
+class Check(FormalCheckInterface):
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
 		if cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
 			if cursor.spelling == "lock" or cursor.spelling == "unlock":
@@ -36,14 +37,6 @@ class Check():
 		# 								"A manual lock is used in this scope without an unlock!.\n"
 		# 								"Please either replace '" + lock_caller + ".lock();' with 'std::lock_guard<std::mutex> lock(" + lock_caller + ");' (RECCOMMENDED),\n"
 		# 								"or add '" + lock_caller + ".unlock();' at the end of this critical section."))
-		
-	def copy(self):
-		#TODO evaluate whether the copy needs an data to be passed on
-		return Check()
-	
-	def equal_state(self, other):
-		#TODO evaluate whether this and tother might have differing data
-		return True
 			
 		#Checks may not implement this unless they need to
 	def scope_increased(self):

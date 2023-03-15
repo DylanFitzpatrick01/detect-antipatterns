@@ -20,14 +20,13 @@ class FormalCheckInterface(metaclass=abc.ABCMeta):
         raise NotImplementedError
     
     # A check should return true if the states of self and other are the same
-    @abc.abstractmethod
+    #Unless otherwise implemented all return true
     def equal_state(self, other) -> bool:
-        raise NotImplementedError
+        return True
     
     # All checks must be able to be duplicated
-    @abc.abstractmethod
     def copy(self):
-        raise NotImplementedError
+        return self
     
     #Checks may not implement this unless they need to
     def scope_increased(self):
