@@ -69,17 +69,20 @@ class Alert:
 				print(f"{' '*(len(str(index))+4)}" + self.message.replace("\n", "\n"+" "*(len(str(index))+4)), end='')
 				print('\033[m', end='\n')
 	
-	def equal(self, other):
+	# We don't want to add already existing alerts to the list
+	# We can now use ==, !=, in List[Alerts], etc
+	#
+	# -Leon Byrne
+	def __eq__(self, __o: object) -> bool:
 		#Should be all that's needed.
 		#Cursors arer weird, avoid comparisions when possible
-		if type(self.location) != type(other.location):
+		if type(self.location) != type(__o.location):
 			return False
-		if self.location != other.location:
+		if self.location != __o.location:
 			return False
-		if self.message != other.message:
+		if self.message != __o.message:
 			return False
 		return True
-
 
 # Inspired by https://stackoverflow.com/questions/241327/remove-c-and-c-comments-using-python
 # Removes C-Style comments in a multi-line string.

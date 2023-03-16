@@ -27,29 +27,27 @@ class Check(FormalCheckInterface):
 					msg = msg + "\n  " + lock_guard.mutexName + " is locked in: " + lock_guard.file + " at: " + lock_guard.line
 
 				newAlert = Alert(cursor.translation_unit, cursor.extent, msg)
-				for alert in alerts:
-					if alert.equal(newAlert):
-						return
 
-				alerts.append(newAlert)
+				if newAlert not in alerts:
+					alerts.append(newAlert)
 
-	def equal_state(self, other) -> bool:
-		if not super().equal_state(other):
+	def __eq__(self, __o: object) -> bool:
+		if type(self) != type(__o):
 			return False
 
 		#The numbers can only change if new lock guard made
-		if len(self.lock_guards) != len(other.lock_guards):
+		if len(self.lock_guards) != len(__o.lock_guards):
 			return False
 		
 		for i in range(0, len(self.lock_guards)):
-			if not self.lock_guards[i].equals(other.lock_guards[i]):
+			if self.lock_guards[i] != __o.lock_guards[i]:
 				return False
 
-		if len(self.locks) != len(other.locks):
+		if len(self.locks) != len(__o.locks):
 			return False
 		
 		for i in range(0, len(self.locks)):
-			if not self.locks[i].equals(other.locks[i]):
+			if self.locks[i] != __o.locks[i]:
 				return False
 			
 		return True

@@ -23,9 +23,6 @@ class Check(FormalCheckInterface):
 											"Are you sure you want to have a public mutex called '" + cursor.displayname + "'?\n"
 											"Consider making this mutex private.")
 					
-					for alert in alerts:
-						if alert.equal(newAlert):
-							return
-					
-					alerts.append(newAlert)
+					if newAlert not in alerts:
+						alerts.append(newAlert)
 	

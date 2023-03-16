@@ -18,12 +18,9 @@ class FormalCheckInterface(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
         raise NotImplementedError
-    
-    # A check should return true if the states of self and other are the same
-    #Unless otherwise implemented all return true
-    def equal_state(self, other) -> bool:
-        return type(self) == type(other)
 
+    def __eq__(self, __o: object) -> bool:
+        return type(self) == type(__o)
     
     # All checks must be able to be duplicated
     def copy(self):

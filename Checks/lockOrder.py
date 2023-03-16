@@ -34,18 +34,10 @@ class Check(FormalCheckInterface):
 		alreadyHeld = False
 
 		for lock in self.locks:
-			# print(lock.mutex)
-			# print(list(cursor.get_children())[0].spelling)
-			# print(str(list(cursor.get_children())[0].referenced.get_usr()))
-			# print()
 			if lock.mutex == str(list(cursor.get_children())[0].referenced.get_usr()):
 				alreadyHeld = True
 
 		for lock in self.lock_guards:
-			# print(lock.mutex)
-			# print(list(cursor.get_children())[0].spelling)
-			# print(str(list(cursor.get_children())[0].referenced.get_usr()))
-			# print()
 			if lock.mutex == str(list(cursor.get_children())[0].referenced.get_usr()):
 				alreadyHeld = True
 
@@ -71,12 +63,7 @@ class Check(FormalCheckInterface):
 									"Locked: " + newOrder[0].name + " in: " + newOrder[0].file + " at line: " + newOrder[0].line + "\n" +
 									"        " + newOrder[1].name + " in: " + newOrder[1].file + " at line: " + newOrder[1].line + "\n"))
 								
-						alertPresent = False
-						for alert in alerts:
-							if alert.equal(newAlert):
-								alertPresent = True
-
-						if not alertPresent:
+						if newAlert not in alerts:
 							alerts.append(newAlert)
 				
 				if notPresent:
@@ -101,46 +88,39 @@ class Check(FormalCheckInterface):
 									"Locked: " + newOrder[0].name + " in: " + newOrder[0].file + " at line: " + newOrder[0].line + "\n" +
 									"        " + newOrder[1].name + " in: " + newOrder[1].file + " at line: " + newOrder[1].line + "\n"))
 								
-						alertPresent = False
-						for alert in alerts:
-							if alert.equal(newAlert):
-								alertPresent = True
-
-						if not alertPresent:
+						if newAlert not in alerts:
 							alerts.append(newAlert)
 				
 				if notPresent:
 					self.orders.append(newOrder)
 					
-
-
-	def equal_state(self, other) -> bool:
-		if not super().equal_state(other):
+	def __eq__(self, __o: object) -> bool:
+		if type(self) != type(__o):
 			return False
 
 		#The numbers can only change if new lock guard made
-		if len(self.lock_guards) != len(other.lock_guards):
+		if len(self.lock_guards) != len(__o.lock_guards):
 			return False
 		
 		for i in range(0, len(self.lock_guards)):
-			if not self.lock_guards[i].equals(other.lock_guards[i]):
+			if not self.lock_guards[i].equals(__o.lock_guards[i]):
 				return False
 
-		if len(self.locks) != len(other.locks):
+		if len(self.locks) != len(__o.locks):
 			return False
 		
 		for i in range(0, len(self.locks)):
-			if not self.locks[i].equals(other.locks[i]):
+			if not self.locks[i].equals(__o.locks[i]):
 				return False
 			
-		if len(self.orders) != len(other.orders):
+		if len(self.orders) != len(__o.orders):
 			return False
 		
 		for i in range(0, len(self.orders)):
-			if not self.orders[i][0] == other.orders[i][0]:
+			if not self.orders[i][0] == __o.orders[i][0]:
 				return False
 			
-			if not self.orders[i][1] == other.orders[i][1]:
+			if not self.orders[i][1] == __o.orders[i][1]:
 				return False
 			
 		return True

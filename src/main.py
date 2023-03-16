@@ -66,16 +66,7 @@ def main():
 # All of those alerts, and returns them.
 #
 def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface], alerts):
-	# if cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
-	# 	if cursor.referenced is not None:
-	# 		print("call to: ", cursor.referenced.get_usr())
-	
-	# if cursor.kind == clang.cindex.CursorKind.CXX_METHOD:
-	# 	print("func to: ", cursor.get_usr())
-
 	#When a call is encountered, used cursor.referenced to get to the node of it
-	#Only if it isn't in namespace std, found in get_usr()
-	#
 
 	if str(cursor.translation_unit.spelling) == str(cursor.location.file):				
 		for check in check_list:
@@ -88,7 +79,7 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			#Only keep unique checks, ie one of each in list
 			for i in range(0, len(check_list) - 1):
 				for j in range(i + 1, len(check_list)):
-					if check_list[i].equal_state(check_list[j]):
+					if check_list[i] == check_list[j]:
 						check_list.remove(check_list[j])
 
 		elif cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT:
@@ -129,46 +120,17 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			checkLen = len(check_list)
 
 			for i in range(0, checkLen):
-				if not copies[i].equal_state(check_list[i]):
+				if copies[i] != check_list[i]:
 					check_list.append(copies[i])
 
 			for i in range(checkLen, len(copies)):
 				check_list.append(copies[i])
 		
-		# if(str(cursor.translation_unit.spelling) == str(child_cursor.location.file)):
-		# 	for check in check_list:
-		# 		check.analyse_cursor(cursor, alerts)
-		
 		for child in cursor.get_children():
 			traverse(child, check_list, alerts)
 	else:
 		for child in cursor.get_children():		
-			traverse(child, check_list, alerts)
-
-	# alerts: List[Alert] = list()
-
-	# # For every cursor in the AST...
-	# child_cursor: clang.cindex.Cursor
-	# for child_cursor in cursor.walk_preorder():
-
-	#     # This line makes sure that the line of code our cursor points to
-	#     # is in the same file that our translation unit is analysing.
-	#     #
-	#     # This means no cursors from header files! If this wasn't here,
-	#     # we'd be looking at the cursors of HUNDREDS of microsoft C++ 
-	#     # std functions.
-	#     #
-	#     if(str(cursor.translation_unit.spelling) == str(child_cursor.location.file)):
-
-	#         # -------DETECTION LOGIC HERE!-------
-	#         # Runs all of our checks, on every cursor in the tree.
-	#         # Adds the alerts they raise to the alerts pile!
-	#         for check in check_list:
-	#             alerts.extend(check.analyse_cursor(child_cursor))
-	
-	# # Complain!
-	# return alerts
-			
+			traverse(child, check_list, alerts)			
 
 if __name__ == "__main__":
 	main()

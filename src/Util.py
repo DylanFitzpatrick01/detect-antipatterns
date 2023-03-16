@@ -25,14 +25,17 @@ class Lock:
 			self.file = str(cursor.location.file)
 			self.line = str(cursor.location.line)
 
-	def equals(self, other) -> bool:
-		if self.mutex != other.mutex:
+	def __eq__(self, __o: object) -> bool:
+		if type(self) != type(__o):
 			return False
 		
-		if self.file != other.file:
+		if self.mutex != __o.mutex:
 			return False
 		
-		if self.line != other.line:
+		if self.file != __o.file:
+			return False
+		
+		if self.line != __o.line:
 			return False
 		
 		return True
@@ -60,18 +63,21 @@ class Lock_Guard:
 			self.line = str(cursor.location.line)
 			self.scopeLevel = scopeLevel
 
-	def equals(self, other) -> bool:
-		if self.mutex != other.mutex:
+	def __eq__(self, __o: object) -> bool:
+		if type(self) != type(__o):
+			return False
+
+		if self.mutex != __o.mutex:
 			return False
 		
-		if self.file != other.file:
+		if self.file != __o.file:
 			return False
 		
-		if self.line != other.line:
+		if self.line != __o.line:
 			return False
 		
 		#TODO might not be possible
-		if self.scopeLevel != other.scopeLevel:
+		if self.scopeLevel != __o.scopeLevel:
 			return False
 		
 		return True
