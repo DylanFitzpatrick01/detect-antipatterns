@@ -28,7 +28,7 @@ class Check(FormalCheckInterface):
 					msg = msg + "\n  " + lock.mutexName + " is locked in: " + lock.file + " at: " + lock.line
 
 				for lock_guard in self.lock_guards:
-					msg = msg + "\n  " + lock_guard.mutexName + " is locked in: " + lock_guard.file + " at: " + lock_guard.line
+					msg = msg + "\n  " + lock_guard.mutexName + " is locked in: " + lock_guard.file + " at line: " + lock_guard.line
 
 				newAlert = Alert(cursor.translation_unit, cursor.extent, msg)
 

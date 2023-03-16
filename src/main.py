@@ -82,6 +82,8 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 				for j in range(i + 1, len(check_list)):
 					if check_list[i] == check_list[j]:
 						check_list.remove(check_list[j])
+			
+			traverse(list(cursor.get_children())[0], check_list, alerts)
 
 		elif cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT:
 			for check in check_list:
@@ -126,9 +128,9 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 
 			for i in range(checkLen, len(copies)):
 				check_list.append(copies[i])
-		
-		for child in cursor.get_children():
-			traverse(child, check_list, alerts)
+		else:
+			for child in cursor.get_children():
+				traverse(child, check_list, alerts)
 	else:
 		for child in cursor.get_children():		
 			traverse(child, check_list, alerts)			

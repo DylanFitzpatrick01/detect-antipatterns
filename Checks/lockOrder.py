@@ -17,8 +17,6 @@ class Check(FormalCheckInterface):
 			if cursor.spelling == "lock":
 				self.check_orders(cursor, alerts)
 				self.locks.append(Lock(cursor))
-
-				newMutex = True
 			elif cursor.spelling == "unlock":
 				for lock in self.locks:
 					# Use .get_usr() it will differenciate between different mutexes of 
@@ -42,10 +40,13 @@ class Check(FormalCheckInterface):
 				alreadyHeld = True
 
 		if not alreadyHeld:
-			new  = Mutex(cursor)
+			if cursor.spelling == "lock":
+				new = Mutex(list(cursor.get_children())[0])
+			else:
+				new = Mutex(cursor)
 
 			for lock in self.locks:
-				newOrder = [Mutex(lock.cursor), Mutex(cursor)]
+				newOrder = [Mutex(lock.cursor), new]
 
 				notPresent = True
 				for order in self.orders:
@@ -70,7 +71,7 @@ class Check(FormalCheckInterface):
 					self.orders.append(newOrder)
 					
 			for lock in self.lock_guards:
-				newOrder = [Mutex(lock.cursor), Mutex(cursor)]
+				newOrder = [Mutex(lock.cursor.get_children()[0]), new]
 
 				notPresent = True
 				for order in self.orders:
