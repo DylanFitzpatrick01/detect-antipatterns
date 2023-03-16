@@ -5,6 +5,9 @@ from formalCheckInterface import FormalCheckInterface
 
 # --------UNIT TESTS------- #
 
+# TODO add test for calling out of locked scope
+# TODO add test for lock order
+
 # Unit test for manualLockUnlock.py
 def test_manual_lock_unlock():
 
