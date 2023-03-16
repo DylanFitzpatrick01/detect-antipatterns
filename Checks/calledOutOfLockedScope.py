@@ -14,11 +14,15 @@ class Check(FormalCheckInterface):
 				self.locks.append(Lock(cursor))
 			elif cursor.spelling == "unlock":
 				for lock in self.locks:
-					if lock.mutex == list(list(cursor.get_children())[0].get_children())[0].spelling:
+					# If the referenced mutex of the unlock matches the lock, remove the lock
+					if lock.mutex == list(list(cursor.get_children())[0].get_children())[0].referenced.get_usr():
 						self.locks.remove(lock)
 			elif cursor.spelling == "lock_guard":
 				self.lock_guards.append(Lock_Guard(cursor, self.scopeLevel))
 			elif self.locks or self.lock_guards:
+				# If there is a call that is not a .lock(), .unlock() or lock_guard and
+				# there are still held mutexes (the lists not being empty) raise an
+				# error and inform of which call was made and which mutex/es are locked.
 				msg = "Called: " + str(cursor.referenced.spelling) + " out of locked scope"
 				for lock in self.locks:
 					msg = msg + "\n  " + lock.mutexName + " is locked in: " + lock.file + " at: " + lock.line
@@ -68,8 +72,7 @@ class Check(FormalCheckInterface):
 	def scope_increased(self, alerts):
 		self.scopeLevel += 1
 
-	# Removes all Lock_Guards in the current scope before movinng back to a lesser
-	# scope
+	# Removes all Lock_Guards that have exited the scope
 	def scope_decreased(self, alerts):
 		self.scopeLevel -= 1
 
@@ -77,6 +80,7 @@ class Check(FormalCheckInterface):
 			if lockGuard.scopeLevel >= self.scopeLevel:
 				self.lock_guards.remove(lockGuard)
 
+	# Resets all state to default
 	def new_function(self, alerts):
 		self.lock_guards = list()
 		self.locks = list()
