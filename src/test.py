@@ -32,6 +32,12 @@ def test_public_mutex_members():
     assert len(alerts) == 0
 
 
+def test_immutable_object():
+    alerts: List[Alert] = run_check_on_file("../Checks/immutableObject.py", "../cpp_tests/immutable.cpp")
+    assert alerts[0].message == 71
+
+
+
 # --------FUNCTIONS-------- #
 
 def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
