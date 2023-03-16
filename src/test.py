@@ -33,7 +33,7 @@ def test_public_mutex_members():
 
 
 def test_immutable_object():
-    alerts: List[Alert] = run_check_on_file("../Checks/immutableObject.py", "../cpp_tests/immutable.cpp")
+    alerts: List[Alert] = run_check_on_file("../Checks/immutableObjects.py", "../cpp_tests/immutable.cpp")
     assert alerts[0].message == 71
 
 
