@@ -34,7 +34,6 @@ public:
         mState = input;
     }
 
-
      std::mutex mDataAccess5; //public
 
 protected:
@@ -52,5 +51,4 @@ int main()
     std::cout << instance.getState() << "\n";                  // Good!
 
     instance.mDataAccess1.lock();                               // Oh no!
-
 }
