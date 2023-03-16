@@ -67,19 +67,19 @@ class Check(FormalCheckInterface):
 
 		return copy
 	
-	def scope_increased(self):
+	def scope_increased(self, alerts):
 		self.scopeLevel += 1
 
 	# Removes all Lock_Guards in the current scope before movinng back to a lesser
 	# scope
-	def scope_decreased(self):
+	def scope_decreased(self, alerts):
 
 		self.scopeLevel -= 1
 		for lockGuard in self.lock_gaurds:
 			if lockGuard.scopeLevel >= self.scopeLevel:
 				self.lock_gaurds.remove(lockGuard)
 
-	def new_function(self):
+	def new_function(self, alerts):
 		self.lock_gaurds = list()
 		self.locks = list()
 		self.scopeLevel = 0

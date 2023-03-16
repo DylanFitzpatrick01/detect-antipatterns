@@ -30,12 +30,12 @@ class FormalCheckInterface(metaclass=abc.ABCMeta):
         return self
     
     #Checks may not implement this unless they need to
-    def scope_increased(self):
+    def scope_increased(self, alerts):
         pass
 
     # Check may not implement this unless they need to
-    def scope_decreased(self):
+    def scope_decreased(self, alerts):
         pass
 
-    def new_function(self):
+    def new_function(self, alerts):
         pass

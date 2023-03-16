@@ -54,16 +54,6 @@ def main():
 
 # --------FUNCTIONS-------- #
 
-# Gets all possible entry points to execution. 
-# Eg main is an entry point
-# Any creation of a thread is also one
-def get_threads(cursor: clang.cindex.Cursor, threadList: List[clang.cindex.Cursor]):
-	for node in cursor.walk_preorder():
-		if node.kind == clang.cindex.CursorKind.CALL_EXPR and node.spelling == "thread":
-			threadList.append(list(node.get_children())[0])
-		if node.kind == clang.cindex.CursorKind.FUNCTION_DECL and node.spelling == "main":
-			threadList.append(cursor)
-
 # Traverses Clangs cursor tree. A cursor points to a piece of code,
 # and has extremely useful values and functions. The cursor tree is
 # a generic tree. More info:
@@ -93,7 +83,7 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 
 		if cursor.kind == clang.cindex.CursorKind.FUNCTION_DECL:
 			for check in check_list:
-				check.new_function()
+				check.new_function(alerts)
 
 			#Only keep unique checks, ie one of each in list
 			for i in range(0, len(check_list) - 1):
@@ -103,13 +93,13 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 
 		elif cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT:
 			for check in check_list:
-				check.scope_increased()
+				check.scope_increased(alerts)
 
 			for child in cursor.get_children():
 				traverse(child, check_list, alerts)
 		
 			for check in check_list:
-				check.scope_decreased()
+				check.scope_decreased(alerts)
 		elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
 			#First we evaluate the arguements, they may be function calls
 			#We can just traverse all the children of the call

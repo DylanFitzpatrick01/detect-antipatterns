@@ -9,6 +9,7 @@ class Lock:
 		if cursor is None:
 			pass
 		else:
+			self.cursor = cursor
 			self.mutex = str(list(list(cursor.get_children())[0].get_children())[0].spelling)
 			self.file = str(cursor.location.file)
 			self.line = str(cursor.location.line)
@@ -41,6 +42,7 @@ class Lock_Guard:
 		if cursor is None or scopeLevel is None:
 			pass
 		else:
+			self.cursor = cursor
 			self.mutex = str(list(cursor.get_children())[0].spelling)
 			self.file = str(cursor.location.file)
 			self.line = str(cursor.location.line)

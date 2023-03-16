@@ -23,12 +23,13 @@ public:
         return mState;
     }
 
+    void doSomething(std::string input)
     {
         {
         // do something
         }
         std::mutex mDataAccess4; //private
-        void updateState(const std::string& input)
+        void updateState(const std::string& input);
         {
             std::lock_guard<std::mutex> lock(mDataAccess4);
 
@@ -44,14 +45,18 @@ protected:
 private:
     std::string mDataAccess7; //not a mutex
     std::mutex mDataAccess8;  //private
+
+    std::string mState;
 };
 
 int main()
 {
-    auto instance = MyClass("test123");
+    //auto instance = MyClass("test123");
+
+    MyClass instance("test123");
 
     std::cout << instance.getState() << "\n";                  // Good!
 
-    instance.mDataAccess.lock();                               // Oh no!
+    instance.mDataAccess1.lock();                               // Oh no!
 
 }
