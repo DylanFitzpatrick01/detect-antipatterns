@@ -66,7 +66,8 @@ def main():
 # All of those alerts, and returns them.
 #
 def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface], alerts):
-	#When a call is encountered, used cursor.referenced to get to the node of it
+	# TODO handle switch-cases, loops and recursion
+	#      Should be easy, done before -Leon Byrne
 
 	if str(cursor.translation_unit.spelling) == str(cursor.location.file):				
 		for check in check_list:
