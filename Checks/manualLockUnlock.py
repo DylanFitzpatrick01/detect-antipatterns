@@ -1,7 +1,8 @@
 import clang.cindex
-from alerts import *
 from formalCheckInterface import *
 from Util import Lock
+from typing import List
+from alerts import Alert
 
 """
 A Check for a manual lock/unlock. If found issue a warning.
