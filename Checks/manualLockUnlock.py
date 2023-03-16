@@ -20,7 +20,9 @@ class Check(FormalCheckInterface):
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
 		if cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
 			if cursor.spelling == "lock" or cursor.spelling == "unlock":
-				newAlert = Alert(cursor.translation_unit, cursor.location, "A manual lock/unlock is used, RAII is recommended", "warning")
+				mutex = str(list(list(cursor.get_children())[0].get_children())[0].spelling)
+
+				newAlert = Alert(cursor.translation_unit, cursor.location, mutex + " is locked/unlocked manually, RAII is recommended", "warning")
 
 				if newAlert not in alerts:
 					alerts.append(newAlert)
@@ -29,7 +31,7 @@ class Check(FormalCheckInterface):
 				self.locks.append(Lock(cursor))
 			if cursor.spelling == "unlock":
 				for lock in self.locks:
-					if lock.mutex == list(list(cursor.get_children())[0].get_children())[0].spelling:
+					if lock.mutex == list(list(cursor.get_children())[0].get_children())[0].referenced.get_usr():
 						self.locks.remove(lock)
 
 	def __eq__(self, __o: object) -> bool:
@@ -49,7 +51,7 @@ class Check(FormalCheckInterface):
 	# Checking for locks then will tell us if there was a missing unlock
 	def scope_decreased(self, alerts):
 		for lock in self.locks:
-			newAlert = Alert(lock.cursor.translation_unit, lock.cursor.location, "It's possible that this lock does not have a mathcing unlock within this scope")
+			newAlert = Alert(lock.cursor.translation_unit, lock.cursor.location, "It is possible that " + lock.mutexName + " is not unlocked before leaving scope")
 				
 			if newAlert not in alerts:
 				alerts.append(newAlert)
