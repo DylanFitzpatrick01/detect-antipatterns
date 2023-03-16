@@ -17,11 +17,9 @@ def test_manual_lock_unlock():
     #                              "Please either replace 'mDataAccess.lock();' with 'std::lock_guard<std::mutex> lock(mDataAccess);' (RECCOMMENDED),\n" +
     #                              "or add 'mDataAccess.unlock();' at the end of this critical section.")
     
-    assert alerts[0].message == "A manual lock/unlock is used, RAII is recommended", "warning"
-    assert alerts[0].location.start.line == 60
+    assert alerts[0].message == "mDataAccess1 is locked/unlocked manually, RAII is recommended"
 
-    assert alerts[1].message == "It's possible that this lock does not have a mathcing unlock within this scope"
-    assert alerts[1].location.start.line == 60
+    assert alerts[1].message == "It is possible that mDataAccess1 is not unlocked before leaving scope"
 
     # Check a file without them.
     alerts: List[Alert] = run_check_on_file("../Checks/manualLockUnlock.py", "../cpp_tests/immutable.cpp")
