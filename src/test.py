@@ -11,8 +11,8 @@ def test_manual_lock_unlock():
     # Check a file with manual locks.
     alerts: List[Alert] = run_check_on_file("../Checks/manualLockUnlock.py", "../cpp_tests/public.cpp")
     assert alerts[0].message == ("A manual lock is used in this scope without an unlock!.\n" +
-                                 "Please either replace 'mDataAccess.lock();' with 'std::lock_guard<std::mutex> lock(mDataAccess);' (RECCOMMENDED),\n" +
-                                 "or add 'mDataAccess.unlock();' at the end of this critical section.")
+                                 "Please either replace 'mDataAccess1.lock();' with 'std::lock_guard<std::mutex> lock(mDataAccess1);' (RECCOMMENDED),\n" +
+                                 "or add 'mDataAccess1.unlock();' at the end of this critical section.")
     
     # Check a file without them.
     alerts: List[Alert] = run_check_on_file("../Checks/manualLockUnlock.py", "../cpp_tests/immutable.cpp")
@@ -24,8 +24,13 @@ def test_public_mutex_members():
     # Check a file with manual locks.
     alerts: List[Alert] = run_check_on_file("../Checks/publicMutexMembers.py", "../cpp_tests/public.cpp")
     print(alerts[0].message)
+    print(alerts[1].message)
+
     assert alerts[0].message == ("Are you sure you want to have a public mutex called 'mDataAccess1'?\n" +
                                  "Consider making this mutex private.")
+    assert alerts[1].message == ("Are you sure you want to have a public mutex called 'mDataAccess5'?\n" +
+                                 "Consider making this mutex private.")
+    assert len(alerts) == 2
     
     # Check a file without them.
     alerts: List[Alert] = run_check_on_file("../Checks/manualLockUnlock.py", "../cpp_tests/immutable.cpp")
