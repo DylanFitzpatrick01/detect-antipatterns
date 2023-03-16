@@ -4,7 +4,7 @@ from Util import *
 
 class Check(FormalCheckInterface):
 	def __init__(self):
-		self.lock_gaurds = list()	
+		self.lock_guards = list()	
 		self.locks = list()
 		self.scopeLevel = 0
 
@@ -17,14 +17,14 @@ class Check(FormalCheckInterface):
 					if lock.mutex == list(list(cursor.get_children())[0].get_children())[0].spelling:
 						self.locks.remove(lock)
 			elif cursor.spelling == "lock_guard":
-				self.lock_gaurds.append(Lock_Guard(cursor, self.scopeLevel))
-			elif self.locks or self.lock_gaurds:
-				msg = "Called: " + str(cursor.spelling) + " out of locked scope"
+				self.lock_guards.append(Lock_Guard(cursor, self.scopeLevel))
+			elif self.locks or self.lock_guards:
+				msg = "Called: " + str(cursor.referenced.spelling) + " out of locked scope"
 				for lock in self.locks:
-					msg = msg + "\n  " + lock.mutex + " is locked in: " + lock.file + " at: " + lock.line
+					msg = msg + "\n  " + lock.mutexName + " is locked in: " + lock.file + " at: " + lock.line
 
-				for lock_guard in self.lock_gaurds:
-					msg = msg + "\n  " + lock_guard.mutex + " is locked in: " + lock_guard.file + " at: " + lock_guard.line
+				for lock_guard in self.lock_guards:
+					msg = msg + "\n  " + lock_guard.mutexName + " is locked in: " + lock_guard.file + " at: " + lock_guard.line
 
 				newAlert = Alert(cursor.translation_unit, cursor.extent, msg)
 				for alert in alerts:
@@ -38,11 +38,11 @@ class Check(FormalCheckInterface):
 			return False
 
 		#The numbers can only change if new lock guard made
-		if len(self.lock_gaurds) != len(other.lock_gaurds):
+		if len(self.lock_guards) != len(other.lock_guards):
 			return False
 		
-		for i in range(0, len(self.lock_gaurds)):
-			if not self.lock_gaurds[i].equals(other.lock_guards[i]):
+		for i in range(0, len(self.lock_guards)):
+			if not self.lock_guards[i].equals(other.lock_guards[i]):
 				return False
 
 		if len(self.locks) != len(other.locks):
@@ -57,8 +57,8 @@ class Check(FormalCheckInterface):
 	def copy(self):
 		copy = Check()
 
-		for lockGuard in self.lock_gaurds:
-			copy.lock_gaurds.append(lockGuard.copy())
+		for lockGuard in self.lock_guards:
+			copy.lock_guards.append(lockGuard.copy())
 
 		for lock in self.locks:
 			copy.locks.append(lock.copy())
@@ -73,13 +73,13 @@ class Check(FormalCheckInterface):
 	# Removes all Lock_Guards in the current scope before movinng back to a lesser
 	# scope
 	def scope_decreased(self, alerts):
-
 		self.scopeLevel -= 1
-		for lockGuard in self.lock_gaurds:
+
+		for lockGuard in self.lock_guards:
 			if lockGuard.scopeLevel >= self.scopeLevel:
-				self.lock_gaurds.remove(lockGuard)
+				self.lock_guards.remove(lockGuard)
 
 	def new_function(self, alerts):
-		self.lock_gaurds = list()
+		self.lock_guards = list()
 		self.locks = list()
 		self.scopeLevel = 0
