@@ -29,7 +29,7 @@ def main():
 	# Gets clang to start parsing the file, and generate
 	# a translation unit with an Abstract Syntax Tree.
 	idx = clang.cindex.Index.create()
-	tu = idx.parse(s, args=['-std=c++11'])
+	tu = idx.parse(s)
 
 	# Import all of our checks!
 	try:

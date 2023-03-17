@@ -230,9 +230,7 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
     # Make a Translation Unit
     idx = clang.cindex.Index.create()
     
-    # DEBUG
     tu = idx.parse(abs_file_path)
-    #tu = idx.parse(abs_file_path, args=['-std=c++11'])
 
     # Traverse the AST of the TU, run the check on all cursors,
     # and return all alerts.
@@ -240,6 +238,3 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
     main.traverse(tu.cursor, check_list, alerts)
 
     return alerts
-
-if __name__ == "__main__":
-    test_member_locked_in_some_methods()
