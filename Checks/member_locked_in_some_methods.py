@@ -12,7 +12,7 @@ class Check():
 
     def __init__(self):
         """
-        Initialiser, Creates an instance of the lockedInSomeObserver class
+        Initialiser, Creates an instance of the the check class
 
         Args:
             None
@@ -39,7 +39,7 @@ class Check():
 
 
     def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
-        """Updates the lockedInSomeObserver with the current Node in the AST
+        """Updates the check with the current Node in the AST
 
         Args:
             cursor (clang.cindex.Cursor): A node from the AST
@@ -57,10 +57,10 @@ class Check():
             If the previous node was inside a method, and the cursor is not inside that method, then the method has ended, and we will check
             if any of the data members of the class were guarded or not in the method and compare this state to if they were guarded or not in a previous method.
             If either a data member was guarded in this method but not in another, or a data member was not guarded in this method but guarded in another, it will raise an error (and store it).
-            After an error was raised or not, it will clear information of that method from the observer to make way for any future methods.
+            After an error was raised or not, it will clear information of that method from the check to make way for any future methods.
             
             If the previous node was inside a class, and the cursor is not inside that class, then the class has ended, and we will clear
-            all information about that class from the observer except the errors that class had, so it can make way for any future classes in the file.
+            all information about that class from the check except the errors that class had, so it can make way for any future classes in the file.
         """
         if (len(self.alert_list) > 0):
             self.alert_list.clear()
@@ -90,9 +90,9 @@ class Check():
 
                     # Else, if this node is the not in the method (but the previous nodes were)
                     else:
-                        # Check for the antipattern and then clear the method information from the observer
+                        # Check for the antipattern and then clear the method information from the check
                         self.checkForAntipattern()
-                        self.clearObserverAfterMethod()
+                        self.clearCheckAfterMethod()
                         # Check if the cursor is a different method
                         if cursor.kind == clang.cindex.CursorKind.CXX_METHOD:
                             self.cursor_is_in_method = True
@@ -105,9 +105,9 @@ class Check():
                     self.cursor_is_in_method = True
                     self.currentMethod = cursor
             # Else, we ran through all the nodes in that class, and the current node is not in the class
-            # Clear the observer
+            # Clear the check
             else:
-                self.clearObserverAfterClass()
+                self.clearCheckAfterClass()
                 if cursor.kind != clang.cindex.CursorKind.CLASS_DECL:
                     self.classFound = False
         
@@ -183,8 +183,8 @@ class Check():
         return False
 
 
-    def clearObserverAfterMethod(self):
-        """Clears all the information about a method from the observer
+    def clearCheckAfterMethod(self):
+        """Clears all the information about a method from the check
         To be used once all the cursors in a method were ran through, and the current cursor (if there still is one) is the first cursor outside of the method
         """
         self.currentMethod = None
@@ -196,8 +196,8 @@ class Check():
         self.nextMemberIsInUnlock = False
 
 
-    def clearObserverAfterClass(self):
-        """Clears all the information about a class from the observer
+    def clearCheckAfterClass(self):
+        """Clears all the information about a class from the check
         To be used once all the cursors in a class were ran through, and the current cursor (if there still is one) is the first cursor outside of the class
         """
         self.cursor_is_in_method = False
