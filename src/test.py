@@ -8,6 +8,88 @@ from formalCheckInterface import FormalCheckInterface
 # TODO add test for calling out of locked scope
 # TODO add test for lock order
 
+def test_already_locked():
+    if (not os.path.isabs("../cpp_tests/already_locked.cpp")):
+        abs_file_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), "../cpp_tests/already_locked.cpp"))
+
+    alerts = run_check_on_file("../Checks/alreadyLocked.py", "../cpp_tests/already_locked.cpp")
+
+    messages = list()
+
+    for alert in alerts:
+        messages.append(alert.message)
+
+    expected = list()
+    expected.append("a might already be locked\n" + "  a is locked in: " + abs_file_path + " at line: 24")
+
+    for message in messages:
+        assert message in expected
+    
+    for message in expected:
+        assert message in messages
+
+def test_lock_order():
+    if (not os.path.isabs("../cpp_tests/lock_order.cpp")):
+        abs_file_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), "../cpp_tests/lock_order.cpp"))
+
+    alerts = run_check_on_file("../Checks/lockOrder.py", "../cpp_tests/lock_order.cpp")
+    messages = list()
+
+    for alert in alerts:
+        messages.append(alert.message)
+
+    expected = list()
+    expected.append(
+        "Locking order may cause deadlock.\n" + 
+        "Locked: b in: " + abs_file_path + " at line: 10\n" +
+        "Locked: a in: " + abs_file_path + " at line: 11\n" +
+        "\n" + 
+        "Locked: a in: " + abs_file_path + " at line: 29\n" + 
+        "Locked: b in: " + abs_file_path + " at line: 30\n")
+    expected.append(
+        "Locking order may cause deadlock.\n" + 
+        "Locked: c in: " + abs_file_path + " at line: 18\n" +
+        "Locked: d in: " + abs_file_path + " at line: 19\n" +
+        "\n" + 
+        "Locked: d in: " + abs_file_path + " at line: 22\n" + 
+        "Locked: c in: " + abs_file_path + " at line: 23\n")
+    
+    for message in messages:
+        assert message in expected
+    
+    for message in expected:
+        assert message in messages
+
+def test_locked_call():
+    if (not os.path.isabs("../cpp_tests/called_out_of_locked_scope.cpp")):
+        abs_file_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), "../cpp_tests/called_out_of_locked_scope.cpp"))
+
+    alerts = run_check_on_file("../Checks/calledOutOfLockedScope.py", "../cpp_tests/called_out_of_locked_scope.cpp")
+    messages = list()
+
+    for alert in alerts:
+        messages.append(alert.message)
+
+    expected = list()
+    expected.append(
+        "Called: test from a locked scope.\n" +
+        "  a is locked in: " + abs_file_path + " at line: 18"
+    )
+    expected.append(
+        "Called: test from a locked scope.\n" +
+        "  c is locked in: " + abs_file_path + " at line: 30"
+    )
+    expected.append(
+        "Called: test from a locked scope.\n" +
+        "  d is locked in: " + abs_file_path + " at line: 36"
+    )
+
+    for message in messages:
+        assert message in expected
+    
+    for message in expected:
+        assert message in messages
+
 # Unit test for manualLockUnlock.py
 def test_manual_lock_unlock():
 
