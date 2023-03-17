@@ -196,6 +196,19 @@ def test_member_locked_in_some_methods():
     # We know that there should be exactly 3 alerts from the error detection tests, so if that remains at 3 after the pass detection tests,
     # No errors were detected in the passes (as it should be in a pass)
     assert len(alerts) == 3
+
+
+def test_immutable_object():
+    
+    # Run our check on a file that'll trigger an alert!
+    alerts: List[Alert] = run_check_on_file("../Checks/immutableObjects.py", "../cpp_tests/immutable.cpp")
+    assert alerts[0].message == "71.0% of Variables are constant. This may cause an immutable object error"
+    
+    # Run our check on a file that won't return any alerts.
+    alerts = run_check_on_file("../Checks/immutableObjects.py", "../cpp_tests/public.cpp")
+    assert len(alerts) == 0
+
+
 # --------FUNCTIONS-------- #
 
 def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
@@ -230,9 +243,7 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
     # Make a Translation Unit
     idx = clang.cindex.Index.create()
     
-    # DEBUG
     tu = idx.parse(abs_file_path)
-    #tu = idx.parse(abs_file_path, args=['-std=c++11'])
 
     # Traverse the AST of the TU, run the check on all cursors,
     # and return all alerts.
