@@ -81,6 +81,7 @@ class Lock_Guard:
 	def copy(self):
 		copy = Lock_Guard(None, None)
 
+		copy.cursor = self.cursor
 		copy.mutex = self.mutex
 		copy.file = self.file
 		copy.line = self.line

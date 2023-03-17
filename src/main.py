@@ -77,7 +77,7 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 		# affect other checks. Eg IF_STMT
 		if cursor.kind == clang.cindex.CursorKind.FUNCTION_DECL or cursor.kind == clang.cindex.CursorKind.CXX_METHOD:
 			for check in check_list:
-				check.analyse_cursor(cursor, alerts)
+				check.new_function(alerts)
 
 			#Only keep unique checks, ie one of each in list
 			checkLen = len(check_list)
