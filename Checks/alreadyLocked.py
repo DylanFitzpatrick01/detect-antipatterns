@@ -59,7 +59,7 @@ class Check(FormalCheckInterface):
 				self.lock_guards.remove(lockGuard)
 
 	# Resets all state to default
-	def new_function(self, alerts):
+	def new_function(self, cursor, alerts):
 		self.lock_guards = list()
 		self.locks = list()
 		self.scopeLevel = 0

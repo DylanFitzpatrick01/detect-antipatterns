@@ -88,3 +88,20 @@ class Lock_Guard:
 		copy.scopeLevel = self.scopeLevel
 
 		return copy
+
+class Var:
+	def __init__(self, cursor):
+		self.cursor = cursor
+		self.name = cursor.referenced.spelling
+		self.usr = cursor.referenced.get_usr()
+		self.file = cursor.location.file
+		self.line = cursor.location.line
+
+	def __eq__(self, __o: object) -> bool:
+		if type(self) != type(__o):
+			return False
+		
+		if self.usr != __o.usr:
+			return False
+		
+		return True

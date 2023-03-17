@@ -147,7 +147,7 @@ def test_observers():
     assert(eventSrc2.observers) == [function_observer]
     
     
-    searchNodes(eventSrc=eventSrc, file_path="cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp")
+    searchNodes(eventSrc=eventSrc, file_path="../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp")
     
     correct_output = (
         "Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 17, column 38>\n"+
@@ -155,18 +155,18 @@ def test_observers():
         "Detected a 'std::mutex', Name: 'mDataAccess' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 37, column 16>\n" + 
         "Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 17, column 33>\n" + 
         "Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 24, column 33>\n" + 
-        "Detected std::string: 'mState' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 36, column 17>\n" + 
-        "Detected std::mutex: 'mDataAccess' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 37, column 16>\n" + 
-        "Detected MyClass: 'MyClass' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 5, column 7>\n" + 
-        "Detected MyClass: 'MyClass' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 5, column 7>\n" +
-        "Detected std::mutex: 'class std::mutex' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 17, column 26>\n" +
-        "Detected const std::basic_string<char>: 'mState' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 19, column 12>\n" +
-        "Detected std::mutex: 'class std::mutex' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 24, column 26>zn" + 
+        "Detected std::string : 'mState' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 36, column 17>\n" + 
+        "Detected std::mutex : 'mDataAccess' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 37, column 16>\n" + 
+        "Detected MyClass : 'MyClass' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 5, column 7>\n\n" + 
+        "Detected MyClass : 'MyClass' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 5, column 7>\n\n" +
+        "Detected std::mutex : 'class std::mutex' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 17, column 26>\n" +
+        "Detected const std::basic_string<char> : 'mState' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 19, column 12>\n" +
+        "Detected std::mutex : 'class std::mutex' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 24, column 26>zn" + 
         "Detected std::basic_string<char>: 'operator=' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 26, column 5>\n" + 
-        "Detected std::mutex: 'class std::mutex' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 37, column 10>\n" +
-        "Detected std::string (): 'getState()' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 15, column 13>\n" + 
-        "Detected void (const std::string &): 'updateState(const std::string &)' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 22, column 6>\n" + 
-        "Detected void (): 'logState()' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 29, column 6>"
+        "Detected std::mutex : 'class std::mutex' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 37, column 10>\n" +
+        "Detected std::string () : 'getState()' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 15, column 13>\n" + 
+        "Detected void (const std::string &) : 'updateState(const std::string &)' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 22, column 6>\n" + 
+        "Detected void () : 'logState()' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 29, column 6>"
     )
 
     output_str = mutex_observer.output + lock_guard_observer.output + declared_variable_observer.output + class_observer.output + record_observer.output + function_observer.output
@@ -182,9 +182,9 @@ def test_member_locked_in_some_methods():
     alerts: List[Alert] = run_check_on_file("../Checks/member_locked_in_some_methods.py", "../cpp_tests/member_locked_in_some_methods/error_in_method_scope_locks.cpp")
     alerts.extend(run_check_on_file("../Checks/member_locked_in_some_methods.py", "../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp"))
     alerts.extend(run_check_on_file("../Checks/member_locked_in_some_methods.py", "../cpp_tests/member_locked_in_some_methods/error_in_method_with_nested_scopes.cpp"))
-    assert alerts[0].message == ("Data member 'mState' at (line: 34, column: 39) is not accessed with a lock_guard or lock/unlock combination in this method, \nbut is accessed with a lock_guard or lock/unlock combination in other methods\n Are you missing a lock_guard before 'mState'?")
-    assert alerts[1].message == ("Data member 'mState' at (line: 32, column: 39) is not accessed with a lock_guard or lock/unlock combination in this method, \nbut is accessed with a lock_guard or lock/unlock combination in other methods\n Are you missing a lock_guard before 'mState'?")
-    assert alerts[2].message == ("Data member 'mState' at (line: 43, column: 59) is not accessed with a lock_guard or lock/unlock combination in this method, \nbut is accessed with a lock_guard or lock/unlock combination in other methods\n Are you missing a lock_guard before 'mState'?")
+    assert alerts[0].message == ("Data member 'mState' at (line: 34, column: 39) is not accessed with a lock_guard or lock/unlock combination in this method, \nbut is accessed with a lock_guard or lock/unlock combination in other methods\n Are you missing a lock_guard or lock/unlock combination before 'mState'?")
+    assert alerts[1].message == ("Data member 'mState' at (line: 32, column: 39) is not accessed with a lock_guard or lock/unlock combination in this method, \nbut is accessed with a lock_guard or lock/unlock combination in other methods\n Are you missing a lock_guard or lock/unlock combination before 'mState'?")
+    assert alerts[2].message == ("Data member 'mState' at (line: 43, column: 59) is not accessed with a lock_guard or lock/unlock combination in this method, \nbut is accessed with a lock_guard or lock/unlock combination in other methods\n Are you missing a lock_guard or lock/unlock combination before 'mState'?")
     
     
     # PASS DETECTION TESTS

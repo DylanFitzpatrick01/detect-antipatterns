@@ -61,16 +61,17 @@ class cursorKindObserver(Observer):
         self.output = ""
 
 
-    # def update(self, currentNode):
-    #     """Updates the observer with the currentNode
+    def update(self, currentNode):
+        print("I've been called")
+        """Updates the observer with the currentNode
 
-    #     Args:
-    #         currentNode (clang.cindex.Cursor): The node to update with
-    #     """
-    #     if currentNode not in self.kindList:
-    #         if currentNode.kind == self.kindToDetect:
-    #             self.output += f"Detected {currentNode.type.spelling}: '{currentNode.displayname}' at {currentNode.location}\n"
-    #             self.kindList.append(currentNode)
+        Args:
+            currentNode (clang.cindex.Cursor): The node to update with
+        """
+        if currentNode not in self.kindList:
+            if currentNode.kind == self.kindToDetect:
+                self.output += "Detected " + currentNode.type.spelling + ": '" + currentNode.displayname + "' at " + str(currentNode.location) + "\n"
+                self.kindList.append(currentNode)
 
 
 class cursorTypeKindObserver(Observer):
@@ -97,7 +98,7 @@ class cursorTypeKindObserver(Observer):
         """
         self.typeKindList.append(currentNode)
         if currentNode.type.kind == self.typeKindToDetect:
-            self.output += "\nDetected " + currentNode.type.spelling + " : '{currentNode.displayname}' at {currentNode.location}\n"
+            self.output += "\nDetected " + currentNode.type.spelling + " : '" + currentNode.displayname + "' at " + str(currentNode.location) + "\n"
             self.typeKindList.append(currentNode)
 
 
