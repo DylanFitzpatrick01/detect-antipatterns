@@ -1,7 +1,0 @@
-============================= test session starts ==============================
-platform linux -- Python 3.10.6, pytest-7.2.2, pluggy-1.0.0 -- /usr/bin/python3
-cachedir: .pytest_cache
-rootdir: /home/leon/localProgramming/new-architecture
-collecting ... collected 0 items
-
-============================ no tests ran in 0.00s =============================
