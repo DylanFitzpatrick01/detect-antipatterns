@@ -1,14 +1,17 @@
-from Core.formalCheckInterface import *
+import clang.cindex
 from typing import List
+from alerts import Alert
 
 """
 TODO Write Description
 """
 
-class Check(FormalCheckInterface):
+class Check():
     def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
         alert_list: List[Alert] = list()
 
         #code
-
+        print(alert_list)
         return alert_list
+        
+    
