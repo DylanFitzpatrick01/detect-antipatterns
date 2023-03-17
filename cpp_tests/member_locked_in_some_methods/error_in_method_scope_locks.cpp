@@ -31,7 +31,6 @@ void updateState(const std::string& input)
 
 void logState()
 {
-
     std::cout << "Current state: " << mState << "\n";       // Uh-oh - reading here but, missing lock.
 }
 
@@ -39,4 +38,3 @@ private:
     std::string mState;
     std::mutex mDataAccess;
 };
-int i = 5;
