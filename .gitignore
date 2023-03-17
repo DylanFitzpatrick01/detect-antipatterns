@@ -1,4 +1,8 @@
-AST.txt
 .vscode
+.vs
 pubmut.txt
+__pycache__
 __pycache__/
+__pycache__/locks.cpython-38.pyc
+__pycache__/observer.cpython-38.pyc
+.pyc
