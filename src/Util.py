@@ -7,7 +7,7 @@ class Function:
 class Mutex:
 	def __init__(self, cursor):
 		self.file = str(cursor.location.file)
-		self.line = str(cursor.location.file)
+		self.line = str(cursor.location.line)
 		self.name = str(list(cursor.get_children())[0].spelling)
 		self.usr = str(list(cursor.get_children())[0].referenced.get_usr())
 
@@ -41,11 +41,7 @@ class Lock:
 		return True
 
 	def copy(self):
-		copy = Lock()
-
-		copy.mutex = self.mutex
-		copy.file = self.file
-		copy.line = self.line
+		copy = Lock(self.cursor)
 
 		return copy
 

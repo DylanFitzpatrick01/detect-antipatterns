@@ -16,7 +16,7 @@ class Check(FormalCheckInterface):
 				msg = ""
 				for lock in self.locks:
 					if lock.mutex == list(list(cursor.get_children())[0].get_children())[0].referenced.get_usr():
-						msg += "\n  " + lock.mutexName + " is locked in: " + lock.file + " at: " + lock.line
+						msg += "\n  " + lock.mutexName + " is locked in: " + lock.file + " at line: " + lock.line
 
 				if msg != "":
 					mutex = str(list(list(cursor.get_children())[0].get_children())[0].spelling)

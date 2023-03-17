@@ -6,11 +6,13 @@ from Util import Lock_Guard
 from Util import Mutex
 
 class Check(FormalCheckInterface):
+	# orders is shared across all instances of this check
+	orders = list()
+
 	def __init__(self):
 		self.locks = list()
 		self.lock_guards = list()
 		self.scopeLevel = 0
-		self.orders = list() # list of list of Mutexes
 
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
 		if cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
@@ -46,10 +48,35 @@ class Check(FormalCheckInterface):
 				new = Mutex(cursor)
 
 			for lock in self.locks:
+				newOrder = [Mutex(list(lock.cursor.get_children())[0]), new]
+
+				notPresent = True
+				for order in Check.orders:
+					if newOrder[0] == order[0] and newOrder[1] == order[1]:
+						notPresent = False
+
+					if newOrder[0] == order[1] and order[0] == newOrder[1]:
+						notPresent = False
+
+						newAlert = Alert(cursor.translation_unit, cursor.extent, (
+	 								"Locking order may cause deadlock.\n" + 
+									"Locked: " + order[0].name + " in: " + order[0].file + " at line: " + order[0].line + "\n" +
+									"Locked: " + order[1].name + " in: " + order[1].file + " at line: " + order[1].line + "\n" +
+									"\n" +
+									"Locked: " + newOrder[0].name + " in: " + newOrder[0].file + " at line: " + newOrder[0].line + "\n" +
+									"Locked: " + newOrder[1].name + " in: " + newOrder[1].file + " at line: " + newOrder[1].line + "\n"))
+								
+						if newAlert not in alerts:
+							alerts.append(newAlert)
+				
+				if notPresent:
+					Check.orders.append(newOrder)
+					
+			for lock in self.lock_guards:
 				newOrder = [Mutex(lock.cursor), new]
 
 				notPresent = True
-				for order in self.orders:
+				for order in Check.orders:
 					if newOrder[0] == order[0] and newOrder[1] == order[1]:
 						notPresent = False
 
@@ -59,41 +86,16 @@ class Check(FormalCheckInterface):
 						newAlert = Alert(cursor.translation_unit, cursor.extent, (
 	 								"Locking order may cause deadlock.\n" + 
 									"Locked: " + order[0].name + " in: " + order[0].file + " at line: " + order[0].line + "\n" +
-									"        " + order[1].name + " in: " + order[1].file + " at line: " + order[1].line + "\n" +
+									"Locked: " + order[1].name + " in: " + order[1].file + " at line: " + order[1].line + "\n" +
 									"\n" +
 									"Locked: " + newOrder[0].name + " in: " + newOrder[0].file + " at line: " + newOrder[0].line + "\n" +
-									"        " + newOrder[1].name + " in: " + newOrder[1].file + " at line: " + newOrder[1].line + "\n"))
+									"Locked: " + newOrder[1].name + " in: " + newOrder[1].file + " at line: " + newOrder[1].line + "\n"))
 								
 						if newAlert not in alerts:
 							alerts.append(newAlert)
 				
 				if notPresent:
-					self.orders.append(newOrder)
-					
-			for lock in self.lock_guards:
-				newOrder = [Mutex(lock.cursor.get_children()[0]), new]
-
-				notPresent = True
-				for order in self.orders:
-					if newOrder[0] == order[0] and newOrder[1] == order[1]:
-						notPresent = False
-
-					if newOrder[0] == order[1] and order[0] == newOrder[1]:
-						notPresent = False
-
-						newAlert = Alert(cursor.translation_unit, cursor.extent, (
-	 								"Locking order may cause deadlock.\n" + 
-									"Locked: " + order[0].name + " in: " + order[0].file + " at line: " + order[0].line + "\n" +
-									"        " + order[1].name + " in: " + order[1].file + " at line: " + order[1].line + "\n" +
-									"\n" +
-									"Locked: " + newOrder[0].name + " in: " + newOrder[0].file + " at line: " + newOrder[0].line + "\n" +
-									"        " + newOrder[1].name + " in: " + newOrder[1].file + " at line: " + newOrder[1].line + "\n"))
-								
-						if newAlert not in alerts:
-							alerts.append(newAlert)
-				
-				if notPresent:
-					self.orders.append(newOrder)
+					Check.orders.append(newOrder)
 					
 	def __eq__(self, __o: object) -> bool:
 		if type(self) != type(__o):
@@ -111,17 +113,7 @@ class Check(FormalCheckInterface):
 			return False
 		
 		for i in range(0, len(self.locks)):
-			if not self.locks[i].equals(__o.locks[i]):
-				return False
-			
-		if len(self.orders) != len(__o.orders):
-			return False
-		
-		for i in range(0, len(self.orders)):
-			if not self.orders[i][0] == __o.orders[i][0]:
-				return False
-			
-			if not self.orders[i][1] == __o.orders[i][1]:
+			if self.locks[i] != __o.locks[i]:
 				return False
 			
 		return True
@@ -136,9 +128,6 @@ class Check(FormalCheckInterface):
 			copy.locks.append(lock.copy())
 
 		copy.scopeLevel = self.scopeLevel
-
-		for order in self.orders:
-			copy.orders.append(order)
 
 		return copy
 			

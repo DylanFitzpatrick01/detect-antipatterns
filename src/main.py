@@ -78,10 +78,16 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 				check.new_function(alerts)
 
 			#Only keep unique checks, ie one of each in list
-			for i in range(0, len(check_list) - 1):
-				for j in range(i + 1, len(check_list)):
+			checkLen = len(check_list)
+			for i in range(0, checkLen - 1):
+				j = i + 1
+				while j < checkLen:
+				# for j in range(i + 1, checkLen):
 					if check_list[i] == check_list[j]:
 						check_list.remove(check_list[j])
+						checkLen -= 1
+					
+					j += 1
 			
 			traverse(list(cursor.get_children())[0], check_list, alerts)
 

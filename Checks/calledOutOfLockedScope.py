@@ -23,9 +23,9 @@ class Check(FormalCheckInterface):
 				# If there is a call that is not a .lock(), .unlock() or lock_guard and
 				# there are still held mutexes (the lists not being empty) raise an
 				# error and inform of which call was made and which mutex/es are locked.
-				msg = "Called: " + str(cursor.referenced.spelling) + " out of locked scope"
+				msg = "Called: " + str(cursor.referenced.spelling) + " from a locked scope."
 				for lock in self.locks:
-					msg = msg + "\n  " + lock.mutexName + " is locked in: " + lock.file + " at: " + lock.line
+					msg = msg + "\n  " + lock.mutexName + " is locked in: " + lock.file + " at line: " + lock.line
 
 				for lock_guard in self.lock_guards:
 					msg = msg + "\n  " + lock_guard.mutexName + " is locked in: " + lock_guard.file + " at line: " + lock_guard.line
