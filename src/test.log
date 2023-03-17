@@ -2,15 +2,16 @@
 platform linux -- Python 3.10.6, pytest-7.2.2, pluggy-1.0.0 -- /usr/bin/python3
 cachedir: .pytest_cache
 rootdir: /home/leon/localProgramming/new-architecture/src
-collecting ... collected 7 items
+collecting ... collected 8 items
 
-test.py::test_already_locked PASSED                                      [ 14%]
-test.py::test_lock_order PASSED                                          [ 28%]
-test.py::test_locked_call PASSED                                         [ 42%]
-test.py::test_manual_lock_unlock PASSED                                  [ 57%]
-test.py::test_public_mutex_members PASSED                                [ 71%]
-test.py::test_observers FAILED                                           [ 85%]
-test.py::test_member_locked_in_some_methods PASSED                       [100%]
+test.py::test_already_locked PASSED                                      [ 12%]
+test.py::test_lock_order PASSED                                          [ 25%]
+test.py::test_locked_call PASSED                                         [ 37%]
+test.py::test_manual_lock_unlock PASSED                                  [ 50%]
+test.py::test_public_mutex_members PASSED                                [ 62%]
+test.py::test_observers FAILED                                           [ 75%]
+test.py::test_member_locked_in_some_methods PASSED                       [ 87%]
+test.py::test_immutable_object PASSED                                    [100%]
 
 =================================== FAILURES ===================================
 ________________________________ test_observers ________________________________
@@ -312,4 +313,4 @@ I've been called
 I've been called
 =========================== short test summary info ============================
 FAILED test.py::test_observers - assert "Detected a 'std::mutex', Name: 'mDat...
-========================= 1 failed, 6 passed in 18.66s =========================
+========================= 1 failed, 7 passed in 21.53s =========================

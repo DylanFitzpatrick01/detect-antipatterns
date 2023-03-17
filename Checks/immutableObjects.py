@@ -1,6 +1,7 @@
 import clang.cindex
 from typing import List
 from alerts import Alert
+from formalCheckInterface import FormalCheckInterface
 
 """
 TODO Write description of the check. This check also needs more comments!
@@ -9,10 +10,8 @@ TODO Write description of the check. This check also needs more comments!
 # We only want to run the check once!
 checked = False
 
-class Check():
-    def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
-        alert_list = list()
-
+class Check(FormalCheckInterface):
+    def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
         global checked
 
         # If we haven't run the check before...
@@ -44,13 +43,15 @@ class Check():
             if ( ratio) >= threshold:
                 ratio = ratio * 100
                 ratio = round(ratio,0)
-                alert_list.append(Alert(cursor.translation_unit, cursor.extent, (str(ratio) +
-                                        "% of Variables are constant. This may cause an immutable object error")))
+
+                newAlert = Alert(cursor.translation_unit, cursor.extent, (str(ratio) +
+                                        "% of Variables are constant. This may cause an immutable object error"))
+                if newAlert not in alerts:
+                    alerts.append(newAlert)
             
             # Set the 'checked' flag, so we don't run this check again.
             checked = True
-        
-        return alert_list
+
     
                                  
 
