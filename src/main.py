@@ -3,7 +3,7 @@ import sys, os, importlib.util
 from typing import List
 from formalCheckInterface import FormalCheckInterface
 from alerts import Alert
-#clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
+clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
 # Relative directory that contains our check files.
 checks_dir = '../checks'
