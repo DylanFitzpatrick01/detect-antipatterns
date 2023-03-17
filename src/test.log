@@ -312,4 +312,4 @@ I've been called
 I've been called
 =========================== short test summary info ============================
 FAILED test.py::test_observers - assert "Detected a 'std::mutex', Name: 'mDat...
-========================= 1 failed, 6 passed in 18.10s =========================
+========================= 1 failed, 6 passed in 18.66s =========================
