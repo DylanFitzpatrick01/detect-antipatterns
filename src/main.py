@@ -3,7 +3,7 @@ import sys, os, importlib.util
 from typing import List
 from formalCheckInterface import FormalCheckInterface
 from alerts import Alert
-clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
+#clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
 # Relative directory that contains our check files.
 checks_dir = '../checks'
@@ -28,13 +28,13 @@ def main():
     # Gets clang to start parsing the file, and generate
     # a translation unit with an Abstract Syntax Tree.
     idx = clang.cindex.Index.create()
-    tu = idx.parse(s, args=['-std=c++11'])
+    tu = idx.parse(s)
 
     # Import all of our checks!
     try:
         check_list = list()
         for file in os.listdir(os.path.abspath(os.path.join(os.path.dirname( __file__ ), checks_dir))):
-            if (file.endswith(".py") and file != "alerts.py"):
+            if (file.endswith(".py") and file != "alerts.py" and file != "observer.py"):
                 spec = importlib.util.spec_from_file_location(file.removesuffix(".py"), os.path.abspath(os.path.join(os.path.dirname( __file__ ), checks_dir, file)))
                 check_module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(check_module)
