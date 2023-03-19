@@ -141,6 +141,7 @@ class Check(FormalCheckInterface):
 			if lockGuard.scopeLevel >= self.scopeLevel:
 				self.lock_guards.remove(lockGuard)
 
-	def new_function(self, alerts):
+	def new_function(self, cursor, alerts):
 		self.locks = list()
 		self.lock_guards = list()  
+		self.scopeLevel = 0

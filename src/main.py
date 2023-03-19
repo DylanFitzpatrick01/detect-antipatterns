@@ -26,10 +26,10 @@ def main():
 		exit()
 		
 
-	# Gets clang to start parsing the file, and generate
-	# a translation unit with an Abstract Syntax Tree.
-	idx = clang.cindex.Index.create()
-	tu = idx.parse(s)
+		# Gets clang to start parsing the file, and generate
+		# a translation unit with an Abstract Syntax Tree.
+		idx = clang.cindex.Index.create()
+		tu = idx.parse(s)
 
 	# Import all of our checks!
 	try:
@@ -77,7 +77,7 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 		# affect other checks. Eg IF_STMT
 		if cursor.kind == clang.cindex.CursorKind.FUNCTION_DECL or cursor.kind == clang.cindex.CursorKind.CXX_METHOD:
 			for check in check_list:
-				check.new_function(alerts)
+				check.new_function(cursor, alerts)
 
 			#Only keep unique checks, ie one of each in list
 			checkLen = len(check_list)
@@ -91,7 +91,8 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 					
 					j += 1
 			
-			traverse(list(cursor.get_children())[0], check_list, alerts)
+			for child in cursor.get_children():
+				traverse(child, check_list, alerts)
 
 		elif cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT:
 			for check in check_list:
@@ -107,6 +108,10 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			#We can just traverse all the children of the call
 			for child in cursor.get_children():
 				traverse(child, check_list, alerts)
+
+			if cursor.spelling != "lock" and cursor.spelling != "lock_guard":
+				for check in check_list:
+					check.analyse_cursor(cursor, alerts)
 
 			#This will skip the FUNCTION_DECL node
 			if cursor.referenced is not None:
