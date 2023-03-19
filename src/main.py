@@ -66,7 +66,9 @@ def main():
 # All of those alerts, and returns them.
 #
 def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface], alerts):
-	# TODO handle switch-cases, loops and recursion
+	# TODO handle switch-case branching
+	# TODO handle loops
+	# TODO prevent recursion from breaking program
 	#      Should be easy, done before -Leon Byrne
 
 	if str(cursor.translation_unit.spelling) == str(cursor.location.file):				
