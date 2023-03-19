@@ -11,6 +11,7 @@ class Check():
         alert_list: List[Alert] = list()
 
         #code
+        
         return alert_list
         
     
