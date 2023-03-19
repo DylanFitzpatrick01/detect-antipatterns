@@ -26,6 +26,7 @@ public:
         mState = input;
     }
 
+    
     std::string mState;                                         // Notice that these members are public!
     std::mutex mDataAccess;
 };
@@ -33,7 +34,7 @@ public:
 
 int main()
 {
-    auto instance = MyClass("test123");
+    MyClass instance("test123");
 
     std::cout << instance.getState() << "\n";                  // Good! 
 

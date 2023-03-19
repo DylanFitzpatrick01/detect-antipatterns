@@ -3,7 +3,7 @@ from typing import List
 from alerts import Alert
 
 """
-TODO Write Description
+TODO Detect issues with data member that is accessed under a lock, but is also public so can be read/written directly. 
 """
 
 class Check():
