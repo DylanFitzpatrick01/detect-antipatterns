@@ -39,8 +39,6 @@ class Check(FormalCheckInterface):
 
 
     def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts: List[Alert]):
-        if cursor.spelling == "logState":
-            print("hello")
         """Updates the lockedInSomeObserver with the current Node in the AST
 
         Args:
@@ -91,7 +89,9 @@ class Check(FormalCheckInterface):
                     # Else, if this node is the not in the method (but the previous nodes were)
                     else:
                         # Check for the antipattern and then clear the method information from the observer
+                        print("checking")
                         self.checkForAntipattern(alerts)
+                        self.clearObserverAfterMethod()
                         # Check if the cursor is a different method
                         if cursor.kind == clang.cindex.CursorKind.CXX_METHOD:
                             self.cursor_is_in_method = True
@@ -180,13 +180,11 @@ class Check(FormalCheckInterface):
         return False
 
 
-    #Now uses method call from main
-    def new_function(self, alerts):
+    def clearObserverAfterMethod(self):
         """Clears all the information about a method from the observer
         To be used once all the cursors in a method were ran through, and the current cursor (if there still is one) is the first cursor outside of the method
         """
         self.currentMethod = None
-        self.cursor_is_in_method = False
         self.method_data_members = []
         self.lockguard_scope_pairs = []
         self.lock_unlock_pairs = []
@@ -255,6 +253,7 @@ class Check(FormalCheckInterface):
         Returns:
             None
         """
+        print("tried")
         if (isLockedInMethod):
             alerts.append(Alert(memberNode.translation_unit, methodNode.extent, 
                 f"Data member '{memberNode.displayname}' at (line: {memberNode.extent.start.line}, column: {memberNode.extent.start.column}) is accessed with a lock_guard or lock/unlock combination in this method, "+
