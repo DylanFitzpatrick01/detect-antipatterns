@@ -51,6 +51,7 @@ def main():
     for alert in alerts:
         alert.display()
         print()
+    print("Output printed to '~/output.txt'")
     
     # print to output.txt
     with open('output.txt', 'w') as f:
