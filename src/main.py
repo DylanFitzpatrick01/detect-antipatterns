@@ -144,16 +144,11 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			for i in range(checkLen, len(copies)):
 				check_list.append(copies[i])
 		elif cursor.kind == clang.cindex.CursorKind.SWITCH_STMT:
-			print("switch")
 			children = list(list(cursor.get_children())[1].get_children())
-
-			copyLists = list()			
-			#needs to be evaluated before running checks in case of default
-			checkLen = len(check_list)
+			copyLists = list()
 
 			for i in range(0, len(children)):
 				if children[i].kind == clang.cindex.CursorKind.CASE_STMT:
-					print("case")
 					#duplicate checks
 					copies = list()
 					for check in check_list:
@@ -165,7 +160,6 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 						traverse(children[j], copies, alerts)
 
 						if children[j].kind == clang.cindex.CursorKind.BREAK_STMT:
-							print("Break")
 							break
 
 				elif children[i].kind == clang.cindex.CursorKind.DEFAULT_STMT:
@@ -173,7 +167,6 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 						traverse(children[j], check_list, alerts)
 
 						if cursor.kind == clang.cindex.CursorKind.BREAK_STMT:
-							print("break")
 							break
 
 			#TODO Replace indexing used earlier with this
@@ -181,7 +174,91 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 				for check in copies:
 					if check not in check_list:
 						check_list.append(check)
-		
+
+		elif cursor.kind == clang.cindex.CursorKind.WHILE_STMT:
+			condition = list(cursor.get_children())[0]
+			body = list(cursor.get_children())[1]
+
+			traverse(condition, check_list, alerts)
+					
+			#duplicate checks
+			copies = list()
+			for check in check_list:
+				copies.append(check.copy())
+
+			traverse(body, copies, alerts)
+			traverse(condition, copies, alerts)
+
+			for check in copies:
+				if check not in check_list:
+					check_list.append(check)
+
+			#duplicate checks
+			secondPass = list()
+			for check in copies:
+				secondPass.append(check.copy())
+
+			traverse(body, secondPass, alerts)
+			traverse(condition, secondPass, alerts)
+
+			for check in secondPass:
+				if check not in check_list:
+					check_list.append(check)
+
+		elif cursor.kind == clang.cindex.CursorKind.DO_STMT:
+			body = list(cursor.get_children())[0]
+			condition = list(cursor.get_children())[1]
+
+			traverse(body, check_list, alerts)
+			traverse(condition, check_list, alerts)
+
+			#duplicate checks
+			copies = list()
+			for check in check_list:
+				copies.append(check.copy())
+
+			traverse(body, copies, alerts)
+			traverse(condition, copies, alerts)
+
+			for check in copies:
+				if check not in check_list:
+					check_list.append(check)
+
+		elif cursor.kind == clang.cindex.CursorKind.FOR_STMT:
+			decl = list(cursor.get_children())[0]
+			condition = list(cursor.get_children())[1]
+			operator = list(cursor.get_children())[2]
+			body = list(cursor.get_children())[3]
+
+			traverse(decl, check_list, alerts)
+			traverse(condition, check_list, alerts)
+
+			#duplicate checks
+			copies = list()
+			for check in check_list:
+				copies.append(check.copy())
+
+			traverse(body, copies, alerts)
+			traverse(operator, copies, alerts)
+			traverse(condition, copies, alerts)
+
+			for check in copies:
+				if check not in check_list:
+					check_list.append(check)		
+
+			#duplicate checks
+			secondPass = list()
+			for check in copies:
+				secondPass.append(check.copy())
+
+			traverse(body, secondPass, alerts)
+			traverse(operator, secondPass, alerts)
+			traverse(condition, secondPass, alerts)
+
+			for check in secondPass:
+				if check not in check_list:
+					check_list.append(check)	
+
 		else:
 			for child in cursor.get_children():
 				traverse(child, check_list, alerts)
