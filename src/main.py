@@ -28,8 +28,8 @@ def main():
 
 		# Gets clang to start parsing the file, and generate
 		# a translation unit with an Abstract Syntax Tree.
-		idx = clang.cindex.Index.create()
-		tu = idx.parse(s)
+	idx = clang.cindex.Index.create()
+	tu = idx.parse(s)
 
 	# Import all of our checks!
 	try:
@@ -130,12 +130,12 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			#traverse if-true body
 			traverse(list(cursor.get_children())[1], copies, alerts)
 
+			#needs to be evaluated before for loops and before possible else if tree
+			checkLen = len(check_list)
+
 			#traverse if-false body (if present)
 			if len(list(cursor.get_children())) > 2:
 				traverse(list(cursor.get_children())[2], check_list, alerts)
-
-			#needs to be evaluated before for loops
-			checkLen = len(check_list)
 
 			for i in range(0, checkLen):
 				if copies[i] != check_list[i]:
@@ -143,6 +143,45 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 
 			for i in range(checkLen, len(copies)):
 				check_list.append(copies[i])
+		elif cursor.kind == clang.cindex.CursorKind.SWITCH_STMT:
+			print("switch")
+			children = list(list(cursor.get_children())[1].get_children())
+
+			copyLists = list()			
+			#needs to be evaluated before running checks in case of default
+			checkLen = len(check_list)
+
+			for i in range(0, len(children)):
+				if children[i].kind == clang.cindex.CursorKind.CASE_STMT:
+					print("case")
+					#duplicate checks
+					copies = list()
+					for check in check_list:
+						copies.append(check.copy())
+
+					copyLists.append(copies)
+
+					for j in range(i, len(children)):
+						traverse(children[j], copies, alerts)
+
+						if children[j].kind == clang.cindex.CursorKind.BREAK_STMT:
+							print("Break")
+							break
+
+				elif children[i].kind == clang.cindex.CursorKind.DEFAULT_STMT:
+					for j in range(i, len(children)):
+						traverse(children[j], check_list, alerts)
+
+						if cursor.kind == clang.cindex.CursorKind.BREAK_STMT:
+							print("break")
+							break
+
+			#TODO Replace indexing used earlier with this
+			for copies in copyLists:
+				for check in copies:
+					if check not in check_list:
+						check_list.append(check)
+		
 		else:
 			for child in cursor.get_children():
 				traverse(child, check_list, alerts)
