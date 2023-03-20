@@ -73,18 +73,25 @@ def test_lock_order():
 	expected = list()
 	expected.append(
 		"Locking order may cause deadlock.\n" + 
-		"Locked: b in: " + abs_file_path + " at line: 10\n" +
-		"Locked: a in: " + abs_file_path + " at line: 11\n" +
+		"Locked: b in: " + abs_file_path + " at line: 12\n" +
+		"Locked: a in: " + abs_file_path + " at line: 13\n" +
 		"\n" + 
-		"Locked: a in: " + abs_file_path + " at line: 29\n" + 
-		"Locked: b in: " + abs_file_path + " at line: 30\n")
+		"Locked: a in: " + abs_file_path + " at line: 49\n" + 
+		"Locked: b in: " + abs_file_path + " at line: 50\n")
 	expected.append(
 		"Locking order may cause deadlock.\n" + 
-		"Locked: c in: " + abs_file_path + " at line: 18\n" +
-		"Locked: d in: " + abs_file_path + " at line: 19\n" +
+		"Locked: c in: " + abs_file_path + " at line: 20\n" +
+		"Locked: d in: " + abs_file_path + " at line: 21\n" +
 		"\n" + 
-		"Locked: d in: " + abs_file_path + " at line: 22\n" + 
-		"Locked: c in: " + abs_file_path + " at line: 23\n")
+		"Locked: d in: " + abs_file_path + " at line: 24\n" + 
+		"Locked: c in: " + abs_file_path + " at line: 25\n")
+	expected.append(
+		"Locking order may cause deadlock.\n" + 
+		"Locked: e in: " + abs_file_path + " at line: 35\n" +
+		"Locked: f in: " + abs_file_path + " at line: 36\n" +
+		"\n" + 
+		"Locked: f in: " + abs_file_path + " at line: 40\n" + 
+		"Locked: e in: " + abs_file_path + " at line: 42\n")
 	
 	for message in messages:
 		assert message in expected

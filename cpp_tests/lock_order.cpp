@@ -4,6 +4,8 @@ std::mutex a;
 std::mutex b;
 std::mutex c;
 std::mutex d;
+std::mutex e;
+std::mutex f;
 
 void test()
 {
@@ -21,6 +23,24 @@ void test2()
   {
     d.lock();
     c.lock(); //wrong order
+  }
+}
+
+void test3()
+{
+  switch(9)
+  {
+    case 0:
+    case 1:
+      e.lock();
+      f.lock();
+    break;
+    case 2:
+    case 3:
+      f.lock();
+    default:
+      e.lock();
+    break;
   }
 }
 
