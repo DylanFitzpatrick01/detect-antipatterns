@@ -52,7 +52,11 @@ def test_already_locked():
 		messages.append(alert.message)
 
 	expected = list()
-	expected.append("a might already be locked\n" + "  a is locked in: " + abs_file_path + " at line: 24")
+	expected.append("a might already be locked\n" + "  a is locked in: " + abs_file_path + " at line: 27")
+	expected.append("b might already be locked\n" + "  b is locked in: " + abs_file_path + " at line: 38")
+	expected.append("c might already be locked\n" + "  c is locked in: " + abs_file_path + " at line: 43")
+	expected.append("d might already be locked\n" + "  d is locked in: " + abs_file_path + " at line: 48")
+
 
 	for message in messages:
 		assert message in expected
