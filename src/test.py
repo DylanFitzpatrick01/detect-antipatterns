@@ -244,6 +244,6 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
 	# Traverse the AST of the TU, run the check on all cursors,
 	# and return all alerts.
 	alerts = list()
-	main.traverse(tu.cursor, check_list, alerts)
+	main.traverse(tu.cursor, check_list, alerts, list())
 
 	return alerts

@@ -4,6 +4,7 @@ from typing import List
 from formalCheckInterface import FormalCheckInterface
 from alerts import *
 from Util import Function
+from math import floor
 # clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
 # Relative directory that contains our check files.
@@ -46,7 +47,7 @@ def main():
 
 	# Traverse the AST
 	alerts = list()
-	traverse(tu.cursor, check_list, alerts)
+	traverse(tu.cursor, check_list, alerts, list())
 
 	for alert in alerts:
 		alert.display()
@@ -65,9 +66,7 @@ def main():
 # contains everything the check thinks is wrong. This function gathers
 # All of those alerts, and returns them.
 #
-def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface], alerts):
-	# TODO handle switch-case branching
-	# TODO handle loops
+def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface], alerts: List[Alert], calls):
 	# TODO prevent recursion from breaking program
 	#      Should be easy, done before -Leon Byrne
 
@@ -94,14 +93,14 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 					j += 1
 			
 			for child in cursor.get_children():
-				traverse(child, check_list, alerts)
+				traverse(child, check_list, alerts, list())
 
 		elif cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT:
 			for check in check_list:
 				check.scope_increased(alerts)
 
 			for child in cursor.get_children():
-				traverse(child, check_list, alerts)
+				traverse(child, check_list, alerts, calls)
 		
 			for check in check_list:
 				check.scope_decreased(alerts)
@@ -109,18 +108,18 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			#First we evaluate the arguements, they may be function calls
 			#We can just traverse all the children of the call
 			for child in cursor.get_children():
-				traverse(child, check_list, alerts)
+				traverse(child, check_list, alerts, calls)
 
-			if cursor.spelling != "lock" and cursor.spelling != "lock_guard":
-				for check in check_list:
-					check.analyse_cursor(cursor, alerts)
+			# Check that it's not in a recursive loop
+			# Add next call to list copy
+			# Call
 
-			#This will skip the FUNCTION_DECL node
-			if cursor.referenced is not None:
-				traverse(list(cursor.referenced.get_children())[0], check_list, alerts)
+			# Don't traverse the FUNCTION_DECL node, just the compound statement after
+			if check_for_recursion(calls) and cursor.referenced is not None:
+				traverse(list(cursor.referenced.get_children())[0], check_list, alerts, calls.copy.append(cursor.referenced.get_usr()))
 		elif cursor.kind == clang.cindex.CursorKind.IF_STMT:
 			#traverse condition
-			traverse(list(cursor.get_children())[0], check_list, alerts)
+			traverse(list(cursor.get_children())[0], check_list, alerts, calls)
 
 			#duplicate checks
 			copies = list()
@@ -128,14 +127,14 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 				copies.append(check.copy())
 
 			#traverse if-true body
-			traverse(list(cursor.get_children())[1], copies, alerts)
+			traverse(list(cursor.get_children())[1], copies, alerts, calls)
 
 			#needs to be evaluated before for loops and before possible else if tree
 			checkLen = len(check_list)
 
 			#traverse if-false body (if present)
 			if len(list(cursor.get_children())) > 2:
-				traverse(list(cursor.get_children())[2], check_list, alerts)
+				traverse(list(cursor.get_children())[2], check_list, alerts, calls)
 
 			for i in range(0, checkLen):
 				if copies[i] != check_list[i]:
@@ -157,14 +156,14 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 					copyLists.append(copies)
 
 					for j in range(i, len(children)):
-						traverse(children[j], copies, alerts)
+						traverse(children[j], copies, alerts, calls)
 
 						if children[j].kind == clang.cindex.CursorKind.BREAK_STMT:
 							break
 
 				elif children[i].kind == clang.cindex.CursorKind.DEFAULT_STMT:
 					for j in range(i, len(children)):
-						traverse(children[j], check_list, alerts)
+						traverse(children[j], check_list, alerts, calls)
 
 						if cursor.kind == clang.cindex.CursorKind.BREAK_STMT:
 							break
@@ -179,15 +178,15 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			condition = list(cursor.get_children())[0]
 			body = list(cursor.get_children())[1]
 
-			traverse(condition, check_list, alerts)
+			traverse(condition, check_list, alerts, calls)
 					
 			#duplicate checks
 			copies = list()
 			for check in check_list:
 				copies.append(check.copy())
 
-			traverse(body, copies, alerts)
-			traverse(condition, copies, alerts)
+			traverse(body, copies, alerts, calls)
+			traverse(condition, copies, alerts, calls)
 
 			for check in copies:
 				if check not in check_list:
@@ -198,8 +197,8 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			for check in copies:
 				secondPass.append(check.copy())
 
-			traverse(body, secondPass, alerts)
-			traverse(condition, secondPass, alerts)
+			traverse(body, secondPass, alerts, calls)
+			traverse(condition, secondPass, alerts, calls)
 
 			for check in secondPass:
 				if check not in check_list:
@@ -209,16 +208,16 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			body = list(cursor.get_children())[0]
 			condition = list(cursor.get_children())[1]
 
-			traverse(body, check_list, alerts)
-			traverse(condition, check_list, alerts)
+			traverse(body, check_list, alerts, calls)
+			traverse(condition, check_list, alerts, calls)
 
 			#duplicate checks
 			copies = list()
 			for check in check_list:
 				copies.append(check.copy())
 
-			traverse(body, copies, alerts)
-			traverse(condition, copies, alerts)
+			traverse(body, copies, alerts, calls)
+			traverse(condition, copies, alerts, calls)
 
 			for check in copies:
 				if check not in check_list:
@@ -230,17 +229,17 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			operator = list(cursor.get_children())[2]
 			body = list(cursor.get_children())[3]
 
-			traverse(decl, check_list, alerts)
-			traverse(condition, check_list, alerts)
+			traverse(decl, check_list, alerts, calls)
+			traverse(condition, check_list, alerts, calls)
 
 			#duplicate checks
 			copies = list()
 			for check in check_list:
 				copies.append(check.copy())
 
-			traverse(body, copies, alerts)
-			traverse(operator, copies, alerts)
-			traverse(condition, copies, alerts)
+			traverse(body, copies, alerts, calls)
+			traverse(operator, copies, alerts, calls)
+			traverse(condition, copies, alerts, calls)
 
 			for check in copies:
 				if check not in check_list:
@@ -251,9 +250,9 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			for check in copies:
 				secondPass.append(check.copy())
 
-			traverse(body, secondPass, alerts)
-			traverse(operator, secondPass, alerts)
-			traverse(condition, secondPass, alerts)
+			traverse(body, secondPass, alerts, calls)
+			traverse(operator, secondPass, alerts, calls)
+			traverse(condition, secondPass, alerts, calls)
 
 			for check in secondPass:
 				if check not in check_list:
@@ -261,10 +260,24 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 
 		else:
 			for child in cursor.get_children():
-				traverse(child, check_list, alerts)
+				traverse(child, check_list, alerts, calls)
 	else:
 		for child in cursor.get_children():		
-			traverse(child, check_list, alerts)			
+			traverse(child, check_list, alerts, calls)			
+
+def check_for_recursion(calls) -> bool:
+	for i in range(1, floor(len(calls)) + 1):
+		# i is the number of calls we're checking at once
+
+		recursive = True
+
+		for j in range(0, i):
+			if calls[-1 + j] != calls[-1 + j + i]:
+				recursive = False
+
+		if recursive:
+			return True
+	return False
 
 if __name__ == "__main__":
 	main()
