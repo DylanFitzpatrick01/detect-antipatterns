@@ -51,7 +51,7 @@ def main():
     for alert in alerts:
         alert.display()
         print()
-    print("Output printed to '~/output.txt'")
+    print("Output printed to output.txt. Found here:", os.path.realpath(__file__).replace("\src", "").replace("\main.py", ""))
     
     # print to output.txt
     with open('output.txt', 'w') as f:
