@@ -65,7 +65,7 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
 
     # Make a Translation Unit
     idx = clang.cindex.Index.create()
-    tu = idx.parse(abs_file_path, args=['-std=c++11'])
+    tu = idx.parse(abs_file_path)
 
     # Traverse the AST of the TU, run the check on all cursors,
     # and return all alerts.
