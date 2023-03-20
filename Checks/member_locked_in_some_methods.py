@@ -22,8 +22,13 @@ class Check(FormalCheckInterface):
 		if self.inside != clang.cindex.CursorKind.CXX_METHOD:
 			return
 		
+		# The new_function is called after to set inside correctly.
+		# If it doesn't that means that the function was a call and we don't need
+		# to check it again
+		if cursor.kind == clang.cindex.CursorKind.CXX_METHOD or cursor.kind == clang.cindex.CursorKind.FUNCTION_DECL:
+			self.inside == None
 		#Checking for locks/unlock
-		if cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
+		elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
 			if cursor.spelling == "lock":
 				self.locks.append(Lock(cursor))
 			elif cursor.spelling == "unlock":
