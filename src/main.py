@@ -1,5 +1,6 @@
 import clang.cindex
-import sys, os, importlib.util
+import sys, os, importlib.util, re
+from contextlib import redirect_stdout
 from typing import List
 from formalCheckInterface import FormalCheckInterface
 from alerts import Alert
@@ -46,10 +47,19 @@ def main():
     # Traverse the AST
     alerts = traverse(tu.cursor, check_list)
 
+    # print to console
     for alert in alerts:
         alert.display()
         print()
-
+    
+    # print to output.txt
+    with open('output.txt', 'w') as f:
+        with redirect_stdout(f):
+            for alert in alerts:
+                alert.display_unfancy()
+                print()
+                
+                
 # --------FUNCTIONS-------- #
 
 # Traverses Clangs cursor tree. A cursor points to a piece of code,
@@ -87,6 +97,11 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
                 alerts.extend(check.analyse_cursor(child_cursor))
     
     # Complain!
+    with open('output.txt', 'w') as f:
+        with redirect_stdout(f):
+            for alert in alerts:
+                print()
+
     return alerts
             
 

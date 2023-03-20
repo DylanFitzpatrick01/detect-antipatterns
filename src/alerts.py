@@ -69,6 +69,32 @@ class Alert:
                 print(f"{' '*(len(str(index))+4)}" + self.message.replace("\n", "\n"+" "*(len(str(index))+4)), end='')
                 print('\033[m', end='\n')
 
+ # Displays our Alert (Unfancily)
+    def display_unfancy(self):
+
+        # Gets the C++ file, removes comments, then saves it  as an array, with one entry per line.
+        lines = remove_comments("".join(open(self.tu.spelling).readlines()[0:])).splitlines()
+
+        # for: the line before the error line (if it exists), the error line,
+        # and the line after the error line (if it exists).
+        for index in range(max(self.location.start.line-1,1),min(self.location.end.line+2,len(lines)+1)):
+
+            # If the line isn't in our location, grey it out!
+            if (index < self.location.start.line or index > self.location.end.line):
+                print(f"{index}: {lines[index-1]}")
+
+            # Otherwise, print the line number in our native colour, and the line in our severity colour.
+            else:
+                print(f"{index}: ", end='')
+                print(lines[index-1], end= '' if index == self.location.end.line else '\n')
+
+            # If it's the last line in our location, display the error message.
+            if index == self.location.end.line:
+                
+                print(f"\n{' '*(len(str(index))+2)}^ ", end='')
+                print(f"{'-'*8}In '{self.tu.spelling}', starting at ({self.location.start.line}, {self.location.start.column}){'-'*8}")
+                print(f"{' '*(len(str(index))+4)}" + self.message.replace("\n", "\n"+" "*(len(str(index))+4)), end='')
+
 
 # Inspired by https://stackoverflow.com/questions/241327/remove-c-and-c-comments-using-python
 # Removes C-Style comments in a multi-line string.
