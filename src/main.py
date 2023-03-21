@@ -110,6 +110,10 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			for child in cursor.get_children():
 				traverse(child, check_list, alerts, calls)
 
+			#Should analyze function/method decl
+			for check in check_list:
+				check.analyse_cursor(cursor.referenced, alerts)
+
 			# Check that it's not in a recursive loop
 			# Add next call to list copy
 			# Call
