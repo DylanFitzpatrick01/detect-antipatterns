@@ -118,16 +118,16 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			for child in cursor.get_children():
 				traverse(child, check_list, alerts, calls)
 
-			#Should analyze function/method decl
-			for check in check_list:
-				check.analyse_cursor(cursor.referenced, alerts)
-
 			# Check that it's not in a recursive loop
 			# Add next call to list copy
 			# Call
 
 			# Don't traverse the FUNCTION_DECL node, just the compound statement after
 			if check_for_recursion(calls) and cursor.referenced is not None:
+				# Still want to analyze the funtion/method decl even if we don't want to
+				# traverse it
+				for check in check_list:
+					check.analyse_cursor(cursor.referenced, alerts)
 				traverse(list(cursor.referenced.get_children())[0], check_list, alerts, calls.copy.append(cursor.referenced.get_usr()))
 		elif cursor.kind == clang.cindex.CursorKind.IF_STMT:
 			#traverse condition
