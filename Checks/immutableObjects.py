@@ -25,18 +25,11 @@ class Check():
             constant_variable_count = 0
             variable_count = 0
 
-            constant_variable_count +=count_const_string_var_decls(node)
-            constant_variable_count += count_const_bool_var_decls(node)
-            constant_variable_count += count_const_int_var_decls(node)
-            constant_variable_count += count_const_double_var_decls(node)
-            constant_variable_count += count_const_char_var_decls(node)
+            constant_variable_count +=effceient_const_count(node)
 
-            variable_count += count_string_var_decls(node)
-            variable_count += count_bool_total_var_decls(node)
-            variable_count += count_int_total_var_decls(node)
-            variable_count += count_double_total_var_decls(node)
-            variable_count += count_char_total_var_decls(node)
 
+            variable_count += effceient_variable_count(node)
+    
             threshold = 0.70
             
             ratio = constant_variable_count / variable_count
@@ -52,8 +45,43 @@ class Check():
         
         return alert_list
     
-                                 
 
+
+#effceint test                                  
+def effceient_const_count(node: clang.cindex.Cursor) -> int:
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if node.type.spelling == "const std::string" or node.type.spelling == "const bool" or node.type.spelling == "const int" or node.type.spelling == "const double" or node.type.spelling == "const char"  :
+            count += 1
+            #print("std::string variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
+
+            count += effceient_const_count(child)
+    return count
+
+def effceient_variable_count(node: clang.cindex.Cursor) -> int
+    count = 0
+    if node.kind in [clang.cindex.CursorKind.VAR_DECL,
+                     clang.cindex.CursorKind.FIELD_DECL,
+                     clang.cindex.CursorKind.PARM_DECL]:
+        if  node.type.spelling == "const std::string" or  node.type.spelling == "std::string" or node.type.spelling == "const bool" or  node.type.spelling == "bool" or node.type.spelling == "const int" or  node.type.spelling == "int" or node.type.spelling == "const double" or  node.type.spelling == "double" or node.type.spelling == "const char" or node.type.spelling == "char" :
+            count += 1
+            #print(" std::string variable declaration: " + node.displayname)
+    for child in node.get_children():
+        if(str(child.translation_unit.spelling) == str(child.location.file)):
+            count += count_string_var_decls(child)
+    return count
+
+
+
+
+
+
+
+#ineffceient tesr but good for debugging 
 def count_const_string_var_decls(node: clang.cindex.Cursor) -> int:
     count = 0
     if node.kind in [clang.cindex.CursorKind.VAR_DECL,
