@@ -62,7 +62,7 @@ def effceient_const_count(node: clang.cindex.Cursor) -> int:
             count += effceient_const_count(child)
     return count
 
-def effceient_variable_count(node: clang.cindex.Cursor) -> int
+def effceient_variable_count(node: clang.cindex.Cursor) -> int:
     count = 0
     if node.kind in [clang.cindex.CursorKind.VAR_DECL,
                      clang.cindex.CursorKind.FIELD_DECL,
