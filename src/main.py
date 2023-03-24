@@ -139,14 +139,22 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 				copies.append(check.copy())
 
 			#traverse if-true body
+			for check in copies:
+				check.enter_branch(alerts)
 			traverse(list(cursor.get_children())[1], copies, alerts, calls)
+			for check in copies:
+				check.exit_branch(alerts)
 
 			#needs to be evaluated before for loops and before possible else if tree
 			checkLen = len(check_list)
 
 			#traverse if-false body (if present)
 			if len(list(cursor.get_children())) > 2:
+				for check in check_list:
+					check.enter_branch(alerts)
 				traverse(list(cursor.get_children())[2], check_list, alerts, calls)
+				for check in check_list:
+					check.exit_branch()
 
 			for i in range(0, checkLen):
 				if copies[i] != check_list[i]:
