@@ -11,8 +11,9 @@ def test_manual_lock_unlock():
 
     # Check a file with manual locks.
     alerts: List[Alert] = run_check_on_file("../Checks/manualLockUnlock.py", "../cpp_tests/public.cpp")
-    assert alerts[0].message == ("A manual lock is used in this scope without an unlock!.\n" +
-                                 "Please either replace 'mDataAccess1.lock();' with 'std::lock_guard<std::mutex> lock(mDataAccess1);' (RECCOMMENDED),\n" +
+    assert alerts[0].message == ("A manual lock is used in this scope without an unlock!.\n"
+                                 "Please either replace 'mDataAccess1.lock();' with\n"
+                                 "'std::lock_guard<std::mutex> lock(mDataAccess1);' (RECCOMMENDED),\n"
                                  "or add 'mDataAccess1.unlock();' at the end of this critical section.")
     
     # Check a file without them.
@@ -132,13 +133,9 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
     check_filename = os.path.basename(check_path)
 
     # Make sure all of our files exist!
-    try:
-        open(abs_file_path)
-    except FileNotFoundError:
+    if not os.path.isfile(abs_file_path):
         raise FileNotFoundError(f"\nFILE PATH '{file_path}' DOES NOT EXIST")
-    try:
-        open(abs_check_path)
-    except FileNotFoundError:
+    if not os.path.isfile(abs_check_path):
         raise FileNotFoundError(f"\nCHECK PATH '{check_path}' DOES NOT EXIST")
 
     # Import the check.
