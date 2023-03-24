@@ -64,10 +64,3 @@ class Check(FormalCheckInterface):
     #   print(key)
     #   for var in self.affected[key]:
     #     print("  ", var.get_usr())
-
-  def enter_branch(self, alerts):
-    self.branchLevel += 1
-    # Might be useful for you to use 
-
-  def exit_branch(self, alerts):
-    self.branchLevel -= 1

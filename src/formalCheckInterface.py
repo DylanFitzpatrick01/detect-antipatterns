@@ -60,12 +60,3 @@ class FormalCheckInterface(metaclass=abc.ABCMeta):
 
 	def new_function(self, cursor, alerts):
 		pass
-
-	# Informs check that we're entering a section of code that involves branching
-	# Eg: if-else, while loops
-	def enter_branch(self, alerts):
-		pass
-
-	# Informs check that we're exiting a section of code that involves branching
-	def exit_branch(self, alerts):
-		pass
