@@ -17,10 +17,6 @@ class Check(FormalCheckInterface):
   # If entered method tell it next return
 
   def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
-    if cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT:
-      print(cursor.location.line)
-      print(cursor.semantic_parent.kind)
-
     if cursor.kind == clang.cindex.CursorKind.VAR_DECL or cursor.kind == clang.cindex.CursorKind.FIELD_DECL:
       if "std::atomic" in cursor.type.spelling:
         self.affected[cursor.referenced.get_usr()] = list()

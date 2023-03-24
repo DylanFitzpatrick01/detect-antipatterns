@@ -11,7 +11,7 @@ int main()
 
   bool d = false;
 
-  b = d;
+  b = c;
 
   return 0;
 }
