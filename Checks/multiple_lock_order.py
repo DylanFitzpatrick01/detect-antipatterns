@@ -32,11 +32,9 @@ class Check():
                     highestIndex = heldLocks.index(mutex)
                 else:
                     order_flag = 1
-                    alert_list.append(Alert(cursor.translation_unit, cursor.extent,
-                                        "Error!: mutex " + str(mutex) + " is in the incorrect order!\n"))
+                    alert_list.append(Alert(cursor.translation_unit, cursor.extent, "Error!: mutex " + str(mutex) + " is in the incorrect order!\n"))
             else:
                 heldLocks.append(mutex)
         if order_flag == 0:
-            alert_list.append(Alert(cursor.translation_unit, cursor.extent,
-                                        "No lock order errors detected!\n"))
+            alert_list.append(Alert(cursor.translation_unit, cursor.extent, "No lock order errors detected!\n"))
         return alert_list
