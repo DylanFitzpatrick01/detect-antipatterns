@@ -140,15 +140,8 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 				for check in check_list:
 					check.analyse_cursor(cursor.get_definition(), alerts)
 
-				#print(cursor.referenced.get_usr())
-
 				callCopy = calls.copy()
 				callCopy.append(cursor.get_definition().get_usr())
-
-				for call in callCopy:
-					print(call)
-
-				print()
 
 				for child in cursor.get_definition().get_children():
 					traverse(child, check_list, alerts, callCopy)
@@ -177,6 +170,7 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 				if check not in check_list:
 					check_list.append(check)
 		elif cursor.kind == clang.cindex.CursorKind.SWITCH_STMT:
+			#	Getting a list of all the cases, case bodies, breaks, etc
 			children = list(list(cursor.get_children())[1].get_children())
 			copyLists = list()
 
@@ -189,12 +183,16 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 
 					copyLists.append(copies)
 
+					#	Due to fall-through we will traverse all cases after until break is
+					#	reached.
 					for j in range(i, len(children)):
 						traverse(children[j], copies, alerts, calls)
 
 						if children[j].kind == clang.cindex.CursorKind.BREAK_STMT:
 							break
 
+				#	We pass the regular check_list in default same way as we due for else.
+				#	Default states that the program must choose one case from the switch 
 				elif children[i].kind == clang.cindex.CursorKind.DEFAULT_STMT:
 					for j in range(i, len(children)):
 						traverse(children[j], check_list, alerts, calls)
@@ -208,6 +206,9 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 						check_list.append(check)
 
 		elif cursor.kind == clang.cindex.CursorKind.WHILE_STMT:
+			#	We check loops like this as some checks may check for changes that occur
+			# and may cause deadlocks on a second run.
+
 			condition = list(cursor.get_children())[0]
 			body = list(cursor.get_children())[1]
 
@@ -241,6 +242,7 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			body = list(cursor.get_children())[0]
 			condition = list(cursor.get_children())[1]
 
+			#	We must run the body at least once, so check_list is passed first
 			traverse(body, check_list, alerts, calls)
 			traverse(condition, check_list, alerts, calls)
 
@@ -292,9 +294,11 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 					check_list.append(check)	
 
 		else:
+			#	If cursor is not a special kind we just traverse it's children
 			for child in cursor.get_children():
 				traverse(child, check_list, alerts, calls)
 	else:
+		#	If cursor is not in the file we traverse it's children
 		for child in cursor.get_children():		
 			traverse(child, check_list, alerts, calls)			
 
