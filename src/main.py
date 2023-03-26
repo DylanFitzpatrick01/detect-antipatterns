@@ -74,10 +74,17 @@ def main():
 # contains everything the check thinks is wrong. This function gathers
 # All of those alerts, and returns them.
 #
-def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface], alerts: List[Alert], calls):
-	# TODO prevent recursion from breaking program
-	#      Should be easy, done before -Leon Byrne
+#
+# TODO comments
+#	TODO be wary of .referenced in regards to functions, it will return the first
+#      declaration of it. Eg, void test(); will be returned if test(); node is 
+#      .referenced
 
+#	@Param cursor    : The current cursor to traverse/analyse.
+#	@Param check_list: The list of checks we will be passing cursor to.
+# @Param alerts    : The list of alerts checks will append to.
+# @Param calls     : The list of calls made so far, checked for recursion.
+def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface], alerts: List[Alert], calls):
 	if str(cursor.translation_unit.spelling) == str(cursor.location.file):				
 		for check in check_list:
 			check.analyse_cursor(cursor, alerts)
@@ -85,25 +92,26 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 		# These that are picked out are special in terms of branching and how it may
 		# affect other checks. Eg IF_STMT
 		if cursor.kind == clang.cindex.CursorKind.FUNCTION_DECL or cursor.kind == clang.cindex.CursorKind.CXX_METHOD:
+			#	Some checks only check functions/methods in isolation. new_function can
+			# tell them to ditch un-necessary information. Can help both speed and
+			# memory usage.
 			for check in check_list:
 				check.new_function(cursor, alerts)
 
-			#Only keep unique checks, ie one of each in list
-			checkLen = len(check_list)
-			for i in range(0, checkLen - 1):
-				j = i + 1
-				while j < checkLen:
-				# for j in range(i + 1, checkLen):
-					if check_list[i] == check_list[j]:
-						check_list.remove(check_list[j])
-						checkLen -= 1
-					
-					j += 1
+			#	Removing equal checks
+			seenChecks = list()
+			for check in check_list:
+				if check not in seenChecks:
+					seenChecks.append(check)
+				else:
+					check_list.remove(check)
 			
 			for child in cursor.get_children():
 				traverse(child, check_list, alerts, list())
 
 		elif cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+			#	For checks that care about locking mutexes, the calls to scope_increased
+			#	and scope_decreased help in managing when lock_guards will leave scope.
 			for check in check_list:
 				check.scope_increased(alerts)
 
@@ -113,6 +121,9 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			for check in check_list:
 				check.scope_decreased(alerts)
 		elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
+			#	Some checks will want to follow possible flows of execution, here we
+			# do so and avoid recursion causing a loop in traverse().
+
 			#First we evaluate the arguements, they may be function calls
 			#We can just traverse all the children of the call
 			for child in cursor.get_children():
@@ -123,13 +134,29 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			# Call
 
 			# Don't traverse the FUNCTION_DECL node, just the compound statement after
-			if check_for_recursion(calls) and cursor.referenced is not None:
+			if cursor.get_definition() is not None and not check_for_recursion(calls, cursor.referenced.get_usr()):
 				# Still want to analyze the funtion/method decl even if we don't want to
 				# traverse it
 				for check in check_list:
-					check.analyse_cursor(cursor.referenced, alerts)
-				traverse(list(cursor.referenced.get_children())[0], check_list, alerts, calls.copy.append(cursor.referenced.get_usr()))
+					check.analyse_cursor(cursor.get_definition(), alerts)
+
+				#print(cursor.referenced.get_usr())
+
+				callCopy = calls.copy()
+				callCopy.append(cursor.get_definition().get_usr())
+
+				for call in callCopy:
+					print(call)
+
+				print()
+
+				for child in cursor.get_definition().get_children():
+					traverse(child, check_list, alerts, callCopy)
+
 		elif cursor.kind == clang.cindex.CursorKind.IF_STMT:
+			#	For checks which care about if a mutex might be locked at a certain
+			#	point, we need to consider that lock/unlocks may happen inside if-elses.
+
 			#traverse condition
 			traverse(list(cursor.get_children())[0], check_list, alerts, calls)
 
@@ -141,19 +168,14 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			#traverse if-true body
 			traverse(list(cursor.get_children())[1], copies, alerts, calls)
 
-			#needs to be evaluated before for loops and before possible else if tree
-			checkLen = len(check_list)
-
 			#traverse if-false body (if present)
 			if len(list(cursor.get_children())) > 2:
 				traverse(list(cursor.get_children())[2], check_list, alerts, calls)
 
-			for i in range(0, checkLen):
-				if copies[i] != check_list[i]:
-					check_list.append(copies[i])
-
-			for i in range(checkLen, len(copies)):
-				check_list.append(copies[i])
+			#	Save unique checks
+			for check in copies:
+				if check not in check_list:
+					check_list.append(check)
 		elif cursor.kind == clang.cindex.CursorKind.SWITCH_STMT:
 			children = list(list(cursor.get_children())[1].get_children())
 			copyLists = list()
@@ -180,7 +202,6 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 						if cursor.kind == clang.cindex.CursorKind.BREAK_STMT:
 							break
 
-			#TODO Replace indexing used earlier with this
 			for copies in copyLists:
 				for check in copies:
 					if check not in check_list:
@@ -277,14 +298,21 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 		for child in cursor.get_children():		
 			traverse(child, check_list, alerts, calls)			
 
-def check_for_recursion(calls) -> bool:
-	for i in range(1, floor(len(calls)) + 1):
+#	This function will check if a given list of function call USRs (universal
+# symbol representations) contains a case of recursion.
+#
+#	Eg: a->b->c->d->c->d, calling c->d after c->d is recursion and we will return
+#	true is the nextCall is c
+def check_for_recursion(calls, nextCall) -> bool:
+	for i in range(1, floor(len(calls) / 2) + 1):
 		# i is the number of calls we're checking at once
 
 		recursive = True
+		if calls[-i] != nextCall:
+			recursive = False
 
-		for j in range(0, i):
-			if calls[-1 + j] != calls[-1 + j + i]:
+		for j in range(1, i + 1):
+			if calls[-j] != calls[-(j + i)]:
 				recursive = False
 
 		if recursive:
