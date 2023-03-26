@@ -10,4 +10,9 @@ class Check():
     def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
         alert_list = list()
 
-        i
+        for node in  cursor.translation_unit.cursor.walk_preorder():
+            if node.kind == clang.cindex.CursorKind.CALL_EXPR and node.spelling == "join":
+                                alert_list.append(Alert(cursor.translation_unit, cursor.extent,+
+                                        "Recomend Add a joinable check "
+                                        "\n if (t.joinable())"
+                                        "\n t.join"))
