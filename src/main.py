@@ -3,6 +3,7 @@ import sys, os, importlib.util
 from typing import List
 from formalCheckInterface import FormalCheckInterface
 from alerts import Alert
+# cppclang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
 # Relative directory that contains our check files.
 checks_dir = '../checks'
@@ -33,7 +34,7 @@ def main():
     try:
         check_list = list()
         for file in os.listdir(os.path.abspath(os.path.join(os.path.dirname( __file__ ), checks_dir))):
-            if (file.endswith(".py") and file != "alerts.py" and file != "observer.py"):
+            if (file.endswith(".py") and file != "alerts.py"):
                 spec = importlib.util.spec_from_file_location(file.removesuffix(".py"), os.path.abspath(os.path.join(os.path.dirname( __file__ ), checks_dir, file)))
                 check_module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(check_module)
