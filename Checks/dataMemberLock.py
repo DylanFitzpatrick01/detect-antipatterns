@@ -34,4 +34,5 @@ class Check():
         #             print("Are you sure you want to habe a public member called '" + cursor.displayname + "'?\n")
                                      
             print(f"{cursor.kind} at:\t({cursor.extent.start.line}, {cursor.extent.start.column})-({cursor.extent.end.line}, {cursor.extent.end.column})")
+            print("Are you sure you want a public member called '" +cursor.displayname+ "' consider making this data member private")
         return alert_list
