@@ -22,5 +22,5 @@ class Check():
 
 
         if joinDetected > joinableDetected:
-             alert_list.append(Alert(cursor.translation_unit, cursor.extent,"Not all join functions check if thread is joinable",
+             alert_list.append(Alert(cursor.translation_unit, cursor.extent,"Not all join functions are checked if thread is joinable",
                                      "\n Recommend adding a if( x.joinable) function"))
