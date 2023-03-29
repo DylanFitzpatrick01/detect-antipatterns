@@ -134,7 +134,7 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			# Call
 
 			# Don't traverse the FUNCTION_DECL node, just the compound statement after
-			if cursor.get_definition() is not None and not check_for_recursion(calls, cursor.referenced.get_usr()):
+			if cursor.get_definition() is not None and str(cursor.get_definition().translation_unit.spelling) == str(cursor.get_definition().location.file) and not check_for_recursion(calls, cursor.referenced.get_usr()):
 				# Still want to analyze the funtion/method decl even if we don't want to
 				# traverse it
 				for check in check_list:
