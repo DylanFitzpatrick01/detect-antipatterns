@@ -1,6 +1,8 @@
 #include <atomic>
 #include <iostream>
 
+// ANTIPATTERN: Detect issues with using atomics in ways that aren't actually thread safe 
+// (Checking and then setting, rather than using a test and set instruction.)
 class MyClass
 {
 public:
@@ -29,48 +31,63 @@ int getState()
     return -1;
 }
 
-void passFunction(int state)
+
+void passFunction(int state)                                // CORRECT TEST-AND-SET OF ATOMIC
 {
     bool expected { false };                                // This is the correct way to "read and write" an atomic in a single instruction (https://en.cppreference.com/w/cpp/atomic/atomic/compare_exchange)
     if (mIsSet.compare_exchange_strong(expected, true))     // We are saying "check if the value was false, and if it was then set it to true"
-    {                                                       // This all happens in one CPU instruction that cannot be interleaved, so this is thread safe
-        mIsSet = false;
-    }
-}
-
-void errorFunction1(int state)
-{
-    bool expected{ false };
-    if (mIsSet.compare_exchange_strong(expected, true))     // PASS: Will perform read and write in single instruction
-    {                                                       
-        mIsSet = false;                                     // FAIL: This write isn't thread safe
-    }
-    else {
-        mIsSet = true;                                      // FAIL: This write isn't thread safe
-    }
-}
-
-void errorFunction2(int state)
-{
-    int expected = 10;
-    if (mInt.compare_exchange_strong(expected, 16)) // PASS: Will perform read and write in single instruction
     {
-        std::cout << "Value of mInt was 10 but is now 16" << std::endl;
-        if (!mIsSet)                                                                    // FAIL: This read isn't thread safe
-        {
-            mInt = state;                                                               // FAIL: This write isn't thread safe
-            std::cout << "Value of mInt was 16 but is now" << mInt << std::endl;        // FAIL: This read isn't thread-safe
-        }
+        mState = state;
+    }                                              
+}
+
+
+void errorFunction(int state)
+{
+    if(!mIsSet && test)                 // The mistake is here, we first do a read and on the next line a write. This creates a chance that another thread
+    {                           // can call the same method, at the same time and also end up updating the state.
+        mIsSet = true;
+        mState = state;
+    }
+}
+
+void errorFunctionBool(bool cond)
+{
+    if (!mIsSet)
+    {
+        mIsSet = cond;
+    }
+}
+void ifElsePass(int state1, int state2)
+{
+    bool expected { false };
+    if (mIsSet.compare_exchange_strong(expected, true))
+    {
+        mState = state1;
+    }
+    else 
+    {
+        mState = state2;
+    }
+}
+
+void ifElseError(int state1, int state2)
+{
+    if (mIsSet)                 
+    {
+        mIsSet = false;         // Error here - Checking and then setting, without testing
+        mState = state1;
     }
     else
     {
-        std::cout << "Value of mInt was not 10, so no changes were made";
+        mIsSet2 = true;          // Assuming we ONLY want to look for check-and-sets, this won't cause an error as its not in the condition.
+        mState = state2;
     }
 }
 
-
 private:
+    bool test;
     std::atomic<bool> mIsSet;
-    std::atomic<int> mInt;
+    std::atomic<bool> mIsSet2;
     int mState;
 };
