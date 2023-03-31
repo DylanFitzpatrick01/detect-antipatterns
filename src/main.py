@@ -74,8 +74,6 @@ def main():
 # contains everything the check thinks is wrong. This function gathers
 # All of those alerts, and returns them.
 #
-#
-# TODO comments
 #	TODO be wary of .referenced in regards to functions, it will return the first
 #      declaration of it. Eg, void test(); will be returned if test(); node is 
 #      .referenced
@@ -134,6 +132,7 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			# Call
 
 			# Don't traverse the FUNCTION_DECL node, just the compound statement after
+      # And only if it's in the same file.
 			if cursor.get_definition() is not None and str(cursor.get_definition().translation_unit.spelling) == str(cursor.get_definition().location.file) and not check_for_recursion(calls, cursor.referenced.get_usr()):
 				# Still want to analyze the funtion/method decl even if we don't want to
 				# traverse it
@@ -161,7 +160,7 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 			#traverse if-true body
 			traverse(list(cursor.get_children())[1], copies, alerts, calls)
 
-			#traverse if-false body (if present)
+			#traverse else body (if present)
 			if len(list(cursor.get_children())) > 2:
 				traverse(list(cursor.get_children())[2], check_list, alerts, calls)
 
@@ -310,11 +309,17 @@ def traverse(cursor: clang.cindex.Cursor, check_list: List[FormalCheckInterface]
 def check_for_recursion(calls, nextCall) -> bool:
 	for i in range(1, floor(len(calls) / 2) + 1):
 		# i is the number of calls we're checking at once
+    # Start at one, then work up to half of all existing calls
 
+    # Assume true, look for contradiction
 		recursive = True
+		
+    # It can't be recursive if the start of one group isn't the nextCall
 		if calls[-i] != nextCall:
 			recursive = False
 
+    # If two calls in similar places in their respective groups are different
+    # then it's not recursive
 		for j in range(1, i + 1):
 			if calls[-j] != calls[-(j + i)]:
 				recursive = False
