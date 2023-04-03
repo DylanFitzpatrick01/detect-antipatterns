@@ -188,6 +188,3 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
     # Traverse the AST of the TU, run the check on all cursors,
     # and return all alerts.
     return main.traverse(tu.cursor, check_list)
-
-if __name__ == "__main__":
-    test_observers()
