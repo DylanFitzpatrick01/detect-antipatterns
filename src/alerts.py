@@ -32,6 +32,18 @@ class Alert:
 			self.location = SourceRange.from_locations(location, end)
 
 
+	def __eq__(self, __o: object) -> bool:
+		if type(self) != type(__o):
+			return False
+		
+		if self.location != __o.location:
+			return False
+		
+		if self.message != __o.message:
+			return False
+		
+		return True
+
 	# Displays our Alert (Fancily)
 	def display(self):
 
