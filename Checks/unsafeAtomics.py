@@ -24,14 +24,15 @@ class Check(FormalCheckInterface):
         if len(self.investagating) > 1:
           self.investagating.pop()
         self.investagating.append(cursor)
-    elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and cursor.spelling == "operator=":
-      if "std::atomic" in list(cursor.get_children())[0].type.spelling:
+    elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "operator" in cursor.spelling:
+      print(cursor.spelling)
+      if "atomic" in list(cursor.get_children())[0].type.spelling:
         self.atomicWrite = True
         if len(self.investagating) > 1:
           self.investagating.pop()
           self.investagating.append(list(cursor.get_children())[0])
           self.skipNext = True
-    elif cursor.kind == clang.cindex.CursorKind.BINARY_OPERATOR:
+    elif cursor.kind == clang.cindex.CursorKind.BINARY_OPERATOR and cursor.spelling == "=":
       self.atomicWrite = False
       if len(self.investagating) > 1:
         self.investagating.pop()
@@ -47,6 +48,8 @@ class Check(FormalCheckInterface):
           for key in self.affected:
             for var in self.affected[key]:
               if cursor.referenced.get_usr() == var.get_usr():
+                self.atomicWrite = False
+                
                 newAlert = Alert(self.investagating[-1].translation_unit, self.investagating[-1].extent, 
                                  "This appears to be the end of a non-atomic series of operations.")
                 if newAlert not in alerts:

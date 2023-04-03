@@ -1,6 +1,8 @@
 #include <atomic>
 
 std::atomic_bool b;
+std::atomic_int x;
+std::atomic_int y;
 
 int main()
 {
@@ -11,6 +13,9 @@ int main()
 
   bool d = false;
   b = d;          //No error, d is independant of b.
+
+  int z = x * y;  // 
+  x += z;         //
 
   return 0;
 }
