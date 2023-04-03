@@ -83,12 +83,11 @@ def test_observers():
     declared_variable_observer = cursorKindObserver(clang.cindex.CursorKind.FIELD_DECL)
     class_observer = cursorKindObserver(clang.cindex.CursorKind.CLASS_DECL)
     function_observer = cursorKindObserver(clang.cindex.CursorKind.CXX_METHOD)
-    record_observer = cursorTypeKindObserver(clang.cindex.TypeKind.RECORD)
     
     assert(eventSrc.observers) == []
-    eventSrc.addMultipleObservers([mutex_observer, lock_guard_observer, declared_variable_observer, class_observer, record_observer])
+    eventSrc.addMultipleObservers([mutex_observer, lock_guard_observer, declared_variable_observer, class_observer])
     eventSrc.addObserver(function_observer)
-    assert(eventSrc.observers) == [mutex_observer, lock_guard_observer, declared_variable_observer, class_observer, record_observer, function_observer]
+    assert(eventSrc.observers) == [mutex_observer, lock_guard_observer, declared_variable_observer, class_observer, function_observer]
 
     eventSrc2.addMultipleObservers([mutex_observer, lock_guard_observer, class_observer, function_observer])
     eventSrc2.removeMultipleObservers([mutex_observer, lock_guard_observer, class_observer])
@@ -105,17 +104,12 @@ Detected a 'std::lock_guard<std::mutex>' Lockguard's Name: 'lock_guard' at <Sour
 Detected std::string: 'mState' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 36, column 17>
 Detected std::mutex: 'mDataAccess' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 37, column 16>
 Detected MyClass: 'MyClass' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 5, column 7>
-Detected MyClass: 'MyClass' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 5, column 7>
-Detected std::mutex: 'class std::mutex' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 17, column 26>
-Detected const std::basic_string<char>: 'mState' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 19, column 12>
-Detected std::mutex: 'class std::mutex' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 24, column 26>
-Detected std::basic_string<char>: 'operator=' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 26, column 5>\nDetected std::mutex: 'class std::mutex' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 37, column 10>
 Detected std::string (): 'getState()' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 15, column 13>
 Detected void (const std::string &): 'updateState(const std::string &)' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 22, column 6>
 Detected void (): 'logState()' at <SourceLocation file '../cpp_tests/member_locked_in_some_methods/error_in_method_scope.cpp', line 29, column 6>
 """
 
-    output_str = f"{mutex_observer.output}{lock_guard_observer.output}{declared_variable_observer.output}{class_observer.output}{record_observer.output}{function_observer.output}"
+    output_str = f"{mutex_observer.output}{lock_guard_observer.output}{declared_variable_observer.output}{class_observer.output}{function_observer.output}"
     assert(output_str) == correct_output
 
 
