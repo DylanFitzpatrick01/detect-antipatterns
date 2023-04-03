@@ -69,32 +69,6 @@ class cursorKindObserver(Observer):
                 self.kindList.append(currentNode)
 
 
-class cursorTypeKindObserver(Observer):
-    def __init__(self, typeKindToDetect: clang.cindex.TypeKind):
-        """Initialiser
-        Initialises three members,
-            self.typeKindToDetect(clang.cindex.TypeKind)
-            self.typeKindList(list)
-            self.output(str)
-        Args:
-            typeKindToDetect (str): The clang.cindex.TypeKind
-        """
-        self.typeKindToDetect = typeKindToDetect
-        self.typeKindList = []
-        self.output = ""
-
-
-    def update(self, currentNode):
-        """Updates the observer with the currentNode
-        Args:
-            currentNode (clang.cindex.Cursor): The node to update with
-        """
-        self.typeKindList.append(currentNode)
-        if currentNode.type.kind == self.typeKindToDetect:
-            self.output += f"Detected {currentNode.type.spelling}: '{currentNode.displayname}' at {currentNode.location}\n"
-            self.typeKindList.append(currentNode)
-
-
 # Gráinne Ready
 # Subject class, has a list of observers which it notifies about events/state changes
 class EventSource():
