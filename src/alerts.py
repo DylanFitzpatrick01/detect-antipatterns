@@ -67,7 +67,7 @@ class Alert:
                     if(use_colour): term_colour("black", colours[self.severity])
                     print(f"\n{' '*(len(str(index))+2)}{'-'*8}{self.severity.upper()}: '{self.tu.spelling}', ({self.location.start.line}, ", end='')
                     print(f"{self.location.start.column})-({self.location.end.line}, {self.location.end.column}){'-'*8} ")
-                    print(f"{' '*(len(str(index))+2)}^ " + self.message.replace("\n", "\n"+" "*(len(str(index))+4)), end='')
+                    print(f"{' '*(len(str(index))+2)}^ " + self.message.replace("\n", " \n"+" "*(len(str(index))+4)) + " ", end='')
                     if(use_colour): print('\033[m', end='\n')
                     else:           print()
         else:

@@ -25,7 +25,7 @@ class Check():
                 alert_list.append(Alert(cursor.translation_unit, cursor.extent,
                                         "A manual lock is used in this scope without an unlock!.\n"
                                         "Please either replace '" + lock_caller + ".lock();' with\n"
-                                        "'std::lock_guard<std::mutex> lock(" + lock_caller + ");' (RECCOMMENDED),\n"
+                                        "'std::lock_guard<std::mutex> lock(" + lock_caller + ");' (RECOMMENDED),\n"
                                         "or add '" + lock_caller + ".unlock();' at the end of this critical section."))
         
         return alert_list

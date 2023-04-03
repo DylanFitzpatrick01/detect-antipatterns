@@ -39,6 +39,7 @@ class Check():
 
             threshold = 0.70
             
+            if variable_count == 0: return alert_list
             ratio = constant_variable_count / variable_count
 
             if ( ratio) >= threshold:
