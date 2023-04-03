@@ -1,5 +1,5 @@
 import clang.cindex
-import sys, os, importlib.util, argparse, io
+import sys, os, importlib, argparse, inspect, pathlib
 from typing import List
 from formalCheckInterface import FormalCheckInterface
 from alerts import Alert
@@ -13,15 +13,29 @@ def main():
     args = init_argparse()
 
     # Import all of our checks!
+    #==============================================#
     check_list = list()
+    # For all of the python files in the checks directory...
     for file in [x for x in os.listdir(args.checks_dir) if x.endswith('.py')]:
-        spec = importlib.util.spec_from_file_location(file.removesuffix(".py"), os.path.join(args.checks_dir, file))
-        check_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(check_module)
-        check_list.append(check_module.Check())
+
+        # Get the associated python module...
+        sys.path.append(str(args.checks_dir))
+        check_module = importlib.import_module(file.removesuffix('.py'))
+
+        # Look at all of the classes in that module...
+        for name_local in dir(check_module):
+            check_class = getattr(check_module, name_local)
+
+            # If it inherits from our check interface, then append an
+            # object of it to our check list!
+            if (inspect.isclass(check_class) and issubclass(check_class,FormalCheckInterface)):
+                check_list.append(check_class())
+    #==============================================#
     
     alerts: List[FormalCheckInterface] = list()
 
+    # Run every check on every cursor of every file.
+    #==============================================#
     for index, file in enumerate(args.locations):
         # Progress bar for terminals.
         progress_bar(index,len(args.locations),40,suffix=' of files analysed')
@@ -33,10 +47,11 @@ def main():
 
         # Traverse the AST
         alerts.extend(traverse(tu.cursor, check_list))
-    
+
     # Complete progress bar, as we don't get to write again
     # until we're out of the loop.
-    progress_bar(1,1,40,' of files analysed')
+    progress_bar(1,1,40,suffix=' of files analysed')
+    #==============================================#
 
     # print to console, with as much info / colour as requested.
     for alert in alerts:
@@ -156,7 +171,6 @@ def progress_bar(amount:float,max:float,length:int,prefix='',suffix:str=''):
         percent = (amount*100)/max          # Get our percentage
         pc_str = '{:.1f}%'.format(percent)  # Make a formatted percentage string
         length_div = 100/(length-8)         # Get the right divisor so that we achieve our desired length.
-
         string = f"[\b \r{prefix}[{'='*int(percent/length_div)}{pc_str}{'-'*(length-int(percent/length_div)-(len(pc_str)+2))}]"+suffix
         end = '\n' if (percent == 100.0) else ''
         print(string, end=end)
