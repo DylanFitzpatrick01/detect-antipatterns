@@ -41,8 +41,8 @@ class tagObserver(Observer):
                 elif self.tagToDetect == "std::lock_guard<std::mutex>" and currentNode.spelling == "lock_guard":
                         self.output += f"Detected a '{self.tagToDetect}' Lockguard's Name: '{currentNode.spelling}' at {currentNode.location}\n"
                         #print(f"Detected a '{self.tagToDetect}' Lockguard's Name: '{currentNode.spelling}' at {currentNode.location}")
-                
 
+          
 class cursorKindObserver(Observer):
     def __init__(self, kindToDetect: clang.cindex.CursorKind):
         """Initialiser
