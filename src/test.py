@@ -169,7 +169,6 @@ def test_public_mutex_members():
 	assert len(alerts) == 0
 
 def test_std_thread_member():
-
   alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
                                           "../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor.cpp")
   assert alerts[0].message == ("Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
