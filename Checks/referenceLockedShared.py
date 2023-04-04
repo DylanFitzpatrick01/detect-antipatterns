@@ -1,14 +1,15 @@
 import clang.cindex
 from typing import List
 from alerts import Alert
+from formalCheckInterface import FormalCheckInterface
 
 
 """
 A Check for some antipattern. analyse_cursor() runs for EVERY cursor!
 """
 
-class Check():
-    def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
+class Check(FormalCheckInterface):
+    def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts: List[Alert]):
         alert_list: List[Alert] = list()
       
         if str(cursor.kind) == "CursorKind.CXX_METHOD":
@@ -41,16 +42,11 @@ class Check():
             # returnLoc has the location of the return
             if isScopeLocked(cursor, returnLoc):
                 # We return from within a locked scope
-                alert_list.append(Alert(cursor.translation_unit, returnLoc, "Warning: A reference to shared data from a locked scope"
-                                         + " is returned!", severity="warning"))
+                newAlert = Alert(cursor.translation_unit, returnLoc, "Warning: A reference to shared data from a locked scope"
+                                         + " is returned!", severity="warning")
+                if newAlert not in alerts:
+                    alerts.append(newAlert)
                                                                    
-                
-                
-
-            
-
-        
-        return alert_list
     
 # Is the scope within the extent of 'cursor' locked?
 def isScopeLocked(cursor: clang.cindex.Cursor, loc: clang.cindex.SourceLocation) -> bool:
