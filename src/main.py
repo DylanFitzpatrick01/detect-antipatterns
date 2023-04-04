@@ -3,10 +3,7 @@ import sys, os, importlib, argparse, inspect, pathlib
 from typing import List
 from formalCheckInterface import FormalCheckInterface
 from alerts import Alert
-# clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
-
-# Relative directory to main.py that contains our check files by default.
-checks_dir = '../Checks'
+clang.cindex.Config.set_library_file('C:/Program Files/LLVM/bin/libclang.dll')
 
 def main():
     # Get our argmuents namespace from the user.
@@ -105,26 +102,30 @@ def init_argparse() -> argparse.ArgumentParser:
     # Setting up the argument parser.
     parser = argparse.ArgumentParser(
         description='Detects common C++ concurrency anti-patterns and malpractices pre-compile.',
+        epilog='If you intend for the data of this program to be read by a person, verbosity and '
+               'colour are "encouraged" (NECESSARY). The default ouput is designed for log files; to '
+               'be picked up by another program, NOT TO BE READ BY REAL PEOPLE.'
     )
+    parser.add_argument('checks_dir',
+                        type=    str,
+                        help=    'The directory containing the check programs. These are .py files '
+                                 'with a single search pattern. These programs can be moved, deleted '
+                                 'and edited. The program will run all checks it finds in this directory.')
     parser.add_argument('locations',
                         nargs=   '*',
                         type=    str,
                         help=    'The files/directories to analyse. '
                                  'Supports multiple locations separated by commas and/or whitespace. '
-                                 'If no value is given, data is read from stdin,'
-                                 'prompting the user if nessessary')
+                                 'If no value is given, data is read from stdin, '
+                                 'prompting the user if nessessary.')
     parser.add_argument('-v', '--verbose',
                         action=  'count',
                         default= 0,
-                        help=    'Increases output verbosity level by one')
-    parser.add_argument('--colour',
+                        help=    'increases output verbosity level by one')
+    parser.add_argument('-c', '--colour',
                         action=  "store_true",
-                        help=    'Add colour to output, for ease of reading (RECOMMENDED)')
-    parser.add_argument('-c', '--checks_dir',
-                        nargs=   '?',
-                        default= os.path.join(os.path.dirname( __file__ ), checks_dir),
-                        help=    'The directory containing the check programs.'
-                                 'The default is hard-coded at the top of main.py')
+                        help=    'add colour to output, for ease of reading')
+
     
     args = parser.parse_args()
 

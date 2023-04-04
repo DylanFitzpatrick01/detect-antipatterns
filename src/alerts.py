@@ -37,8 +37,7 @@ class Alert:
 
         # Our colours! Light red for error, yellow for warning.
         colours = { "error"      : "light red",
-                    "warning"    : "yellow",
-                    "greyed out" : "dark grey" }
+                    "warning"    : "yellow", }
 
         # Gets the C++ file, removes comments, then saves it  as an array, with one entry per line.
         lines = remove_comments("".join(open(self.tu.spelling).readlines()[0:])).splitlines()
@@ -48,28 +47,21 @@ class Alert:
             # and the line after the error line (if it exists).
             for index in range(max(self.location.start.line-1,1),min(self.location.end.line+2,len(lines)+1)):
 
-                # If the line isn't in our location, grey it out!
-                if (index < self.location.start.line or index > self.location.end.line):
-                    if(use_colour): term_colour(colours["greyed out"])
-                    print(f"{index}: {lines[index-1]}")
-                    if(use_colour): term_colour("native")
-                    if(index > self.location.end.line): print()
-
-                # Otherwise, print the line number in our native colour, and the line in our severity colour.
-                else:
-                    if(use_colour): term_colour("native")
-                    print(f"{index}: ", end='')
-                    if(use_colour): term_colour(colours[self.severity])
-                    print(lines[index-1], end= '' if index == self.location.end.line else '\n')
+                # Print the line number in our native colour, and the line in our severity colour.
+                if(use_colour): term_colour("native")
+                print(f"{index}: ", end='')
+                if(use_colour): term_colour(colours[self.severity])
+                print(lines[max(0,index-1)], end='\n')
 
                 # If it's the last line in our location, display the error message.
                 if index == self.location.end.line:
                     if(use_colour): term_colour("black", colours[self.severity])
-                    print(f"\n{' '*(len(str(index))+2)}{'-'*8}{self.severity.upper()}: '{os.path.basename(self.tu.spelling)}', ({self.location.start.line}, ", end='')
+                    print(f"{' '*(len(str(index))+2)}{'-'*8}{self.severity.upper()}: '{os.path.basename(self.tu.spelling)}', ({self.location.start.line}, ", end='')
                     print(f"{self.location.start.column})-({self.location.end.line}, {self.location.end.column}){'-'*8} ")
                     print(f"{' '*(len(str(index))+2)}^ " + self.message.replace("\n", " \n"+" "*(len(str(index))+4)) + " ", end='')
                     if(use_colour): print('\033[m', end='\n')
-                    else:           print()
+                    print()
+                    return
         else:
             if (use_colour): term_colour(colours[self.severity])
             print(f"{self.severity.upper()}: '{os.path.basename(self.tu.spelling)}' ({self.location.start.line}, ", end='')
