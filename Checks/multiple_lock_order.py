@@ -21,7 +21,6 @@ class Check():
                                 mutex_names.append(a.spelling)
         multi_order = list(mutex_names)
         highestIndex = 0
-        order_flag = 0
         for mutex in multi_order:
             if mutex in heldLocks:
                 if mutex in usedLocks:
@@ -31,10 +30,7 @@ class Check():
                 if (heldLocks.index(mutex) >= highestIndex):
                     highestIndex = heldLocks.index(mutex)
                 else:
-                    order_flag = 1
                     alert_list.append(Alert(cursor.translation_unit, cursor.extent, "Error!: mutex " + str(mutex) + " is in the incorrect order!\n"))
             else:
                 heldLocks.append(mutex)
-        if order_flag == 0:
-            alert_list.append(Alert(cursor.translation_unit, cursor.extent, "No lock order errors detected!\n"))
         return alert_list

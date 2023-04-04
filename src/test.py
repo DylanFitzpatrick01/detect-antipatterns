@@ -117,6 +117,14 @@ def test_immutable_object():
     alerts = run_check_on_file("../Checks/immutableObjects.py", "../cpp_tests/public.cpp")
     assert len(alerts) == 0
 
+def test_multi_lock_order():
+
+    alerts: List[Alert] = run_check_on_file("../Checks/multiple_lock_order.py", "../cpp_tests/multiple_locks_order.cpp")
+    assert alerts[0].message == "Error!: mutex mMutex1 is in the incorrect order!\n"
+
+    alerts: List[Alert] = run_check_on_file("../Checks/multiple_lock_order.py", "../cpp_tests/immutable.cpp")
+    assert len(alerts) == 0
+
 
 # --------FUNCTIONS-------- #
 
@@ -157,3 +165,4 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
     # Traverse the AST of the TU, run the check on all cursors,
     # and return all alerts.
     return main.traverse(tu.cursor, check_list)
+
