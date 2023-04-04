@@ -1,5 +1,4 @@
 import clang.cindex
-
 class Function:
 	def __init__(self, cursor: clang.cindex.Cursor):
 		self.label = cursor.spelling
@@ -105,3 +104,13 @@ class Var:
 			return False
 		
 		return True
+
+class ConditionBodyStatement:
+	def __init__(self, cursor):
+		self.cursor = cursor
+		self.compound_stmt = None
+
+	
+	def __setattr__(self, __name: str, __value) -> None:
+		super().__setattr__(__name, __value)
+	

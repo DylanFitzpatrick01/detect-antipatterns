@@ -27,7 +27,10 @@ int getState()
     {
         return mState;
     }
-    
+    while (mIsSet)          // ERROR - non atomical read-and-write
+    {
+        mIsSet2 = false;
+    }
     return -1;
 }
 
@@ -38,7 +41,11 @@ void passFunction(int state)                                // CORRECT TEST-AND-
     if (mIsSet.compare_exchange_strong(expected, true))     // We are saying "check if the value was false, and if it was then set it to true"
     {
         mState = state;
-    }                                              
+    }
+    if (mIsSet)
+    {
+        mIsSet = mIsSet2;                                    // Atomic to atomic writes are ok
+    }                                     
 }
 
 
@@ -55,7 +62,7 @@ void errorFunctionBool(bool cond)
 {
     if (!mIsSet)
     {
-        mIsSet = cond;
+        mIsSet = cond;                      // Error - read-and-write instead of check-and-set
     }
 }
 void ifElsePass(int state1, int state2)
@@ -64,6 +71,9 @@ void ifElsePass(int state1, int state2)
     if (mIsSet.compare_exchange_strong(expected, true))
     {
         mState = state1;
+        if(mIsSet2) {
+            mIsSet2 = false;                // Error - read-and-write instead of check-and-set
+        }
     }
     else 
     {
@@ -75,7 +85,7 @@ void ifElseError(int state1, int state2)
 {
     if (mIsSet)                 
     {
-        mIsSet = false;         // Error here - Checking and then setting, without testing
+        mIsSet = false;         // Error - read-and-write instead of check-and-set
         mState = state1;
     }
     else
