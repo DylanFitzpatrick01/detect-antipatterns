@@ -7,6 +7,7 @@ from Util import ConditionBodyStatement
 # TODO: Add test files for nested if stmts
 # TODO: Add handling for multi-lined if conditions
 class Check(FormalCheckInterface):
+  statement_kinds = [clang.cindex.CursorKind.IF_STMT, clang.cindex.CursorKind.WHILE_STMT, clang.cindex.CursorKind.DO_STMT, clang.cindex.CursorKind.FOR_STMT]
   atomic_if_conditions = dict()        # Key - If statement cursor, Value - List of cursors in the if condition
   if_keys = atomic_if_conditions.keys()  # The keys of atomic_if_conditions, so we can get the most recent if statement using [-1] indexing
   nextAtomicIsCorrect = False
@@ -21,24 +22,19 @@ class Check(FormalCheckInterface):
                                 # is a nested branch
     self.endIfReached = False
 
-
   # When a var will be changed, add it to the stack. When moved on, remove it
   # If entered method tell it next return
 
   def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
-
-
-    # If we found an if statement, add it to the list
-    if cursor.kind == clang.cindex.CursorKind.IF_STMT:
+    # If we found a statement, add it to the list
+    print(cursor.extent.start.line, "      ", cursor.kind, "      ", cursor.displayname)
+    if cursor.kind in self.statement_kinds:
       self.atomic_if_conditions[ConditionBodyStatement(cursor)] = list()
-      #FIXME
-      print(f"[Line {cursor.extent.start.line}] if stmt cursor ")
-      if (cursor.extent.start.line == 93):
-        h = list(cursor.get_children())
-        
-        print("h")
-    if (cursor.extent.start.line == 101):
-      print("h")
+      print(f"[Line {cursor.extent.start.line}] statement: {cursor.kind} ")
+      list(self.if_keys)[-1].compound_stmt = [child for child in list(cursor.get_children()) if child.kind == clang.cindex.CursorKind.COMPOUND_STMT]
+      a = list(self.if_keys)[-1].compound_stmt
+      for compound in list(self.if_keys)[-1].compound_stmt:
+        print(cursor.extent.start.line, "   ", cursor.extent.end.line)
 
     # Else if self.atomic_if_conditions is not empty     (since self.if_keys = self.atomic_if_conditions.keys())
     elif (self.if_keys):
@@ -49,16 +45,11 @@ class Check(FormalCheckInterface):
             # Mark the next atomic as being correctly checked then set in a single instruction
             self.nextAtomicIsCorrect = True
             
-        # If the cursor is a compound statement '{ }', and we are yet to get the body of the statement
-        if cursor.kind == clang.cindex.CursorKind.COMPOUND_STMT and list(self.if_keys)[-1].compound_stmt is None:    
-            # Set the body of the statement as being this cursor
-             list(self.if_keys)[-1].compound_stmt = cursor
-        
-        # If we are missing the body of the most recent statement
-        if (list(self.if_keys)[-1].compound_stmt is None):
-          
+        # If cursor is inside the most recent statement, but not inside its compound statements..   then its in the condition                                                               
+        if (self.isInCondition(cursor, alerts)):
+        #  (not any( (cursor.extent.start.line >= compound_stmt.extent.start.line and cursor.extent.start.column >= compound_stmt.extent.start.column) and (cursor.extent.end.line <= compound_stmt.extent.end.line) for compound_stmt in list(self.if_keys)[-1].compound_stmt)):
           # If the current cursor is of type atomic
-          if "std::atomic" in cursor.type.spelling:
+          if "std::atomic" in cursor.type.spelling and cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
             
             # And we haven't marked the next atomic as being correctly checked and set
             if (not self.nextAtomicIsCorrect):
@@ -70,7 +61,7 @@ class Check(FormalCheckInterface):
               # Don't do anything with the current atomic (cursor), and reset the boolean marker for the next atomic
               self.nextAtomicIsCorrect = False
 
-        # If we are not missing the body of the most recent statement
+
         else:
 
           # Check if the current cursor belongs to an atomic write
@@ -85,28 +76,29 @@ class Check(FormalCheckInterface):
             #TODO FIX LIMITED CHECKING CAPABILITY
             # Check if cursor is a write
             if (cursor.kind == clang.cindex.CursorKind.CXX_BOOL_LITERAL_EXPR):
-              #if newAlert not in alerts:
-              alerts.append(newAlert)
+              if newAlert not in alerts:
+                alerts.append(newAlert)
 
             elif cursor.type.spelling in self.possibleAtomicWrite[1].type.spelling and (cursor.kind == clang.cindex.CursorKind.DECL_REF_EXPR or cursor.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR):
-              #if newAlert not in alerts:
-              alerts.append(newAlert)
+              if newAlert not in alerts:
+                alerts.append(newAlert)
             # TODO: Check if operator is always before the values written with?
             if not "operator" in cursor.displayname:
               self.possibleAtomicWrite = None
 
-          if "std::atomic" in cursor.type.spelling:
+          if "std::atomic" in cursor.type.spelling and cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
             if (not self.nextAtomicIsCorrect):
-              # TODO: Work for parent if stmt conditions too.. but try not to make multiple alerts for one incident
               for statement in list(self.atomic_if_conditions):
                 if (statement.compound_stmt):
-                  print(f"stmt check {statement.compound_stmt.extent.start.line}")
-                  if (statement.compound_end >= cursor.extent.end.line):
-                    for atomic_condition in self.atomic_if_conditions[statement]:
-                        if atomic_condition.referenced.get_usr() == cursor.referenced.get_usr():
-                          self.possibleAtomicWrite = (statement, cursor)
+                  if cursor.extent.start.line >= statement.cursor.extent.start.line and cursor.extent.end.line <= statement.cursor.extent.end.line:
+                    for compound_stmt in statement.compound_stmt:
+                      print(f"stmt check {compound_stmt.extent.start.line}")
+                      # TODO Sort out do-while loops here
+                      if (compound_stmt.extent.end.line >= cursor.extent.end.line):
+                        for atomic_condition in self.atomic_if_conditions[statement]:
+                            if atomic_condition.referenced.get_usr() == cursor.referenced.get_usr():
+                              self.possibleAtomicWrite = (statement, cursor)
                   else:
-                    print(f"Deleting stmt on Line: {statement.cursor.extent.start.line}, as this cursor is on Line: {cursor.extent.start.line}")
                     del self.atomic_if_conditions[statement]
                 else:
                   print(f"{statement.cursor.extent.start.line} doesn't have a compound statement")
@@ -124,6 +116,18 @@ class Check(FormalCheckInterface):
   def scope_decreased(self, alerts):
     self.branchLevel -= 1
 
+  def isInCondition(self, cursor, alerts):
+    
+    if (cursor.extent.start.line >= list(self.if_keys)[-1].cursor.extent.start.line and \
+          cursor.extent.end.line <= list(self.if_keys)[-1].cursor.extent.end.line):
+      for comp in list(self.if_keys)[-1].compound_stmt:
+        if (cursor.extent.start.line > comp.extent.start.line) or \
+          (cursor.extent.start.column > comp.extent.start.column and cursor.extent.start.line == comp.extent.start.line):
+            if (cursor.extent.end.line < comp.extent.end.line) or  \
+              (cursor.extent.end.column < comp.extent.end.column and cursor.extent.end.line == comp.extent.end.line):
+              return False
+      return True
+    return False
 #  def getStmts(self):
 #    for name in dir(clang.cindex.CursorKind):
 #      if name.endswith("STMT"):

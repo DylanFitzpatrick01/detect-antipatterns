@@ -24,11 +24,12 @@ MyClass()
 int getState()
 {
     bool expected { false };
-    if(mIsSet.compare_exchange_strong(expected, true))
-    {
-        return mState;
+    for(int i = 0; mIsSet; i++) {
+        if (i == 5) {
+            mIsSet = false;
+        }
     }
-    while (mIsSet2.compare_exchange_strong(expected, true))
+    while (mIsSet2)
     {
         mIsSet2 = false;
     }
@@ -88,32 +89,29 @@ void ifElsePass(int state1, int state2)
     else
     {
         mState = state1;
+        while(mIsSet2)
+        {
+            if (mIsSet)
+            {
+                mIsSet2 = true;
+            }
+        }
     }
 }
 
 void ifElseNestedError(int state1, int state2)
 {
     bool expected { false };
-    if (mIsSet)                 
-    {
-        if (!mIsSet2) {
-            mIsSet = false;
-        }
-        mState = state1;
-    }
-    else
-    {
-        if (mIsSet2) 
-        {
-            mIsSet = true;    // Error - mIsSet checked in if(), now set here
-        }
-        mState = state2;
-    }
+    do {
+        mIsSet = test;
+    } while(!mIsSet);
+    
 }
 
 private:
     bool test;
     std::atomic<bool> mIsSet;
     std::atomic<bool> mIsSet2;
+    std::atomic<int> mInt;
     int mState;
 };
