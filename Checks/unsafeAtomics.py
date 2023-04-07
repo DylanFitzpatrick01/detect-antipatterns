@@ -8,6 +8,9 @@ class Check(FormalCheckInterface):
 		self.investagating = None		
 		self.skipNext = False
 
+		self.atomic = None
+		self.isFetch = False				# If fetch call, only counter members
+
 		self.references = list()
 
 		self.atomicWrite = False
@@ -20,30 +23,59 @@ class Check(FormalCheckInterface):
 	# If entered method tell it next return
 
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
-		if cursor.location.line == 19:
+		if cursor.location.line == 23:
 			print("at the problem area")
 
 		if cursor.kind == clang.cindex.CursorKind.VAR_DECL or cursor.kind == clang.cindex.CursorKind.FIELD_DECL:
 			if "std::atomic" in cursor.type.spelling:
 				self.affected[cursor.referenced.get_usr()] = list()
 			else:
+				self.atomicWrite = False
 				self.investigate_new(cursor)
+				self.skipNext = False
+
+				self.isFetch = False
 
 		elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "operator" in cursor.spelling:
 			# print(cursor.spelling)
 			if "atomic" in list(cursor.get_children())[0].type.spelling:
 				self.atomicWrite = True
+
+				self.atomic = list(cursor.get_children())[0]
+
 				self.investigate_new(list(cursor.get_children())[0])
 				self.skipNext = True
 
-		# This is some bullshit, so binary operators have an "operator type" cursor
-		# under them. Variables with operator in them will not be detected.
+				self.isFetch = False
+		
+		elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "store" in cursor.spelling:
+			# print(cursor.spelling)
+			if "atomic" in list(list(cursor.get_children())[0].get_children())[0].type.spelling:
+				self.atomicWrite = True
+				self.atomic = list(list(cursor.get_children())[0].get_children())[0]
+				self.skipNext = True
+
+				self.isFetch = False
+
+		elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and ("fetch" in cursor.spelling or "exchange" in cursor.spelling):
+			# print(cursor.spelling)
+			if "atomic" in list(list(cursor.get_children())[0].get_children())[0].type.spelling:
+				self.atomicWrite = True
+				self.atomic = list(list(cursor.get_children())[0].get_children())[0]
+				self.skipNext = True
+
+				self.isFetch = True
+
+		# This is some bullshit, some binary operators have an "operator type" 
+		# curso under them. Variables with operator in them will not be detected.
+		# screws everything up
 		elif cursor.kind == clang.cindex.CursorKind.BINARY_OPERATOR and "operator" not in list(cursor.get_children())[0].spelling:
-			print("Binary ", list(cursor.get_children())[0].spelling)
+			# print("Binary ", list(cursor.get_children())[0].spelling)
 			self.atomicWrite = False
 			self.investigate_new(list(cursor.get_children())[0])
 			self.skipNext = True 
 
+			self.isFetch = False
 
 		elif cursor.kind == clang.cindex.CursorKind.DECL_REF_EXPR or cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
 			# Atomic to atomic writes are okay, don't investigate
@@ -59,12 +91,13 @@ class Check(FormalCheckInterface):
 							if cursor.referenced.get_usr() == var.get_usr():
 								self.atomicWrite = False
 								
-								newAlert = Alert(self.investagating.translation_unit, self.investagating.extent, 
-																 "This appears to be the end of a non-atomic series of operations.")
+								newAlert = Alert(self.atomic.translation_unit, self.atomic.extent, 
+																 "This appears to be the end of a non-atomic series of operations.\n" + 
+																 "Consider protecting \"" + self.atomic.spelling + "\" with a mutex.")
 								if newAlert not in alerts:
 									alerts.append(newAlert)
 								print("error")
-				else:
+				elif not self.isFetch or "std::atomic" in cursor.referenced.kind.spelling:
 					for key in self.affected:
 						for var in self.affected[key]:
 							if cursor.referenced.get_usr() == var.get_usr() and "__atomic" not in self.investagating.type.spelling and self.investagating.referenced not in self.affected[key]:

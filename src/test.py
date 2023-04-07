@@ -94,6 +94,25 @@ def test_locked_call():
 	for message in expected:
 		assert message in messages
 
+def test_unsafeAtomics():
+	alerts = run_check_on_file("../Checks/unsafeAtomics.py", "../cpp_tests/atomic.cpp")
+	messages = list()
+
+	for alert in alerts:
+		messages.append(alert.message)
+
+	expected = list()
+	expected.append("This appears to be the end of a non-atomic series of operations.\n" + 
+		 							"Consider protecting \"x\" with a mutex.")
+	expected.append("This appears to be the end of a non-atomic series of operations.\n" + 
+		 							"Consider protecting \"z\" with a mutex.")
+	
+	for message in messages:
+		assert message in expected
+	
+	for message in expected:
+		assert message in messages
+
 # Unit test for manualLockUnlock.py
 def test_manual_lock_unlock():
 

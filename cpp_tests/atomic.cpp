@@ -1,23 +1,33 @@
 #include <atomic>
 
-std::atomic_bool b;
 std::atomic_int x;
 std::atomic_int y;
+std::atomic_int z;
 
 int main()
 {
-  // bool a = b;     //Not atomic series of operations.
-  // bool c;         //
-  // c = b;          //
-  // b = c;          //Error, b may have been changed since read above.
+  // non atomic series of operations applied to atomic
+  // section equivalent to x += 5, (x = x + 10) * 5
+  int a = x.fetch_add(5);     //
+  a += 10;                    //
+  int b = a * 5;              //
+  x = b;                      // error, x may have changed since loaded
 
-  // bool d = false;
-  // b = d;          //No error, d is independant of b.
+  // Non atomic series of operations, not applied to atomic
+  // section equivalent to c = (c & y) | 10
+  int c;                      //
+  c = c & y;                  //
+  c |= 10;                    //
 
-  int z = x * y;  // 
-  x = z;          // error 
-  z = 5;          //
-  x += z;         // no error
+  // atomic operation applied to atomic
+  // section equivalent to y = 5
+  c = 5;
+  y = c;                        // no error, y does not depend on previous state
+
+  // non atomic series of operations applied to atomic
+  // section equivalent to z = z
+  int d = z;
+  d = z.exchange(d);            // error, z may have changed since loaded
 
 
   return 0;
