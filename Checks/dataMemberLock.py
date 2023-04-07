@@ -7,32 +7,62 @@ TODO Detect issues with data member that is accessed under a lock, but is also p
 """
 
 class Check():
-    def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
-        # alert_list: List[Alert] = list()
-        alert_list = list()
+	def __init__(self):
+		self.prevParents = list()
+		# Only alert once per member!
+		self.prevAlerts = list()
+				
+	def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
+		alert_list = list()
+		# I think that this might detect the anti-pattern
+		# No testing has been done.
+		if cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
+			if cursor.referenced.access_specifier == clang.cindex.AccessSpecifier.PUBLIC:
+				# Mutex's are allowed to be public and naturally get accessed under a lock... Exclude them
+				if cursor.type.spelling != "std::mutex" and cursor.type.spelling != "mutex":
+					# Get base cursor of where this cursor is location.. go up
+					c = findParent(self, cursor)
 
-        #code
+					if isScopeLocked(c, cursor.location):
+						if cursor.spelling not in self.prevAlerts:
+							self.prevAlerts.append(cursor.spelling)
+							alert_list.append(Alert(cursor.translation_unit, cursor.location, "Warning: " + cursor.spelling + " is accessed"
+                	                         + " under a lock, while being public!", severity="warning"))
+					
+		self.prevParents.append(cursor)
+		return alert_list
+	
+	
 
-        #print(f"{cursor.kind} at:\t({cursor.extent.start.line}, {cursor.extent.start.column})-({cursor.extent.end.line}, {cursor.extent.end.column})")
-        
-        if (cursor.kind == clang.cindex.CursorKind.FIELD_DECL and cursor.access_specifier == clang.cindex.AccessSpecifier.PUBLIC):
-                                      
-            # print(f"{cursor.kind} at:\t({cursor.extent.start.line}, {cursor.extent.start.column})-({cursor.extent.end.line}, {cursor.extent.end.column})")
-            print("Are you sure you want a public member called '" +cursor.displayname+ "' consider making this data member private")
-        
-        if str(cursor.access_specifier) == "AccessSpecifier.PUBLIC":
-                count = 0
-                contains = False
-                for cursor1 in cursor.get_children():
-                    count += 1
-                    if str(cursor1.displayname) != "class std::mutex" and str(cursor1.kind) == "CursorKind.TYPE_REF":
-                        contains = True
-                        print(cursor1.displayname)
-                    if count > 2:
-                        break
-                if contains and count == 2:
-                    alert_list.append(Alert(cursor.translation_unit, cursor.extent,
-                                            "Are you sure you want to have a public data member called '" + cursor.displayname + "'?\n"
-                                            "Consider making this data member private."))
-        
-        return alert_list
+def findParent(self, child :clang.cindex.Cursor ) -> clang.cindex.Cursor:
+	
+	for c in self.prevParents:
+		for i in c.walk_preorder():
+			if i == child:
+				return c
+			
+	return None
+
+	# Is the scope within the extent of 'cursor' locked?
+def isScopeLocked(cursor: clang.cindex.Cursor, loc: clang.cindex.SourceLocation) -> bool:
+	# First figure out which line contains a lock
+	lockPresent = False
+	lockLine = None
+
+	lockTypes = ["std::mutex", "mutex", "std::lock_guard<std::mutex>", "lock_guard<mutex>"]
+	# RAII locks first:
+	for c in cursor.walk_preorder():
+		#print(str(c.location) + " " + str(c.type.spelling))
+		if c.type.spelling in lockTypes:
+			
+			line = c.location.line
+			if lockLine != None:
+				lockLine = min(lockLine, line)
+			else:
+				lockLine = line
+			if loc.line >= lockLine:
+				lockPresent = True
+
+	
+	return lockPresent
+		
