@@ -1,5 +1,6 @@
 import clang.cindex
 import sys, os, importlib.util
+from contextlib import redirect_stdout
 from typing import List
 from formalCheckInterface import FormalCheckInterface
 from alerts import Alert
@@ -46,10 +47,17 @@ def main():
     # Traverse the AST
     alerts = traverse(tu.cursor, check_list)
 
-    for alert in alerts:
-        alert.display()
-        print()
-
+    # If we're using a regular terminal...
+    if sys.stdout.isatty():
+        # print to console. Make it look good!
+        for alert in alerts:
+            alert.display()
+    # If we're being piped to a file or FIFO...
+    else:
+        # Print without colour / unnecessary data.
+        for alert in alerts:
+            alert.display_unfancy()
+        
 # --------FUNCTIONS-------- #
 
 # Traverses Clangs cursor tree. A cursor points to a piece of code,

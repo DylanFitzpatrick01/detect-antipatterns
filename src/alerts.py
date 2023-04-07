@@ -43,6 +43,10 @@ class Alert:
         # Gets the C++ file, removes comments, then saves it  as an array, with one entry per line.
         lines = remove_comments("".join(open(self.tu.spelling).readlines()[0:])).splitlines()
 
+        term_colour("black", colours[self.severity])
+        print(f"{'-'*8}{self.severity.upper()}: '{self.tu.spelling}', ({self.location.start.line}, ", end='')
+        print(f"{self.location.start.column})-({self.location.end.line}, {self.location.end.column}){'-'*8}")
+
         # for: the line before the error line (if it exists), the error line,
         # and the line after the error line (if it exists).
         for index in range(max(self.location.start.line-1,1),min(self.location.end.line+2,len(lines)+1)):
@@ -62,12 +66,15 @@ class Alert:
 
             # If it's the last line in our location, display the error message.
             if index == self.location.end.line:
-                
                 term_colour("black", colours[self.severity])
-                print(f"\n{' '*(len(str(index))+2)}^ ", end='')
-                print(f"{'-'*8}In '{self.tu.spelling}', starting at ({self.location.start.line}, {self.location.start.column}){'-'*8}")
-                print(f"{' '*(len(str(index))+4)}" + self.message.replace("\n", "\n"+" "*(len(str(index))+4)), end='')
+                print(f"\n{' '*(len(str(index))+2)}^ " + self.message.replace("\n", "\n"+" "*(len(str(index))+4)), end='')
                 print('\033[m', end='\n')
+
+ # Displays our Alert (Unfancily)
+    def display_unfancy(self):
+        print(f"{self.severity.upper()}: '{self.tu.spelling}' ({self.location.start.line}, ", end='')
+        print(f"{self.location.start.column})-({self.location.end.line}, {self.location.end.column}): ", end='')
+        print(self.message.replace("\n", "\\n"),)
 
 
 # Inspired by https://stackoverflow.com/questions/241327/remove-c-and-c-comments-using-python
