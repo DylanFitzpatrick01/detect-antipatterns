@@ -61,49 +61,63 @@ void errorFunction(int state)
     }
 }
 
-void errorFunctionBool(bool cond)
+void forErr(bool cond)
 {
-    bool expected { false };
-    if (mIsSet2)
+    for (int i = 0; i < mState; i++)
     {
-        if (test == false && mState == 10)
+        if (i = 10)
         {
-            mIsSet2 = cond;
+            mState = 15;
         }
-    }
-}
-void ifElsePass(int state1, int state2)
-{
-    bool expected { false };
-    if (mIsSet.compare_exchange_strong(expected, true))
-    {
-        mState = state1;
-        if(mIsSet2.compare_exchange_strong(expected, true)) {
-            mIsSet2 = false;
-        }
-    }
-    else if (mState = 10)
-    {
-        mState = state2;
-    }
-    else
-    {
-        mState = state1;
-        while(mIsSet2)
+        else
         {
-            if (mIsSet)
-            {
-                mIsSet2 = true;
-            }
+            mState = 5;
         }
     }
 }
 
-void ifElseNestedError(int state1, int state2)
+void forPass(bool cond)
 {
     bool expected { false };
+    for (int i = 0; mIsSet2; i++)
+    {
+        if (i = 10)
+        {
+            mIsSet.compare_exchange_strong(expected, true);
+        }
+        else
+        {
+            mIsSet.compare_exchange_strong(expected, false);
+        }
+    }
+}
+
+
+
+void ifElsePass(int state1, int state2)
+{
+    bool expected { false };
+    while(mIsSet.compare_exchange_strong(expected, true))
+    {
+        do {
+            mIsSet = false;
+            mIsSet2 = false;
+        }while (mIsSet2.compare_exchange_strong(expected, true));
+    }
+}
+
+void doWhileErr(int state1, int state2)
+{
     do {
         mIsSet = test;
+        mState = 10;
+        while(mIsSet2)
+        {
+            if (mState = 15)
+            {
+                mIsSet2 = test;
+            }
+        }
     } while(!mIsSet);
     
 }

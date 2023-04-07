@@ -215,9 +215,19 @@ def test_atomic_check_and_set():
     assert alerts[3].message == 'Read and write detected instead of using compare_exchange_strong on lines [86 -> 88]\nWe suggest you use mIsSet.compare_exchange_strong(),\nas this read and write is non-atomical.'
 
     alerts: List[Alert] = run_check_on_file("../Checks/unsafeAtomics.py", "../cpp_tests/atomic_check_and_set_nested_err.cpp")
-    assert len(alerts) == 2
+    assert len(alerts) == 3
     assert alerts[0].message == 'Read and write detected instead of using compare_exchange_strong on lines [66 -> 70]\nWe suggest you use mIsSet2.compare_exchange_strong(),\nas this read and write is non-atomical.'
-    assert alerts[1].message == 'Read and write detected instead of using compare_exchange_strong on lines [93 -> 96]\nWe suggest you use mIsSet.compare_exchange_strong(),\nas this read and write is non-atomical.'
+    assert alerts[1].message == 'Read and write detected instead of using compare_exchange_strong on lines [97 -> 100]\nWe suggest you use mIsSet.compare_exchange_strong(),\nas this read and write is non-atomical.'
+    assert alerts[2].message == 'Read and write detected instead of using compare_exchange_strong on lines [97 -> 108]\nWe suggest you use mIsSet.compare_exchange_strong(),\nas this read and write is non-atomical.'
+
+    alerts: List[Alert] = run_check_on_file("../Checks/unsafeAtomics.py", "../cpp_tests/atomic_check_and_set_nested_err2.cpp")
+    assert len(alerts) == 4
+    assert alerts[0].message == 'Read and write detected instead of using compare_exchange_strong on lines [27 -> 29]\nWe suggest you use mIsSet.compare_exchange_strong(),\nas this read and write is non-atomical.'
+    assert alerts[1].message == 'Read and write detected instead of using compare_exchange_strong on lines [32 -> 34]\nWe suggest you use mIsSet2.compare_exchange_strong(),\nas this read and write is non-atomical.'
+    assert alerts[2].message == 'Read and write detected instead of using compare_exchange_strong on lines [114 -> 118]\nWe suggest you use mIsSet2.compare_exchange_strong(),\nas this read and write is non-atomical.'
+    assert alerts[3].message == 'Read and write detected instead of using compare_exchange_strong on lines [111 -> 112]\nWe suggest you use mIsSet.compare_exchange_strong(),\nas this read and write is non-atomical.'
+    
+
 # --------FUNCTIONS-------- #
 
 def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
