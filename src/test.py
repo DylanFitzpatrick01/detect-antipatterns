@@ -73,6 +73,16 @@ def test_std_thread_member():
         "Are you sure you want to have a thread called mThread3 without joining or detaching it in destructor?\n")
     assert len(alerts) == 2
 
+    alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
+                                            "../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor4.cpp")
+    assert alerts[0].message == (
+        "Are you sure you want to have a thread called mThread1 without joining or detaching it in destructor?\n")
+    assert alerts[1].message == (
+        "Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
+    assert alerts[2].message == (
+        "Are you sure you want to have a thread called mThread3 without joining or detaching it in destructor?\n")
+    assert len(alerts) == 3
+
 
 # Unit test for observers which are used in some antipatterns
 def test_observers():
