@@ -220,6 +220,11 @@ def test_immutable_object():
 	assert len(alerts) == 0
 
 
+def test_joiable_thread_check():
+    alerts: List[Alert] = run_check_on_file("../Checks/join_without_seeing_its_joinable.py", "../cpp_tests/joinable_test.cpp")
+    assert alerts[0].message ==( "Not all join functions are checked if thread is joinable")
+
+
 # --------FUNCTIONS-------- #
 
 def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
