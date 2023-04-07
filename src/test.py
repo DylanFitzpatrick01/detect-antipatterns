@@ -205,6 +205,19 @@ def test_immutable_object():
 	assert len(alerts) == 0
 
 
+def test_atomic_check_and_set():
+    # ERROR TESTS:
+    alerts: List[Alert] = run_check_on_file("../Checks/unsafeAtomics.py", "../cpp_tests/atomic_branching.cpp")
+    assert len(alerts) == 4
+    assert alerts[0].message == 'Read and write detected instead of using compare_exchange_strong on lines [54 -> 56]\nWe suggest you use mIsSet.compare_exchange_strong(),\nas this read and write is non-atomical.'
+    assert alerts[1].message == 'Read and write detected instead of using compare_exchange_strong on lines [63 -> 65]\nWe suggest you use mIsSet.compare_exchange_strong(),\nas this read and write is non-atomical.'
+    assert alerts[2].message == 'Read and write detected instead of using compare_exchange_strong on lines [74 -> 75]\nWe suggest you use mIsSet2.compare_exchange_strong(),\nas this read and write is non-atomical.'
+    assert alerts[3].message == 'Read and write detected instead of using compare_exchange_strong on lines [86 -> 88]\nWe suggest you use mIsSet.compare_exchange_strong(),\nas this read and write is non-atomical.'
+
+    alerts: List[Alert] = run_check_on_file("../Checks/unsafeAtomics.py", "../cpp_tests/atomic_check_and_set_nested_err.cpp")
+    assert len(alerts) == 2
+    assert alerts[0].message == 'Read and write detected instead of using compare_exchange_strong on lines [66 -> 70]\nWe suggest you use mIsSet2.compare_exchange_strong(),\nas this read and write is non-atomical.'
+    assert alerts[1].message == 'Read and write detected instead of using compare_exchange_strong on lines [93 -> 96]\nWe suggest you use mIsSet.compare_exchange_strong(),\nas this read and write is non-atomical.'
 # --------FUNCTIONS-------- #
 
 def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
@@ -247,3 +260,7 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
 	main.traverse(tu.cursor, check_list, alerts, list())
 
 	return alerts
+
+#FIXME
+if __name__ == "__main__":
+    test_atomic_check_and_set()

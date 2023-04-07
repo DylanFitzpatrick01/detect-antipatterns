@@ -109,8 +109,12 @@ class ConditionBodyStatement:
 	def __init__(self, cursor):
 		self.cursor = cursor
 		self.compound_stmt = None
+		self.compound_start = 0
+		self.compound_end = 0
 
 	
 	def __setattr__(self, __name: str, __value) -> None:
 		super().__setattr__(__name, __value)
-	
+		if __name == "compound_stmt" and __value:
+			self.compound_start = __value.extent.start.line
+			self.compound_end = __value.extent.end.line
