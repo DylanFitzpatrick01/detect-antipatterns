@@ -17,7 +17,6 @@ class tagObserver(Observer):
             self.tagToDetect(str)
             self.tagList(list)
             self.output(str)
-
         Args:
             tagToDetect (str): The Cursor.type.spelling to detect
         """
@@ -28,7 +27,6 @@ class tagObserver(Observer):
 
     def update(self, currentNode):
         """Updates the observer with the currentNode
-
         Args:
             currentNode (clang.cindex.Cursor): The node to update with
         """
@@ -43,8 +41,8 @@ class tagObserver(Observer):
                 elif self.tagToDetect == "std::lock_guard<std::mutex>" and currentNode.spelling == "lock_guard":
                         self.output += f"Detected a '{self.tagToDetect}' Lockguard's Name: '{currentNode.spelling}' at {currentNode.location}\n"
                         #print(f"Detected a '{self.tagToDetect}' Lockguard's Name: '{currentNode.spelling}' at {currentNode.location}")
-                
 
+          
 class cursorKindObserver(Observer):
     def __init__(self, kindToDetect: clang.cindex.CursorKind):
         """Initialiser
@@ -52,7 +50,6 @@ class cursorKindObserver(Observer):
             self.kindToDetect(clang.cindex.CursorKind)
             self.kindList(list)
             self.output(str)
-
         Args:
             kindToDetect (str): The clang.cindex.CursorKind to detect
         """
@@ -63,7 +60,6 @@ class cursorKindObserver(Observer):
 
     def update(self, currentNode):
         """Updates the observer with the currentNode
-
         Args:
             currentNode (clang.cindex.Cursor): The node to update with
         """
@@ -71,34 +67,6 @@ class cursorKindObserver(Observer):
             if currentNode.kind == self.kindToDetect:
                 self.output += f"Detected {currentNode.type.spelling}: '{currentNode.displayname}' at {currentNode.location}\n"
                 self.kindList.append(currentNode)
-
-
-class cursorTypeKindObserver(Observer):
-    def __init__(self, typeKindToDetect: clang.cindex.TypeKind):
-        """Initialiser
-        Initialises three members,
-            self.typeKindToDetect(clang.cindex.TypeKind)
-            self.typeKindList(list)
-            self.output(str)
-
-        Args:
-            typeKindToDetect (str): The clang.cindex.TypeKind
-        """
-        self.typeKindToDetect = typeKindToDetect
-        self.typeKindList = []
-        self.output = ""
-
-
-    def update(self, currentNode):
-        """Updates the observer with the currentNode
-
-        Args:
-            currentNode (clang.cindex.Cursor): The node to update with
-        """
-        self.typeKindList.append(currentNode)
-        if currentNode.type.kind == self.typeKindToDetect:
-            self.output += f"Detected {currentNode.type.spelling}: '{currentNode.displayname}' at {currentNode.location}\n"
-            self.typeKindList.append(currentNode)
 
 
 # Gráinne Ready
@@ -115,7 +83,6 @@ class EventSource():
     # Notifies all observers in list with event
     def notifyObservers(self, event: clang.cindex.Cursor):
         """Updates all observers in the EventSource list with an event
-
         Args:
             event (clang.cindex.Cursor): The cursor to update observers with
         """
@@ -126,7 +93,6 @@ class EventSource():
     # Adds observer to list
     def addObserver(self, observer: Observer):
         """Adds an observer to the EventSource list
-
         Args:
             observer (Observer): The observer to add to the EventSource list
         """
@@ -135,7 +101,6 @@ class EventSource():
 
     def addMultipleObservers(self, observers: List[Observer]):
         """Adds observers from a list into the EventSource list
-
         Args:
             observers (List[Observer]): A list of Observers to add to the EventSource
         """
@@ -144,7 +109,6 @@ class EventSource():
 
     def removeObserver(self, observer: Observer):
         """Removes an Observer from the EventSource list, if it is an element of it.
-
         Args:
             observer (Observer): The observer to remove
         """
@@ -155,7 +119,6 @@ class EventSource():
     def removeMultipleObservers(self, observers: List[Observer]):
         """Removes multiple observers from the EventSource list, checking if each is an element
         of the list before it attempts to remove it
-
         Args:
             observers (List[Observer]): The list of observers to remove from the EventSource list
         """
