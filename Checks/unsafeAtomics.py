@@ -37,18 +37,18 @@ class Check(FormalCheckInterface):
         if cursor.spelling == "compare_exchange_strong":
             # Mark the next atomic as being correctly checked then set in a single instruction
             self.nextAtomicIsCorrect = True
-            
+
         # If cursor is inside the most recent statement, but not inside its compound statements..   then its in the condition                                                               
         if (self.isInCondition(cursor, alerts)):
         #  (not any( (cursor.extent.start.line >= compound_stmt.extent.start.line and cursor.extent.start.column >= compound_stmt.extent.start.column) and (cursor.extent.end.line <= compound_stmt.extent.end.line) for compound_stmt in list(self.statement_keys)[-1].compound_stmt)):
           # If the current cursor is of type atomic
           if "std::atomic" in cursor.type.spelling and cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
-            
+
             # And we haven't marked the next atomic as being correctly checked and set
             if (not self.nextAtomicIsCorrect):
               # Then this atomic belongs to the condition of the most recent statement, so append it to the values of the statement key
               self.statement_dict[list(self.statement_keys)[-1]].append(cursor)
-            
+
             # Otherwise if we have marked the next atomic as being correctly checked and set
             else:
               # Don't do anything with the current atomic (cursor), and reset the boolean marker for the next atomic
@@ -57,21 +57,21 @@ class Check(FormalCheckInterface):
 
         else:
 
+          # TODO: This atomic write code is bare minimum and to be replaced upon integration into locked-calling
           # Check if the current cursor belongs to an atomic write
           if (self.possibleAtomicWrite):
-
             newAlert = Alert(cursor.translation_unit, self.possibleAtomicWrite[0].cursor.extent,
                 f"Read and write detected instead of using compare_exchange_strong on lines [{self.possibleAtomicWrite[0].cursor.extent.start.line} -> " +
                 f"{self.possibleAtomicWrite[1].extent.end.line}]\n" +
                 f"We suggest you use {self.possibleAtomicWrite[1].displayname}.compare_exchange_strong(),\n" +
                 f"as this read and write is non-atomical.", "error")
 
-            #TODO FIX LIMITED CHECKING CAPABILITY
-            # Check if cursor is a write
+            # Check if cursor is a write using true/false
             if (cursor.kind == clang.cindex.CursorKind.CXX_BOOL_LITERAL_EXPR):
               if newAlert not in alerts:
                 alerts.append(newAlert)
 
+            # Check if cursor is a write using other vars
             elif cursor.type.spelling in self.possibleAtomicWrite[1].type.spelling and (cursor.kind == clang.cindex.CursorKind.DECL_REF_EXPR or cursor.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR):
               if newAlert not in alerts:
                 alerts.append(newAlert)
@@ -79,25 +79,45 @@ class Check(FormalCheckInterface):
             if not "operator" in cursor.displayname:
               self.possibleAtomicWrite = None
 
+          # If this cursor is an atomic member reference
           if "std::atomic" in cursor.type.spelling and cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
+            
+            # If the next atomic is not correct,
             if (not self.nextAtomicIsCorrect):
+              # For every statement in our dictionary
               for statement in list(self.statement_dict):
+                # If the statement's body isn't empty
                 if (statement.compound_stmt):
+                  # And the cursor is inside of the statement
                   if cursor.extent.start.line >= statement.cursor.extent.start.line and cursor.extent.end.line <= statement.cursor.extent.end.line:
+                    
+                    # For each compound statement in the cursor
                     for compound_stmt in statement.compound_stmt:
+                      # Check if the cursor is inside the compound statement (and thus in the body)
                       if (compound_stmt.extent.end.line >= cursor.extent.end.line):
+                        
+                        # For each atomic condition in the statement
                         for atomic_condition in self.statement_dict[statement]:
+                            # Check if the cursor references the same cursor as the atomic condition
                             if atomic_condition.referenced.get_usr() == cursor.referenced.get_usr():
+                              
+                              # Set to check for a possible atomic write on the subsequent cursors
                               self.possibleAtomicWrite = (statement, cursor)
+                  
+                  # If the cursor is past the statement, remove the statement from the dictionary
                   else:
                     del self.statement_dict[statement]
+            
+            # If the next atomic is correct,
             else:
+              # Reset boolean for new cursors
               self.nextAtomicIsCorrect = False
-          
-      
+
+      # If cursor is not inside most recent statement
       else:
+        # Dispose of most recent statement
         del self.statement_dict[list(self.statement_keys)[-1]]
-      
+
 
   def scope_increased(self, alerts):
     self.branchLevel += 1
@@ -106,14 +126,24 @@ class Check(FormalCheckInterface):
     self.branchLevel -= 1
 
   def isInCondition(self, cursor, alerts):
-    
+
+    # If cursor is within most recent statement
     if (cursor.extent.start.line >= list(self.statement_keys)[-1].cursor.extent.start.line and \
           cursor.extent.end.line <= list(self.statement_keys)[-1].cursor.extent.end.line):
+      # Check with each compound statement inside that statement
       for comp in list(self.statement_keys)[-1].compound_stmt:
+        
+        # If cursor is inside the compound statement, return false
         if (cursor.extent.start.line > comp.extent.start.line) or \
           (cursor.extent.start.column > comp.extent.start.column and cursor.extent.start.line == comp.extent.start.line):
+            
             if (cursor.extent.end.line < comp.extent.end.line) or  \
               (cursor.extent.end.column < comp.extent.end.column and cursor.extent.end.line == comp.extent.end.line):
+                
               return False
+
+      # Else if the cursor is inside none of the compound statements, it must be in the condition, so return true 
       return True
+
+    # If cursor isn't within most recent statement, return False
     return False
