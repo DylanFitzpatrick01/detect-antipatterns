@@ -9,6 +9,8 @@ class Check():
     def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
         alert_list = list()
 
+        destructor = None
+
         if clang.cindex.CursorKind.CLASS_DECL == cursor.kind:
             for cursorChild in cursor.get_children():
                 if clang.cindex.CursorKind.FIELD_DECL == cursorChild.kind and "std::thread" in cursorChild.type.spelling:
