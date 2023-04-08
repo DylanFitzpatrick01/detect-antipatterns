@@ -8,6 +8,8 @@ threads = []
 
 class Check(FormalCheckInterface):
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
+		destructor = None
+		
 		if clang.cindex.CursorKind.CLASS_DECL == cursor.kind:
 			for cursorChild in cursor.get_children():
 				if clang.cindex.CursorKind.FIELD_DECL == cursorChild.kind and "std::thread" in cursorChild.type.spelling:
@@ -24,6 +26,7 @@ class Check(FormalCheckInterface):
 			for thread in threads:
 				#print(str(thread.displayname))
 				newAlert = Alert(thread.translation_unit, thread.extent, "Are you sure you want to have a thread called " + str(thread.displayname) +" without joining or detaching it in destructor?\n")
+				destructor = None
 
 				if newAlert not in alerts:
 					alerts.append(newAlert)

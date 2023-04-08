@@ -149,39 +149,49 @@ def test_public_mutex_members():
 	assert len(alerts) == 0
 
 def test_std_thread_member():
-  alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
-                                          "../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor.cpp")
-  assert alerts[0].message == ("Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
-  assert len(alerts) == 1
+	alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
+																					"../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor.cpp")
+	assert alerts[0].message == ("Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
+	assert len(alerts) == 1
 
 
-  alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
-                                          "../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor1.cpp")
-  assert alerts[0].message == (
-    "Are you sure you want to have a thread called mThread1 without joining or detaching it in destructor?\n")
-  assert alerts[1].message == (
-    "Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
-  assert alerts[2].message == (
-    "Are you sure you want to have a thread called mThread3 without joining or detaching it in destructor?\n")
-  assert len(alerts) == 3
+	alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
+																					"../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor1.cpp")
+	assert alerts[0].message == (
+		"Are you sure you want to have a thread called mThread1 without joining or detaching it in destructor?\n")
+	assert alerts[1].message == (
+		"Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
+	assert alerts[2].message == (
+		"Are you sure you want to have a thread called mThread3 without joining or detaching it in destructor?\n")
+	assert len(alerts) == 3
 
 
-  alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
-                                          "../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor2.cpp")
-  assert alerts[0].message == (
-    "Are you sure you want to have a thread called mThread1 without joining or detaching it in destructor?\n")
-  assert alerts[1].message == (
-    "Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
-  assert len(alerts) == 2
+	alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
+																					"../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor2.cpp")
+	assert alerts[0].message == (
+		"Are you sure you want to have a thread called mThread1 without joining or detaching it in destructor?\n")
+	assert alerts[1].message == (
+		"Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
+	assert len(alerts) == 2
 
 
-  alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
-                                          "../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor3.cpp")
-  assert alerts[0].message == (
-    "Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
-  assert alerts[1].message == (
-    "Are you sure you want to have a thread called mThread3 without joining or detaching it in destructor?\n")
-  assert len(alerts) == 2
+	alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
+																				"../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor3.cpp")
+	assert alerts[0].message == (
+			"Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
+	assert alerts[1].message == (
+			"Are you sure you want to have a thread called mThread3 without joining or detaching it in destructor?\n")
+	assert len(alerts) == 2
+
+	alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
+																					"../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor4.cpp")
+	assert alerts[0].message == (
+			"Are you sure you want to have a thread called mThread1 without joining or detaching it in destructor?\n")
+	assert alerts[1].message == (
+			"Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
+	assert alerts[2].message == (
+			"Are you sure you want to have a thread called mThread3 without joining or detaching it in destructor?\n")
+	assert len(alerts) == 3
 
 
 # Unit test for member_locked_in_some_methods.py
@@ -221,8 +231,8 @@ def test_immutable_object():
 
 
 def test_joiable_thread_check():
-    alerts: List[Alert] = run_check_on_file("../Checks/join_without_seeing_its_joinable.py", "../cpp_tests/joinable_test.cpp")
-    assert alerts[0].message ==( "Not all join functions are checked if thread is joinable")
+		alerts: List[Alert] = run_check_on_file("../Checks/join_without_seeing_its_joinable.py", "../cpp_tests/joinable_test.cpp")
+		assert alerts[0].message ==( "Not all join functions are checked if thread is joinable")
 
 
 # --------FUNCTIONS-------- #
