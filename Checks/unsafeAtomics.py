@@ -23,7 +23,7 @@ class Check(FormalCheckInterface):
 	# If entered method tell it next return
 
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
-		if cursor.location.line == 23:
+		if cursor.location.line == 26:
 			print("at the problem area")
 
 		if cursor.kind == clang.cindex.CursorKind.VAR_DECL or cursor.kind == clang.cindex.CursorKind.FIELD_DECL:
@@ -65,6 +65,10 @@ class Check(FormalCheckInterface):
 				self.skipNext = True
 
 				self.isFetch = True
+		
+		elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
+			self.atomic = None
+			self.investigate_new(None)
 
 		# This is some bullshit, some binary operators have an "operator type" 
 		# curso under them. Variables with operator in them will not be detected.
@@ -80,12 +84,12 @@ class Check(FormalCheckInterface):
 		elif cursor.kind == clang.cindex.CursorKind.DECL_REF_EXPR or cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
 			# Atomic to atomic writes are okay, don't investigate
 			# print(cursor.referenced.type.spelling)
-			if "std::atomic" in cursor.referenced.type.spelling and "std::atomic" not in self.investagating.referenced.type.spelling:
+			if self.investagating is not None and "std::atomic" in cursor.referenced.type.spelling and "std::atomic" not in self.investagating.referenced.type.spelling:
 				print(self.investagating.referenced.type.spelling)
 				self.affected[cursor.referenced.get_usr()].append(self.investagating.referenced)
 				self.affectedSeen += 1
 			elif not self.skipNext:
-				if self.atomicWrite:
+				if self.atomicWrite and self.atomic is not None:
 					for key in self.affected:
 						for var in self.affected[key]:
 							if cursor.referenced.get_usr() == var.get_usr():
@@ -100,7 +104,7 @@ class Check(FormalCheckInterface):
 				elif not self.isFetch or "std::atomic" in cursor.referenced.kind.spelling:
 					for key in self.affected:
 						for var in self.affected[key]:
-							if cursor.referenced.get_usr() == var.get_usr() and "__atomic" not in self.investagating.type.spelling and self.investagating.referenced not in self.affected[key]:
+							if self.investagating is not None and cursor.referenced.get_usr() == var.get_usr() and "__atomic" not in self.investagating.type.spelling and self.investagating.referenced not in self.affected[key]:
 								print(cursor.referenced.type.spelling)
 								
 								self.affected[key].append(self.investagating.referenced)
@@ -114,7 +118,7 @@ class Check(FormalCheckInterface):
 		#     print("  ", var.get_usr())
 
 	def investigate_new(self, cursor):
-		if self.affectedSeen == 0:
+		if self.affectedSeen == 0 and self.investagating is not None:
 			self.remove_affected(self.investagating)
 
 		self.affectedSeen = 0

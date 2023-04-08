@@ -1,4 +1,5 @@
 #include <atomic>
+#include <stdio.h>
 
 std::atomic_int x;
 std::atomic_int y;
@@ -22,6 +23,7 @@ int main()
   // atomic operation applied to atomic
   // section equivalent to y = 5
   c = 5;
+  printf("y is %d\n", (int) y); // test algorithm, may screw up test if no measures taken
   y = c;                        // no error, y does not depend on previous state
 
   // non atomic series of operations applied to atomic
