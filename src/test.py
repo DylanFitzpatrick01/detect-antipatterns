@@ -237,6 +237,7 @@ def test_joiable_thread_check():
 def test_multiple_lock_order():
 	alerts: List[Alert] = run_check_on_file("../Checks/multiple_lock_order.py", "../cpp_tests/multiple_locks_order.cpp")
 	assert alerts[0].message == ("Error!: mutex mMutex1 is in the incorrect order!")
+	assert len(alerts) == 1
 
 	alerts: List[Alert] = run_check_on_file("../Checks/multiple_lock_order.py", "../cpp_tests/joinable_test.cpp")
 	assert len(alerts) == 0
