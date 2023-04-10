@@ -65,19 +65,22 @@ class Check(FormalCheckInterface):
                 f"{self.possibleAtomicWrite[1].extent.end.line}]\n" +
                 f"We suggest you use {self.possibleAtomicWrite[1].displayname}.compare_exchange_strong(),\n" +
                 f"as this read and write is non-atomical.", "error")
-
-            # Check if cursor is a write using true/false
-            if (cursor.kind == clang.cindex.CursorKind.CXX_BOOL_LITERAL_EXPR):
+            if "operator" in cursor.displayname:
               if newAlert not in alerts:
                 alerts.append(newAlert)
-
-            # Check if cursor is a write using other vars
-            elif cursor.type.spelling in self.possibleAtomicWrite[1].type.spelling and (cursor.kind == clang.cindex.CursorKind.DECL_REF_EXPR or cursor.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR):
-              if newAlert not in alerts:
-                alerts.append(newAlert)
-            # TODO: Check if operator is always before the values written with?
-            if not "operator" in cursor.displayname:
-              self.possibleAtomicWrite = None
+                self.possibleAtomicWrite = None
+            ## Check if cursor is a write using true/false
+            #if (cursor.kind == clang.cindex.CursorKind.CXX_BOOL_LITERAL_EXPR):
+            #  if newAlert not in alerts:
+            #    alerts.append(newAlert)
+#
+            ## Check if cursor is a write using other vars
+            #elif cursor.type.spelling in self.possibleAtomicWrite[1].type.spelling and (cursor.kind == clang.cindex.CursorKind.DECL_REF_EXPR or cursor.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR):
+            #  if newAlert not in alerts:
+            #    alerts.append(newAlert)
+            ## TODO: Check if operator is always before the values written with?
+            #if not "operator" in cursor.displayname:
+            #  self.possibleAtomicWrite = None
 
           # If this cursor is an atomic member reference
           if "std::atomic" in cursor.type.spelling and cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
@@ -99,7 +102,7 @@ class Check(FormalCheckInterface):
                         # For each atomic condition in the statement
                         for atomic_condition in self.statement_dict[statement]:
                             # Check if the cursor references the same cursor as the atomic condition
-                            if atomic_condition.referenced.get_usr() == cursor.referenced.get_usr():
+                            if atomic_condition.referenced.get_usr() == cursor.referenced.get_usr() and (atomic_condition != cursor):
                               
                               # Set to check for a possible atomic write on the subsequent cursors
                               self.possibleAtomicWrite = (statement, cursor)
