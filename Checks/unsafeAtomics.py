@@ -23,9 +23,6 @@ class Check(FormalCheckInterface):
 	# If entered method tell it next return
 
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
-		if cursor.location.line == 26:
-			print("at the problem area")
-
 		if cursor.kind == clang.cindex.CursorKind.VAR_DECL or cursor.kind == clang.cindex.CursorKind.FIELD_DECL:
 			if "std::atomic" in cursor.type.spelling:
 				self.affected[cursor.referenced.get_usr()] = list()
