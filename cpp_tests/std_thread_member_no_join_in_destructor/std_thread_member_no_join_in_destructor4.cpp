@@ -43,25 +43,6 @@ void stop()
     }
 }
 
-~MyClass()
-{
-    std::cout << "MyClass desctructor, on thread " << std::this_thread::get_id() << "\n";
-    if(mThread1)
-    {
-        mStopping = true;
-        std::cout << "Stopping worker thread, on thread " << std::this_thread::get_id() << "\n";
-//        if(mThread1->joinable())
-//        {
-//            mThread1->join();
-//        }
-        if(mThread3->joinable())
-        {
-            mThread3->detach();
-        }
-    }
-std::cout << "Creating MyClass instance, on thread " << std::this_thread::get_id() << "\n";
-}
-
 
 private:
     std::unique_ptr<std::thread> mThread1;

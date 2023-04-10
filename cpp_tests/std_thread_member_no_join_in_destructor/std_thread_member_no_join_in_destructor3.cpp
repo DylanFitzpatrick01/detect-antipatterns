@@ -52,11 +52,11 @@ void stop()
         std::cout << "Stopping worker thread, on thread " << std::this_thread::get_id() << "\n";
         if(mThread1->joinable())
         {
-            mThread1.join();
+            mThread1->join();
         }
-//        if(mThread3.joinable())
+//        if(mThread3->joinable())
 //        {
-//            mThread3.detach();
+//            mThread3->detach();
 //        }
     }
 std::cout << "Creating MyClass instance, on thread " << std::this_thread::get_id() << "\n";
