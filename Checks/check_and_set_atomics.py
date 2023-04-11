@@ -10,7 +10,6 @@ class Check(FormalCheckInterface):
   statement_keys = statement_dict.keys()  # The keys of statement_dict, so we can get the most recent if statement using [-1] indexing
   nextAtomicIsCorrect = False
   def __init__(self):
-    self.readWritesToCheck = []
     
     self.affected = dict()      # Dict of atomics and lists of affected vars
     self.investagating = list() # Stack of cursors
@@ -18,14 +17,11 @@ class Check(FormalCheckInterface):
     self.possibleAtomicWrite = None
     self.branchLevel = 0        # The level of branches we're in. 0 is none, >1
                                 # is a nested branch
-    self.endIfReached = False
 
   # When a var will be changed, add it to the stack. When moved on, remove it
   # If entered method tell it next return
 
   def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
-    if cursor.extent.start.line == 45:
-      print("h")
     # If we found a statement, add it to the list
     if cursor.kind in self.statement_kinds:
       self.statement_dict[ConditionBodyStatement(cursor)] = list()
@@ -36,7 +32,7 @@ class Check(FormalCheckInterface):
       # Check if cursor is inside if statement
       if cursor.extent.start.line <= list(self.statement_keys)[-1].cursor.extent.end.line:
         # If the cursor belongs to a single check-then-set instruction
-        if cursor.spelling == "compare_exchange_strong":
+        if "compare_exchange" in cursor.spelling:
             # Mark the next atomic as being correctly checked then set in a single instruction
             self.nextAtomicIsCorrect = True
 
@@ -58,37 +54,16 @@ class Check(FormalCheckInterface):
 
 
         else:
-
-          # TODO: This atomic write code is bare minimum and to be replaced upon integration into locked-calling
-          # Check if the current cursor belongs to an atomic write
           if (self.possibleAtomicWrite):
             newAlert = Alert(cursor.translation_unit, self.possibleAtomicWrite[0].cursor.extent,
                 f"Read and write detected instead of using compare_exchange_strong on lines [{self.possibleAtomicWrite[0].cursor.extent.start.line} -> " +
                 f"{self.possibleAtomicWrite[1].extent.end.line}]\n" +
                 f"We suggest you use {self.possibleAtomicWrite[1].displayname}.compare_exchange_strong(),\n" +
                 f"as this read and write is non-atomical.", "error")
+            
             if newAlert not in alerts:
                   alerts.append(newAlert)
                   self.possibleAtomicWrite = None
-            
-            if "operator" in cursor.displayname:
-              if cursor.kind == clang.cindex.CursorKind.DECL_REF_EXPR and newAlert not in alerts:
-                alerts.append(newAlert)
-                self.possibleAtomicWrite = None
-
-            elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and ("fetch" in cursor.spelling or "exchange" in cursor.spelling or "store" in cursor.spelling):
-              if "atomic" in list(list(cursor.get_children())[0].get_children())[0].type.spelling:
-                if newAlert not in alerts:
-                  alerts.append(newAlert)
-                  self.possibleAtomicWrite = None
-            
-            elif cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR and "std::atomic" in cursor.type.spelling:
-              if newAlert not in alerts:
-                alerts.append(newAlert)
-                self.possibleAtomicWrite = None
-            
-            else:
-              self.possibleAtomicWrite = None
 
           # If this cursor is an atomic member reference
           if "std::atomic" in cursor.type.spelling and cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
@@ -103,17 +78,15 @@ class Check(FormalCheckInterface):
               self.nextAtomicIsCorrect = False
           
           # cursor kind if statements are from unsafeAtomics.py, I do not take credit for them!
-          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "store" in cursor.spelling:
-            a = list(cursor.get_children())
-            b = list(a[0].get_children())
+          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "store" in cursor.spelling:               # atomic.store() handling
             if "atomic" in list(list(cursor.get_children())[0].get_children())[0].referenced.type.spelling:
               self.checkConditions(list(cursor.get_children())[0])
           
-          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and ("fetch" in cursor.spelling or "exchange" in cursor.spelling):
+          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "exchange" in cursor.spelling: # atomic.exchange() handling
             if "atomic" in list(list(cursor.get_children())[0].get_children())[0].referenced.type.spelling:
               self.checkConditions(list(cursor.get_children())[0])
           
-          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "operator" in cursor.spelling:
+          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "operator" in cursor.spelling:  # Generic operator handling
             if "atomic" in list(cursor.get_children())[0].type.spelling:
               self.checkConditions(list(cursor.get_children())[0])
 
