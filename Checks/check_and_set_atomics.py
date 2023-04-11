@@ -9,11 +9,8 @@ class Check(FormalCheckInterface):
   statement_dict = dict()        # Key - If statement cursor, Value - List of cursors in the if condition
   statement_keys = statement_dict.keys()  # The keys of statement_dict, so we can get the most recent if statement using [-1] indexing
   nextAtomicIsCorrect = False
+  atomic = None
   def __init__(self):
-    
-    self.affected = dict()      # Dict of atomics and lists of affected vars
-    self.investagating = list() # Stack of cursors
-    self.skipNext = False
     self.possibleAtomicWrite = None
     self.branchLevel = 0        # The level of branches we're in. 0 is none, >1
                                 # is a nested branch
@@ -53,8 +50,10 @@ class Check(FormalCheckInterface):
               self.nextAtomicIsCorrect = False
 
 
-        else:
+        else: # If there is a write
           if (self.possibleAtomicWrite):
+            # possibleAtomicWrite = ( ConditionBodyStatement, atomic )
+            # Create the error message using the possibleAtomicWrite Tuple
             newAlert = Alert(cursor.translation_unit, self.possibleAtomicWrite[0].cursor.extent,
                 f"Read and write detected instead of using compare_exchange_strong on lines [{self.possibleAtomicWrite[0].cursor.extent.start.line} -> " +
                 f"{self.possibleAtomicWrite[1].extent.end.line}]\n" +
@@ -64,31 +63,37 @@ class Check(FormalCheckInterface):
             if newAlert not in alerts:
                   alerts.append(newAlert)
                   self.possibleAtomicWrite = None
-
-          # If this cursor is an atomic member reference
-          if "std::atomic" in cursor.type.spelling and cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
-            
-            # If the next atomic is not correct,
-            if (not self.nextAtomicIsCorrect):
-              self.checkConditions(cursor)
-            
-            # If the next atomic is correct,
-            else:
-              # Reset boolean for new cursors
-              self.nextAtomicIsCorrect = False
           
-          # cursor kind if statements are from unsafeAtomics.py, I do not take credit for them!
-          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "store" in cursor.spelling:               # atomic.store() handling
-            if "atomic" in list(list(cursor.get_children())[0].get_children())[0].referenced.type.spelling:
-              self.checkConditions(list(cursor.get_children())[0])
+          # These cursor kind if statements are inspired by unsafeAtomics.py, Leon's antipattern.
+          if cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "store" in cursor.spelling:               # atomic.store() handling mInt.store(x)
+            # Ensure the cursor has children (Error handling)
+            if (list(cursor.get_children())):
+              # Ensure the cursor has grandchildren (Error handling)
+              if (list(list(cursor.get_children())[0].get_children())[0]):
+                if "atomic" in list(list(cursor.get_children())[0].get_children())[0].referenced.type.spelling:
+                  self.checkConditions(list(list(cursor.get_children())[0].get_children())[0])
           
-          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "exchange" in cursor.spelling: # atomic.exchange() handling
-            if "atomic" in list(list(cursor.get_children())[0].get_children())[0].referenced.type.spelling:
-              self.checkConditions(list(cursor.get_children())[0])
+          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "exchange" in cursor.spelling: # atomic.exchange() handling mInt.exchange(x)
+            # Ensure the cursor has children (Error handling)
+            if (list(cursor.get_children())):
+              # Ensure the cursor has grandchildren (Error handling)
+              if (list(list(cursor.get_children())[0].get_children())[0]):
+                if "atomic" in list(list(cursor.get_children())[0].get_children())[0].referenced.type.spelling:
+                  self.checkConditions(list(list(cursor.get_children())[0].get_children())[0])
           
-          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "operator" in cursor.spelling:  # Generic operator handling
-            if "atomic" in list(cursor.get_children())[0].type.spelling:
-              self.checkConditions(list(cursor.get_children())[0])
+          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "operator=" in cursor.spelling:  # Generic operator handling for mInt = x
+            # Ensure the cursor has children (Error handling)
+            if (list(cursor.get_children())):
+              # If an atomic is in the first child of the operator=, then we're writing to an atomic
+              if "atomic" in list(cursor.get_children())[0].type.spelling:
+                self.checkConditions(list(cursor.get_children())[0])
+          
+          elif cursor.kind == clang.cindex.CursorKind.BINARY_OPERATOR:  # Handling for rare binary operators, mInt = x
+            # Ensure the cursor has children (Error handling)
+            if (list(cursor.get_children())):
+              # If an atomic is in the first child of the binary operator, then we're writing to an atomic
+              if "atomic" in list(cursor.get_children())[0].type.spelling:
+                self.checkConditions(list(cursor.get_children())[0])
 
       # If cursor is not inside most recent statement
       else:
@@ -99,8 +104,10 @@ class Check(FormalCheckInterface):
   def scope_increased(self, alerts):
     self.branchLevel += 1
 
+
   def scope_decreased(self, alerts):
     self.branchLevel -= 1
+
 
   def isInCondition(self, cursor, alerts):
 
@@ -109,11 +116,11 @@ class Check(FormalCheckInterface):
           cursor.extent.end.line <= list(self.statement_keys)[-1].cursor.extent.end.line):
       # Check with each compound statement inside that statement
       for comp in list(self.statement_keys)[-1].compound_stmt:
-        
+
         # If cursor is inside the compound statement, return false
         if (cursor.extent.start.line > comp.extent.start.line) or \
           (cursor.extent.start.column > comp.extent.start.column and cursor.extent.start.line == comp.extent.start.line):
-            
+
             if (cursor.extent.end.line < comp.extent.end.line) or  \
               (cursor.extent.end.column < comp.extent.end.column and cursor.extent.end.line == comp.extent.end.line):
                 

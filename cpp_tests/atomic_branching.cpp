@@ -21,6 +21,25 @@ MyClass()
 
 // However, they can only be used in very particular ways, and they work very differently to locks/mutexes.
 
+
+int getVal()
+{
+    if (mInt == 5)
+    {
+        mState = mInt;
+        mState = 15 + 23;
+        mState = 15 + mInt + 23;
+        mInt = 15;
+        mInt = 4 + 5;
+        mInt = mState;
+    }
+    else {
+        mInt.store(15);
+        mInt.exchange(23);
+    }
+}
+
+
 int getState()
 {
     if(mIsSet)
@@ -99,5 +118,6 @@ private:
     bool test;
     std::atomic<bool> mIsSet;
     std::atomic<bool> mIsSet2;
+    std::atomic<int> mInt;
     int mState;
 };
