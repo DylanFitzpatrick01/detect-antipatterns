@@ -110,8 +110,8 @@ class Check(FormalCheckInterface):
               self.checkConditions(list(cursor.get_children())[0])
           
           elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and ("fetch" in cursor.spelling or "exchange" in cursor.spelling):
-            if "atomic" in list(list(cursor.get_children())[0].get_children())[0].type.spelling:
-              self.checkConditions(list(list(cursor.get_children())[0].get_children())[0])
+            if "atomic" in list(list(cursor.get_children())[0].get_children())[0].referenced.type.spelling:
+              self.checkConditions(list(cursor.get_children())[0])
           
           elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "operator" in cursor.spelling:
             if "atomic" in list(cursor.get_children())[0].type.spelling:

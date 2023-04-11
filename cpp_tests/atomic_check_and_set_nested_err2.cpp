@@ -31,7 +31,7 @@ int getState()
     }
     while (mIsSet2)
     {
-        mIsSet2 = false;
+        mIsSet2.exchange(true);
     }
     return -1;
 }
