@@ -58,5 +58,6 @@ class FormalCheckInterface(metaclass=abc.ABCMeta):
 	def scope_decreased(self, alerts):
 		pass
 
+  # Informs the function that we're starting at a new function.
 	def new_function(self, cursor, alerts):
 		pass

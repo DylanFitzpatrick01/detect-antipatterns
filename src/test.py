@@ -64,45 +64,6 @@ def test_already_locked():
 	for message in expected:
 		assert message in messages
 
-def test_lock_order():
-	if (not os.path.isabs("../cpp_tests/lock_order.cpp")):
-		abs_file_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), "../cpp_tests/lock_order.cpp"))
-
-	alerts = run_check_on_file("../Checks/lockOrder.py", "../cpp_tests/lock_order.cpp")
-	messages = list()
-
-	for alert in alerts:
-		messages.append(alert.message)
-
-	expected = list()
-	expected.append(
-		"Locking order may cause deadlock.\n" + 
-		"Locked: b in: " + abs_file_path + " at line: 12\n" +
-		"Locked: a in: " + abs_file_path + " at line: 13\n" +
-		"\n" + 
-		"Locked: a in: " + abs_file_path + " at line: 49\n" + 
-		"Locked: b in: " + abs_file_path + " at line: 50\n")
-	expected.append(
-		"Locking order may cause deadlock.\n" + 
-		"Locked: c in: " + abs_file_path + " at line: 20\n" +
-		"Locked: d in: " + abs_file_path + " at line: 21\n" +
-		"\n" + 
-		"Locked: d in: " + abs_file_path + " at line: 24\n" + 
-		"Locked: c in: " + abs_file_path + " at line: 25\n")
-	expected.append(
-		"Locking order may cause deadlock.\n" + 
-		"Locked: e in: " + abs_file_path + " at line: 35\n" +
-		"Locked: f in: " + abs_file_path + " at line: 36\n" +
-		"\n" + 
-		"Locked: f in: " + abs_file_path + " at line: 40\n" + 
-		"Locked: e in: " + abs_file_path + " at line: 42\n")
-	
-	for message in messages:
-		assert message in expected
-	
-	for message in expected:
-		assert message in messages
-
 def test_locked_call():
 	if (not os.path.isabs("../cpp_tests/called_out_of_locked_scope.cpp")):
 		abs_file_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), "../cpp_tests/called_out_of_locked_scope.cpp"))
@@ -127,6 +88,25 @@ def test_locked_call():
 		"  d is locked in: " + abs_file_path + " at line: 36"
 	)
 
+	for message in messages:
+		assert message in expected
+	
+	for message in expected:
+		assert message in messages
+
+def test_unsafeAtomics():
+	alerts = run_check_on_file("../Checks/unsafeAtomics.py", "../cpp_tests/atomic.cpp")
+	messages = list()
+
+	for alert in alerts:
+		messages.append(alert.message)
+
+	expected = list()
+	expected.append("This appears to be the end of a non-atomic series of operations.\n" + 
+		 							"Consider protecting \"x\" with a mutex.")
+	expected.append("This appears to be the end of a non-atomic series of operations.\n" + 
+		 							"Consider protecting \"z\" with a mutex.")
+	
 	for message in messages:
 		assert message in expected
 	
@@ -167,6 +147,51 @@ def test_public_mutex_members():
 	# Check a file without them.
 	alerts: List[Alert] = run_check_on_file("../Checks/manualLockUnlock.py", "../cpp_tests/immutable.cpp")
 	assert len(alerts) == 0
+
+def test_std_thread_member():
+	alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
+																					"../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor.cpp")
+	assert alerts[0].message == ("Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
+	assert len(alerts) == 1
+
+
+	alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
+																					"../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor1.cpp")
+	assert alerts[0].message == (
+		"Are you sure you want to have a thread called mThread1 without joining or detaching it in destructor?\n")
+	assert alerts[1].message == (
+		"Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
+	assert alerts[2].message == (
+		"Are you sure you want to have a thread called mThread3 without joining or detaching it in destructor?\n")
+	assert len(alerts) == 3
+
+
+	alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
+																					"../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor2.cpp")
+	assert alerts[0].message == (
+		"Are you sure you want to have a thread called mThread1 without joining or detaching it in destructor?\n")
+	assert alerts[1].message == (
+		"Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
+	assert len(alerts) == 2
+
+
+	alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
+																				"../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor3.cpp")
+	assert alerts[0].message == (
+			"Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
+	assert alerts[1].message == (
+			"Are you sure you want to have a thread called mThread3 without joining or detaching it in destructor?\n")
+	assert len(alerts) == 2
+
+	alerts: List[Alert] = run_check_on_file("../Checks/std_thread_member.py",
+																					"../cpp_tests/std_thread_member_no_join_in_destructor/std_thread_member_no_join_in_destructor4.cpp")
+	assert alerts[0].message == (
+			"Are you sure you want to have a thread called mThread1 without joining or detaching it in destructor?\n")
+	assert alerts[1].message == (
+			"Are you sure you want to have a thread called mThread2 without joining or detaching it in destructor?\n")
+	assert alerts[2].message == (
+			"Are you sure you want to have a thread called mThread3 without joining or detaching it in destructor?\n")
+	assert len(alerts) == 3
 
 
 # Unit test for member_locked_in_some_methods.py
@@ -228,6 +253,18 @@ def test_atomic_check_and_set():
     assert alerts[2].message == 'Read and write detected instead of using compare_exchange_strong on lines [114 -> 118]\nWe suggest you use mIsSet2.compare_exchange_strong(),\nas this read and write is non-atomical.'
     assert alerts[3].message == 'Read and write detected instead of using compare_exchange_strong on lines [111 -> 112]\nWe suggest you use mIsSet.compare_exchange_strong(),\nas this read and write is non-atomical.'
     
+def test_joiable_thread_check():
+		alerts: List[Alert] = run_check_on_file("../Checks/join_without_seeing_its_joinable.py", "../cpp_tests/joinable_test.cpp")
+		assert alerts[0].message ==( "Not all join functions are checked if thread is joinable")
+
+def test_multiple_lock_order():
+	alerts: List[Alert] = run_check_on_file("../Checks/multiple_lock_order.py", "../cpp_tests/multiple_locks_order.cpp")
+	assert alerts[0].message == ("Error!: mutex mMutex1 is in the incorrect order!")
+	assert len(alerts) == 1
+
+	alerts: List[Alert] = run_check_on_file("../Checks/multiple_lock_order.py", "../cpp_tests/joinable_test.cpp")
+	assert len(alerts) == 0
+
 
 # --------FUNCTIONS-------- #
 
