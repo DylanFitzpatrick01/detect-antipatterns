@@ -116,32 +116,6 @@ class Check(FormalCheckInterface):
 						if newAlert not in alerts:
 							alerts.append(newAlert)
 
-			
-			# Atomic to atomic writes are okay, don't investigate
-			# if self.investagating is not None and "std::atomic" in cursor.referenced.type.spelling and "std::atomic" not in self.investagating.referenced.type.spelling:
-			# 	self.affected[cursor.referenced.get_usr()].append(self.investagating.referenced)
-			# 	self.affectedSeen += 1
-			# elif not self.skipNext:
-			# 	if self.atomicWrite and self.atomic is not None:
-			# 		for key in self.affected:
-			# 			for var in self.affected[key]:
-			# 				if cursor.referenced.get_usr() == var.get_usr():
-			# 					self.atomicWrite = False
-
-			# 					newAlert = Alert(self.atomic.translation_unit, self.atomic.extent,
-			# 													 "This appears to be the end of a non-atomic series of operations.\n" +
-			# 													 "Consider protecting \"" + self.atomic.spelling + "\" with a mutex.")
-			# 					if newAlert not in alerts:
-			# 						alerts.append(newAlert)
-			# 	elif not self.isFetch or "std::atomic" in cursor.referenced.kind.spelling:
-			# 		for key in self.affected:
-			# 			for var in self.affected[key]:
-			# 				if self.investagating is not None and cursor.referenced.get_usr() == var.get_usr() and "__atomic" not in self.investagating.type.spelling and self.investagating.referenced not in self.affected[key]:
-			# 					self.affected[key].append(self.investagating.referenced)
-			# 					self.affectedSeen += 1
-			# elif self.skipNext:
-			# 	self.skipNext = False
-
 	def investigate_new(self, cursor):
 		if self.affectedSeen == 0 and self.investagating is not None:
 			self.remove_affected(self.investagating)
