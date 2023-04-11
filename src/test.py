@@ -308,7 +308,3 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
 	main.traverse(tu.cursor, check_list, alerts, list())
 
 	return alerts
-
-#FIXME
-if __name__ == "__main__":
-    test_atomic_check_and_set()
