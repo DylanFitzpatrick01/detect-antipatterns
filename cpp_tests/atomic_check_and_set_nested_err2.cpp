@@ -23,13 +23,15 @@ MyClass()
 
 int getState()
 {
-    if(mIsSet)
-    {
-        mIsSet.store(test);
+    bool expected { false };
+    for(int i = 0; mIsSet; i++) {
+        if (i == 5) {
+            mIsSet = false;
+        }
     }
-    while (mIsSet)          // Not a check and set, two different atomics
+    while (mIsSet2)
     {
-        mIsSet2 = false;
+        mIsSet2.exchange(true);
     }
     return -1;
 }
@@ -42,62 +44,88 @@ void passFunction(int state)                                // CORRECT TEST-AND-
     {
         mState = state;
     }
-    if (mIsSet)
+    if (mIsSet.compare_exchange_strong(expected, true))
     {
-        mIsSet.store(test);                                 // Atomic to atomic writes are ok
+        mIsSet = mIsSet2;                                    // Atomic to atomic writes are ok
     }                                     
 }
 
 
 void errorFunction(int state)
 {
-    if(!mIsSet && test)                 // The mistake is here, we first do a read and on the next line a write. This creates a chance that another thread
+    bool expected { false };
+    if(mIsSet.compare_exchange_strong(expected, true) && test)                 // The mistake is here, we first do a read and on the next line a write. This creates a chance that another thread
     {                           // can call the same method, at the same time and also end up updating the state.
         mIsSet = true;
         mState = state;
     }
 }
 
-void errorFunctionBool(bool cond)
+void forErr(bool cond)
 {
-    if (!mIsSet)
+    for (int i = 0; i < mState; i++)
     {
-        mIsSet = cond;                      // Error - read-and-write instead of check-and-set
-    }
-}
-void ifElsePass(int state1, int state2)
-{
-    bool expected { false };
-    if (mIsSet.compare_exchange_strong(expected, true))
-    {
-        mState = state1;
-        if(mIsSet2) {
-            mIsSet2 = false;                // Error - read-and-write instead of check-and-set
+        if (i = 10)
+        {
+            mState = 15;
         }
-    }
-    else 
-    {
-        mState = state2;
+        else
+        {
+            mState = 5;
+        }
     }
 }
 
-void ifElseError(int state1, int state2)
+void forPass(bool cond)
 {
-    if (mIsSet)                 
+    bool expected { false };
+    for (int i = 0; mIsSet2; i++)
     {
-        mIsSet = false;         // Error - read-and-write instead of check-and-set
-        mState = state1;
+        if (i = 10)
+        {
+            mIsSet.compare_exchange_strong(expected, true);
+        }
+        else
+        {
+            mIsSet.compare_exchange_strong(expected, false);
+        }
     }
-    else
+}
+
+
+
+void ifElsePass(int state1, int state2)
+{
+    bool expected { false };
+    while(mIsSet.compare_exchange_strong(expected, true))
     {
-        mIsSet2 = true;          // Assuming we ONLY want to look for check-and-sets, this won't cause an error as its not in the condition.
-        mState = state2;
+        do {
+            mIsSet = false;
+            mIsSet2 = false;
+        }while (mIsSet2.compare_exchange_strong(expected, true));
     }
+}
+
+void doWhileErr(int state1, int state2)
+{
+    do {
+        mIsSet = test;
+        mState = 10;
+        while(mIsSet2)
+        {
+            if (mState = 15)
+            {
+                mIsSet2 = test;
+            }
+        }
+    } while(!mIsSet);
+    
 }
 
 private:
     bool test;
     std::atomic<bool> mIsSet;
     std::atomic<bool> mIsSet2;
+    std::atomic<int> mInt;
     int mState;
 };

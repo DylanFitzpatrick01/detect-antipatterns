@@ -23,11 +23,12 @@ MyClass()
 
 int getState()
 {
-    if(mIsSet)
+    bool expected { false };
+    if(mIsSet.compare_exchange_strong(expected, true))
     {
-        mIsSet.store(test);
+        return mState;
     }
-    while (mIsSet)          // Not a check and set, two different atomics
+    while (mIsSet2.compare_exchange_strong(expected, true))
     {
         mIsSet2 = false;
     }
@@ -42,16 +43,17 @@ void passFunction(int state)                                // CORRECT TEST-AND-
     {
         mState = state;
     }
-    if (mIsSet)
+    if (mIsSet.compare_exchange_strong(expected, true))
     {
-        mIsSet.store(test);                                 // Atomic to atomic writes are ok
+        mIsSet = mIsSet2;                                    // Atomic to atomic writes are ok
     }                                     
 }
 
 
 void errorFunction(int state)
 {
-    if(!mIsSet && test)                 // The mistake is here, we first do a read and on the next line a write. This creates a chance that another thread
+    bool expected { false };
+    if(mIsSet.compare_exchange_strong(expected, true) && test)                 // The mistake is here, we first do a read and on the next line a write. This creates a chance that another thread
     {                           // can call the same method, at the same time and also end up updating the state.
         mIsSet = true;
         mState = state;
@@ -60,9 +62,10 @@ void errorFunction(int state)
 
 void errorFunctionBool(bool cond)
 {
-    if (!mIsSet)
+    bool expected { false };
+    if (mIsSet2)                            // Different atomic, not technically a check-and-set
     {
-        mIsSet = cond;                      // Error - read-and-write instead of check-and-set
+        mIsSet = cond;
     }
 }
 void ifElsePass(int state1, int state2)
@@ -71,7 +74,7 @@ void ifElsePass(int state1, int state2)
     if (mIsSet.compare_exchange_strong(expected, true))
     {
         mState = state1;
-        if(mIsSet2) {
+        if(mIsSet2.compare_exchange_strong(expected, true)) {
             mIsSet2 = false;                // Error - read-and-write instead of check-and-set
         }
     }
@@ -83,7 +86,8 @@ void ifElsePass(int state1, int state2)
 
 void ifElseError(int state1, int state2)
 {
-    if (mIsSet)                 
+    bool expected { false };
+    if (mIsSet.compare_exchange_strong(expected, true))                 
     {
         mIsSet = false;         // Error - read-and-write instead of check-and-set
         mState = state1;
