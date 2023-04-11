@@ -25,7 +25,7 @@ int getState()
 {
     if(mIsSet)
     {
-        return mState;
+        mIsSet.store(test);
     }
     while (mIsSet)          // Not a check and set, two different atomics
     {
@@ -44,7 +44,7 @@ void passFunction(int state)                                // CORRECT TEST-AND-
     }
     if (mIsSet)
     {
-        mIsSet = mIsSet2;                                    // Atomic to atomic writes are ok
+        mIsSet.store(test);                                 // Atomic to atomic writes are ok
     }                                     
 }
 

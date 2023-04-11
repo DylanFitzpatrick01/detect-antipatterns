@@ -24,6 +24,8 @@ class Check(FormalCheckInterface):
   # If entered method tell it next return
 
   def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
+    if cursor.extent.start.line == 45:
+      print("h")
     # If we found a statement, add it to the list
     if cursor.kind in self.statement_kinds:
       self.statement_dict[ConditionBodyStatement(cursor)] = list()
@@ -65,56 +67,55 @@ class Check(FormalCheckInterface):
                 f"{self.possibleAtomicWrite[1].extent.end.line}]\n" +
                 f"We suggest you use {self.possibleAtomicWrite[1].displayname}.compare_exchange_strong(),\n" +
                 f"as this read and write is non-atomical.", "error")
+            if newAlert not in alerts:
+                  alerts.append(newAlert)
+                  self.possibleAtomicWrite = None
+            
             if "operator" in cursor.displayname:
+              if cursor.kind == clang.cindex.CursorKind.DECL_REF_EXPR and newAlert not in alerts:
+                alerts.append(newAlert)
+                self.possibleAtomicWrite = None
+
+            elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and ("fetch" in cursor.spelling or "exchange" in cursor.spelling or "store" in cursor.spelling):
+              if "atomic" in list(list(cursor.get_children())[0].get_children())[0].type.spelling:
+                if newAlert not in alerts:
+                  alerts.append(newAlert)
+                  self.possibleAtomicWrite = None
+            
+            elif cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR and "std::atomic" in cursor.type.spelling:
               if newAlert not in alerts:
                 alerts.append(newAlert)
                 self.possibleAtomicWrite = None
-            ## Check if cursor is a write using true/false
-            #if (cursor.kind == clang.cindex.CursorKind.CXX_BOOL_LITERAL_EXPR):
-            #  if newAlert not in alerts:
-            #    alerts.append(newAlert)
-#
-            ## Check if cursor is a write using other vars
-            #elif cursor.type.spelling in self.possibleAtomicWrite[1].type.spelling and (cursor.kind == clang.cindex.CursorKind.DECL_REF_EXPR or cursor.kind == clang.cindex.CursorKind.UNEXPOSED_EXPR):
-            #  if newAlert not in alerts:
-            #    alerts.append(newAlert)
-            ## TODO: Check if operator is always before the values written with?
-            #if not "operator" in cursor.displayname:
-            #  self.possibleAtomicWrite = None
+            
+            else:
+              self.possibleAtomicWrite = None
 
           # If this cursor is an atomic member reference
           if "std::atomic" in cursor.type.spelling and cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
             
             # If the next atomic is not correct,
             if (not self.nextAtomicIsCorrect):
-              # For every statement in our dictionary
-              for statement in list(self.statement_dict):
-                # If the statement's body isn't empty
-                if (statement.compound_stmt):
-                  # And the cursor is inside of the statement
-                  if cursor.extent.start.line >= statement.cursor.extent.start.line and cursor.extent.end.line <= statement.cursor.extent.end.line:
-                    
-                    # For each compound statement in the cursor
-                    for compound_stmt in statement.compound_stmt:
-                      # Check if the cursor is inside the compound statement (and thus in the body)
-                      if (compound_stmt.extent.end.line >= cursor.extent.end.line):
-                        
-                        # For each atomic condition in the statement
-                        for atomic_condition in self.statement_dict[statement]:
-                            # Check if the cursor references the same cursor as the atomic condition
-                            if atomic_condition.referenced.get_usr() == cursor.referenced.get_usr() and (atomic_condition != cursor):
-                              
-                              # Set to check for a possible atomic write on the subsequent cursors
-                              self.possibleAtomicWrite = (statement, cursor)
-                  
-                  # If the cursor is past the statement, remove the statement from the dictionary
-                  else:
-                    del self.statement_dict[statement]
+              self.checkConditions(cursor)
             
             # If the next atomic is correct,
             else:
               # Reset boolean for new cursors
               self.nextAtomicIsCorrect = False
+          
+          # cursor kind if statements are from unsafeAtomics.py, I do not take credit for them!
+          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "store" in cursor.spelling:
+            a = list(cursor.get_children())
+            b = list(a[0].get_children())
+            if "atomic" in list(list(cursor.get_children())[0].get_children())[0].referenced.type.spelling:
+              self.checkConditions(list(cursor.get_children())[0])
+          
+          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and ("fetch" in cursor.spelling or "exchange" in cursor.spelling):
+            if "atomic" in list(list(cursor.get_children())[0].get_children())[0].type.spelling:
+              self.checkConditions(list(list(cursor.get_children())[0].get_children())[0])
+          
+          elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "operator" in cursor.spelling:
+            if "atomic" in list(cursor.get_children())[0].type.spelling:
+              self.checkConditions(list(cursor.get_children())[0])
 
       # If cursor is not inside most recent statement
       else:
@@ -150,3 +151,26 @@ class Check(FormalCheckInterface):
 
     # If cursor isn't within most recent statement, return False
     return False
+  
+  def checkConditions(self, cursorToCheck):
+    # For every statement in our dictionary
+    for statement in list(self.statement_dict):
+      # If the statement's body isn't empty
+      if (statement.compound_stmt):
+        # And the cursor is inside of the statement
+        if cursorToCheck.extent.start.line >= statement.cursor.extent.start.line and cursorToCheck.extent.end.line <= statement.cursor.extent.end.line:
+          
+          # For each compound statement in the cursor
+          for compound_stmt in statement.compound_stmt:
+            # Check if the cursor is inside the compound statement (and thus in the body)
+            if (compound_stmt.extent.end.line >= cursorToCheck.extent.end.line):
+              
+              # For each atomic condition in the statement
+              for atomic_condition in self.statement_dict[statement]:
+                  # Check if the cursor references the same cursor as the atomic condition
+                  if atomic_condition.referenced.get_usr() == cursorToCheck.referenced.get_usr() and (atomic_condition != cursorToCheck):
+                    # Set to check for a possible atomic write on the subsequent cursors
+                    self.possibleAtomicWrite = (statement, cursorToCheck)
+        # If the cursor is past the statement, remove the statement from the dictionary
+        else:
+          del self.statement_dict[statement]
