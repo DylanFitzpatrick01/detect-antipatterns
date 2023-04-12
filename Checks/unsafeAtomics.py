@@ -112,7 +112,9 @@ class Check(FormalCheckInterface):
 					self.skipNext = False
 
 			if self.atomic is not None and self.atomicWrite:
+				print("checking: ", self.atomic.get_usr())
 				for val in self.affected[self.atomic.referenced.get_usr()]:
+					print("affected: ", val.get_usr(), " cursor: ", cursor.referenced.get_usr())
 					if val.get_usr() == cursor.referenced.get_usr():
 						newAlert = Alert(self.atomic.translation_unit, self.atomic.extent,
 														 "This appears to be the end of a non-atomic series of operations.\n" +
