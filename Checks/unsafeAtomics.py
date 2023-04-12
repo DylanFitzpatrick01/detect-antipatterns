@@ -21,7 +21,6 @@ class Check(FormalCheckInterface):
 
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
 		if cursor.referenced is not None and cursor.referenced.type is not None and "atomic" in cursor.referenced.type.spelling and cursor.referenced.get_usr() not in self.affected:
-			print("Found atomic:", cursor.referenced.get_usr())
 			self.affected[cursor.referenced.get_usr()] = list()
 
 		if cursor.kind == clang.cindex.CursorKind.VAR_DECL or cursor.kind == clang.cindex.CursorKind.FIELD_DECL:
@@ -36,8 +35,6 @@ class Check(FormalCheckInterface):
 		elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "operator" in cursor.spelling:
 			if "atomic" in list(cursor.get_children())[0].type.spelling:
 				self.atomicWrite = True
-
-				print("new atomic under: ", cursor.spelling, " it is: ", list(cursor.get_children())[0].spelling)
 				self.atomic = list(cursor.get_children())[0]
 
 				self.investigate_new(list(cursor.get_children())[0])
@@ -66,12 +63,8 @@ class Check(FormalCheckInterface):
 
 		# Some fetch type calls can both access and modify atomic values, it must be
 		# handled differently to reflect that.
-		elif cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR and ("fetch" in cursor.spelling or "exchange" in cursor.spelling):
-			print("Found exchange, type is: ", list(cursor.get_children())[0].type.spelling)
-			
+		elif cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR and ("fetch" in cursor.spelling or "exchange" in cursor.spelling):			
 			if "atomic" in list(cursor.get_children())[0].type.spelling or "Atomic" in list(cursor.get_children())[0].type.spelling:
-				print("new atomic  under ref: ", cursor.spelling, "it is: ", list(cursor.get_children())[0].spelling)
-
 				self.atomicWrite = True
 				self.atomic = list(cursor.get_children())[0]
 				self.skipNext = True
@@ -102,24 +95,19 @@ class Check(FormalCheckInterface):
 			if self.investagating is not None:
 				if "atomic" not in self.investagating.referenced.type.spelling: 
 					if "atomic" in cursor.referenced.type.spelling:
-						print(self.investagating.referenced.get_usr() + " is effected")
-
 						self.affected[cursor.referenced.get_usr()].append(self.investagating.referenced)
 						self.affectedSeen += 1
 				elif not (self.skipNext or self.isFetch):
 					for key in self.affected:
 						for val in self.affected[key]:
 							if cursor.referenced.get_usr() == val.get_usr():
-								print(self.investagating.referenced.get_usr() + " is effected")
 								val.append(self.investagating.referenced)
 								self.affectedSeen += 1
 				elif self.skipNext:
 					self.skipNext = False
 
 			if self.atomic is not None and self.atomicWrite:
-				print("checking: ", self.atomic.referenced.get_usr())
 				for val in self.affected[self.atomic.referenced.get_usr()]:
-					print("affected: ", val.get_usr(), " cursor: ", cursor.referenced.get_usr())
 					if val.get_usr() == cursor.referenced.get_usr():
 						newAlert = Alert(self.atomic.translation_unit, self.atomic.extent,
 														 "This appears to be the end of a non-atomic series of operations.\n" +
