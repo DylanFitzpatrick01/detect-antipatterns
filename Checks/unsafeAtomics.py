@@ -21,6 +21,7 @@ class Check(FormalCheckInterface):
 
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
 		if cursor.referenced is not None and cursor.referenced.type is not None and "atomic" in cursor.referenced.type.spelling and cursor.referenced.get_usr() not in self.affected:
+			print("Found atomic:", cursor.referenced.get_usr())
 			self.affected[cursor.referenced.get_usr()] = list()
 
 		if cursor.kind == clang.cindex.CursorKind.VAR_DECL or cursor.kind == clang.cindex.CursorKind.FIELD_DECL:
@@ -96,12 +97,15 @@ class Check(FormalCheckInterface):
 			if self.investagating is not None:
 				if "atomic" not in self.investagating.referenced.type.spelling: 
 					if "atomic" in cursor.referenced.type.spelling:
+						print(cursor.referenced.get_usr() + " is effected")
+
 						self.affected[cursor.referenced.get_usr()].append(self.investagating.referenced)
 						self.affectedSeen += 1
 				elif not (self.skipNext or self.isFetch):
 					for key in self.affected:
 						for val in self.affected[key]:
 							if cursor.referenced.get_usr() == val.get_usr():
+								print(cursor.referenced.get_usr() + " is effected")
 								val.append(self.investagating.referenced)
 								self.affectedSeen += 1
 				elif self.skipNext:
