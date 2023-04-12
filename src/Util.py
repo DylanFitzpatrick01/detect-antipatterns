@@ -82,6 +82,7 @@ class Lock_Guard:
 
 		copy.cursor = self.cursor
 		copy.mutex = self.mutex
+		copy.mutexName = self.mutexName
 		copy.file = self.file
 		copy.line = self.line
 		copy.scopeLevel = self.scopeLevel
