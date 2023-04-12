@@ -85,7 +85,7 @@ class Check(FormalCheckInterface):
 		# This is some bullshit, some binary operators have an "operator type"
 		# cursor under them, this screws stuff up. To fix this no variables with
 		# operator in their name will be checked.
-		elif cursor.kind == clang.cindex.CursorKind.BINARY_OPERATOR and "operator" not in list(cursor.get_children())[0].spelling:
+		elif cursor.kind == clang.cindex.CursorKind.BINARY_OPERATOR and "operator=" not in list(cursor.get_children())[0].spelling:
 			if list(cursor.get_children())[0].spelling != '':
 				self.atomicWrite = False
 				self.investigate_new(list(cursor.get_children())[0])
@@ -115,7 +115,7 @@ class Check(FormalCheckInterface):
 					self.skipNext = False
 
 			if self.atomic is not None and self.atomicWrite:
-				print("checking: ", self.atomic.get_usr())
+				print("checking: ", self.atomic.referenced.get_usr())
 				for val in self.affected[self.atomic.referenced.get_usr()]:
 					print("affected: ", val.get_usr(), " cursor: ", cursor.referenced.get_usr())
 					if val.get_usr() == cursor.referenced.get_usr():
