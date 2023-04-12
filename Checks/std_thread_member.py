@@ -18,8 +18,13 @@ class Check(FormalCheckInterface):
 					destructor = cursorChild
 
 			if destructor is not None:
+				#print("\nThreads Detected")
+				for thread in threads:
+					print(str(thread.displayname))
 				traverseDestructor(destructor)
+				#print("\nThreads not joined or detached in Destructor")
 			for thread in threads:
+				#print(str(thread.displayname))
 				newAlert = Alert(thread.translation_unit, thread.extent, "Are you sure you want to have a thread called " + str(thread.displayname) +" without joining or detaching it in destructor?\n")
 				destructor = None
 
@@ -35,9 +40,11 @@ def traverseDestructor(cursor: clang.cindex.Cursor):
 		if str(cursor.translation_unit.spelling) == str(c.location.file):
 
 			if str(c.displayname) == "join":
+				#print("join detected")
 				traversejoinOrDetach(c)
 
 			if str(c.displayname) == "detach":
+				#print("detach detected")
 				traversejoinOrDetach(c)
 
 		traverseDestructor(c)  # Recursively traverse the tree.
