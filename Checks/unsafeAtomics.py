@@ -37,6 +37,7 @@ class Check(FormalCheckInterface):
 			if "atomic" in list(cursor.get_children())[0].type.spelling:
 				self.atomicWrite = True
 
+				print("new atomic under: ", cursor.spelling, " it is: ", list(cursor.get_children())[0].spelling)
 				self.atomic = list(cursor.get_children())[0]
 
 				self.investigate_new(list(cursor.get_children())[0])
