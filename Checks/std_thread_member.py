@@ -57,7 +57,7 @@ def traverseDestructor(cursor: clang.cindex.Cursor):
         traverseDestructor(c)  # Recursively traverse the tree.
 
 
-# Iterate the join/detach cursor to find the name of the thread
+# Iterate the join/detach cursor's children to find the name of the thread
 def traversejoinOrDetach(cursor: clang.cindex.Cursor):
     c: clang.cindex.Cursor
     for c in cursor.get_children():
