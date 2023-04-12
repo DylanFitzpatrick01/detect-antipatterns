@@ -20,11 +20,11 @@ class Check(FormalCheckInterface):
 	# If entered method tell it next return
 
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
-		if cursor.referenced is not None and cursor.referenced.type is not None and "std::atomic" in cursor.referenced.type.spelling and cursor.referenced.get_usr() not in self.affected:
+		if cursor.referenced is not None and cursor.referenced.type is not None and "atomic" in cursor.referenced.type.spelling and cursor.referenced.get_usr() not in self.affected:
 			self.affected[cursor.referenced.get_usr()] = list()
 
 		if cursor.kind == clang.cindex.CursorKind.VAR_DECL or cursor.kind == clang.cindex.CursorKind.FIELD_DECL:
-			if "std::atomic" not in cursor.type.spelling:
+			if "atomic" not in cursor.type.spelling:
 				self.atomicWrite = False
 				self.investigate_new(cursor)
 				self.skipNext = False
@@ -94,8 +94,8 @@ class Check(FormalCheckInterface):
 
 		elif cursor.kind == clang.cindex.CursorKind.DECL_REF_EXPR or cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
 			if self.investagating is not None:
-				if "std::atomic" not in self.investagating.referenced.type.spelling: 
-					if "std::atomic" in cursor.referenced.type.spelling:
+				if "atomic" not in self.investagating.referenced.type.spelling: 
+					if "atomic" in cursor.referenced.type.spelling:
 						self.affected[cursor.referenced.get_usr()].append(self.investagating.referenced)
 						self.affectedSeen += 1
 				elif not (self.skipNext or self.isFetch):
