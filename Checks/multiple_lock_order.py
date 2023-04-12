@@ -37,7 +37,10 @@ class Check(FormalCheckInterface):
                 if (self.heldLocks.index(mutex) >= highestIndex):
                     highestIndex = self.heldLocks.index(mutex)
                 else:
-                    alerts.append(Alert(cursor.translation_unit, cursor.extent, "Error!: mutex " + str(mutex) + " is in the incorrect order!"))
+                    newAlert = Alert(cursor.translation_unit, cursor.extent, "Error!: mutex " + str(mutex) + " is in the incorrect order!")
+
+                    if newAlert not in alerts:
+                        alerts.append(newAlert)
             else:
                 self.heldLocks.append(mutex)
 
