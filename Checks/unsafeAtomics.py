@@ -68,6 +68,8 @@ class Check(FormalCheckInterface):
 		# handled differently to reflect that.
 		elif cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR and ("fetch" in cursor.spelling or "exchange" in cursor.spelling):
 			if "atomic" in list(cursor.get_children())[0].type.spelling:
+				print("new atomic  under ref: ", cursor.spelling, "it is: ", list(cursor.get_children())[0].spelling)
+
 				self.atomicWrite = True
 				self.atomic = list(cursor.get_children())[0]
 				self.skipNext = True
