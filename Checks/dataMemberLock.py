@@ -1,19 +1,19 @@
 import clang.cindex
 from typing import List
 from alerts import Alert
+from formalCheckInterface import FormalCheckInterface
 
 """
 TODO Detect issues with data member that is accessed under a lock, but is also public so can be read/written directly. 
 """
 
-class Check():
+class Check(FormalCheckInterface):
 	def __init__(self):
 		self.prevParents = list()
 		# Only alert once per member!
 		self.prevAlerts = list()
 				
-	def analyse_cursor(self, cursor: clang.cindex.Cursor) -> List[Alert]:
-		alert_list = list()
+	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
 		# I think that this might detect the anti-pattern
 		# No testing has been done.
 		if cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
@@ -26,11 +26,12 @@ class Check():
 					if isScopeLocked(c, cursor.location):
 						if cursor.spelling not in self.prevAlerts:
 							self.prevAlerts.append(cursor.spelling)
-							alert_list.append(Alert(cursor.translation_unit, cursor.location, "Warning: " + cursor.spelling + " is accessed"
-                	                         + " under a lock, while being public!", severity="warning"))
-					
+							newAlert = Alert(cursor.translation_unit, cursor.location, "Warning: " + cursor.spelling + " is accessed"
+																					 + " under a lock, while being public!", severity="warning")
+							if newAlert not in alerts:
+								alerts.append(newAlert)
+
 		self.prevParents.append(cursor)
-		return alert_list
 	
 	
 
