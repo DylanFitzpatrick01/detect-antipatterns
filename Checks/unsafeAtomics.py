@@ -97,7 +97,7 @@ class Check(FormalCheckInterface):
 			if self.investagating is not None:
 				if "atomic" not in self.investagating.referenced.type.spelling: 
 					if "atomic" in cursor.referenced.type.spelling:
-						print(cursor.referenced.get_usr() + " is effected")
+						print(self.investagating.referenced.get_usr() + " is effected")
 
 						self.affected[cursor.referenced.get_usr()].append(self.investagating.referenced)
 						self.affectedSeen += 1
@@ -105,7 +105,7 @@ class Check(FormalCheckInterface):
 					for key in self.affected:
 						for val in self.affected[key]:
 							if cursor.referenced.get_usr() == val.get_usr():
-								print(cursor.referenced.get_usr() + " is effected")
+								print(self.investagating.referenced.get_usr() + " is effected")
 								val.append(self.investagating.referenced)
 								self.affectedSeen += 1
 				elif self.skipNext:
