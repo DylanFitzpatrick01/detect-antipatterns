@@ -43,5 +43,3 @@ class Check(FormalCheckInterface):
                         alerts.append(newAlert)
             else:
                 self.heldLocks.append(mutex)
-
-        return alerts

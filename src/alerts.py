@@ -36,8 +36,8 @@ class Alert:
 		if type(self) != type(__o):
 			return False
 		
-		if self.location != __o.location:
-			return False
+		# if self.location != __o.location:
+		# 	return False
 		
 		if self.message != __o.message:
 			return False
