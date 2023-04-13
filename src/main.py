@@ -33,7 +33,7 @@ def main():
 
         # Traverse the AST, run each check on every node,
         # and collect any alerts raised by each check.
-        alerts.extend(traverse(tu.cursor, check_list))
+        traverse(tu.cursor, check_list, alerts, list())
 
     # Complete the progress bar.
     progress_bar(1,1,40,suffix=' of files analysed')
