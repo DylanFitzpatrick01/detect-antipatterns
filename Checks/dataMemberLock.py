@@ -17,22 +17,23 @@ class Check(FormalCheckInterface):
 		# I think that this might detect the anti-pattern
 		# No testing has been done.
 		if cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
-			if cursor.referenced.access_specifier == clang.cindex.AccessSpecifier.PUBLIC:
-				# Double check that referenced isn't a function.. FIELD_DECL
-				if cursor.referenced.kind == clang.cindex.CursorKind.FIELD_DECL:
-				
-					# Mutex's are allowed to be public and naturally get accessed under a lock... Exclude them
-					if cursor.type.spelling != "std::mutex" and cursor.type.spelling != "mutex":
-						# Get base cursor of where this cursor is location.. go up
-						c = findParent(self, cursor)
+			if cursor.referenced is not None:
+				if cursor.referenced.access_specifier == clang.cindex.AccessSpecifier.PUBLIC:
+					# Double check that referenced isn't a function.. FIELD_DECL
+					if cursor.referenced.kind == clang.cindex.CursorKind.FIELD_DECL:
+					
+						# Mutex's are allowed to be public and naturally get accessed under a lock... Exclude them
+						if cursor.type.spelling != "std::mutex" and cursor.type.spelling != "mutex":
+							# Get base cursor of where this cursor is location.. go up
+							c = findParent(self, cursor)
 
-						if isScopeLocked(c, cursor.location):
-							if cursor.spelling not in self.prevAlerts:
-								self.prevAlerts.append(cursor.spelling)
-								newAlert = Alert(cursor.translation_unit, cursor.location, "Warning: " + cursor.spelling + " is accessed"
-																						 + " under a lock, while being public!", severity="warning")
-								if newAlert not in alerts:
-									alerts.append(newAlert)
+							if isScopeLocked(c, cursor.location):
+								if cursor.spelling not in self.prevAlerts:
+									self.prevAlerts.append(cursor.spelling)
+									newAlert = Alert(cursor.translation_unit, cursor.location, "Warning: " + cursor.spelling + " is accessed"
+																							 + " under a lock, while being public!", severity="warning")
+									if newAlert not in alerts:
+										alerts.append(newAlert)
 
 		self.prevParents.append(cursor)
 	
