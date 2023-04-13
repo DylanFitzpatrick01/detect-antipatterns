@@ -21,15 +21,16 @@ class Check(FormalCheckInterface):
 			joinableDetected = 0
 
 			for node in  cursor.translation_unit.cursor.walk_preorder():
-				if node.kind == clang.cindex.CursorKind.CALL_EXPR and node.spelling == "join" and node.type.spelling == "void": 
-					joinDetected += 1
-					#print("Found std::thread::join() function call at line {0}".format(node.location.line))
-				elif (node.kind == clang.cindex.CursorKind.CALL_EXPR and node.spelling == "joinable" and node.type.spelling == "bool"):
-					joinableDetected += 1
-					#print("Found std::thread::joinable() function call at line {0}".format(node.location.line))
+				if str(node.translation_unit.spelling) == str(node.location.file):
+					if node.kind == clang.cindex.CursorKind.CALL_EXPR and node.spelling == "join" and node.type.spelling == "void": 
+						joinDetected += 1
+						print("Found std::thread::join() function call at line {0}".format(node.location.line))
+					elif (node.kind == clang.cindex.CursorKind.CALL_EXPR and node.spelling == "joinable" and node.type.spelling == "bool"):
+						joinableDetected += 1
+						print("Found std::thread::joinable() function call at line {0}".format(node.location.line))
 
 
-			if joinDetected != joinableDetected:
+			if joinDetected > joinableDetected:
 				newAlert = Alert(cursor.translation_unit, cursor.extent,"Not all join functions are checked if thread is joinable")
 				if newAlert not in alerts:
 					alerts.append(newAlert)
