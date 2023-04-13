@@ -7,7 +7,7 @@ std::mutex d;
 
 void test()
 {
-
+  std::lock_guard<std::mutex> lock(d);
 }
 
 int main()
