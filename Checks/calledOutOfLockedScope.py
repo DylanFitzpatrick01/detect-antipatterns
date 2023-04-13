@@ -19,7 +19,7 @@ class Check(FormalCheckInterface):
 						self.locks.remove(lock)
 			elif cursor.spelling == "lock_guard":
 				self.lock_guards.append(Lock_Guard(cursor, self.scopeLevel))
-			elif self.locks or self.lock_guards:
+			elif (self.locks or self.lock_guards) and cursor.spelling != "":
 				# If there is a call that is not a .lock(), .unlock() or lock_guard and
 				# there are still held mutexes (the lists not being empty) raise an
 				# error and inform of which call was made and which mutex/es are locked.
