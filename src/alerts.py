@@ -10,28 +10,40 @@ from colour import term_colour
 #
 class Alert:
 
-    # Constructor!
-    def __init__(self,
-                 tu: TranslationUnit,
-                 location: Union[tuple, SourceLocation, SourceRange],
-                 message: str,
-                 severity: str="error") -> None:
+	# Constructor!
+	def __init__(self,
+				 tu: TranslationUnit,
+				 location: Union[tuple, SourceLocation, SourceRange],
+				 message: str,
+				 severity: str="error") -> None:
 
-        # Initialise the values of the Alert.
-        self.tu = tu
-        self.location = location
-        self.message = message
-        self.severity = severity
+		# Initialise the values of the Alert.
+		self.tu = tu
+		self.location = location
+		self.message = message
+		self.severity = severity
 
-        # If the location is a tuple or SourceLocation, turn it into a SourceRange.
-        if (type(location) == tuple):
-            start = SourceLocation.from_position(tu, tu.get_file(tu.spelling), location[0], location[1])
-            end = SourceLocation.from_position(tu, tu.get_file(tu.spelling), location[0], -1)
-            self.location = SourceRange.from_locations(start, end)
-        if (type(location) == SourceLocation):
-            end = SourceLocation.from_position(tu, tu.get_file(tu.spelling), location.line, -1)
-            self.location = SourceRange.from_locations(location, end)
+		# If the location is a tuple or SourceLocation, turn it into a SourceRange.
+		if (type(location) == tuple):
+			start = SourceLocation.from_position(tu, tu.get_file(tu.spelling), location[0], location[1])
+			end = SourceLocation.from_position(tu, tu.get_file(tu.spelling), location[0], -1)
+			self.location = SourceRange.from_locations(start, end)
+		if (type(location) == SourceLocation):
+			end = SourceLocation.from_position(tu, tu.get_file(tu.spelling), location.line, -1)
+			self.location = SourceRange.from_locations(location, end)
 
+
+	def __eq__(self, __o: object) -> bool:
+		if type(self) != type(__o):
+			return False
+		
+		# if self.location != __o.location:
+		# 	return False
+		
+		if self.message != __o.message:
+			return False
+		
+		return True
 
     # Displays our Alert (Fancily)
     def display(self, verbosity_count):
@@ -40,8 +52,8 @@ class Alert:
         colours = { "error"      : "light red",
                     "warning"    : "yellow", }
 
-        # Gets the C++ file, removes comments, then saves it  as an array, with one entry per line.
-        lines = remove_comments("".join(open(self.tu.spelling).readlines()[0:])).splitlines()
+		# Gets the C++ file, removes comments, then saves it  as an array, with one entry per line.
+		lines = remove_comments("".join(open(self.tu.spelling).readlines()[0:])).splitlines()
 
         # Fancy
         if (verbosity_count >= 1):
@@ -76,7 +88,7 @@ class Alert:
 # Inspired by https://stackoverflow.com/questions/241327/remove-c-and-c-comments-using-python
 # Removes C-Style comments in a multi-line string.
 def remove_comments(text):
-    return re.sub(
-        re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
-        re.DOTALL | re.MULTILINE), "", text
-    )
+	return re.sub(
+		re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
+		re.DOTALL | re.MULTILINE), "", text
+	)

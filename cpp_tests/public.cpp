@@ -42,11 +42,15 @@ protected:
 private:
     std::string mState; //not a mutex
     std::mutex mDataAccess8;  //private
+
+    std::string mState;
 };
 
 int main()
 {
-    auto instance = MyClass("test123");
+    //auto instance = MyClass("test123");
+
+    MyClass instance("test123");
 
     std::cout << instance.getState() << "\n";                  // Good!
 

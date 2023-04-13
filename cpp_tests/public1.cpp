@@ -45,7 +45,8 @@ private:
 
 int main()
 {
-    auto instance = MyClass("test123");
+    //auto instance = MyClass("test123");
+    MyClass instance("test123");
 
     std::cout << instance.getState() << "\n";                    // Good!
 
