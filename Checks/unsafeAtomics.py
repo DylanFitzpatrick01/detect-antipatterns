@@ -33,9 +33,6 @@ class Check(FormalCheckInterface):
 
 				self.isFetch = False
 
-				print(len(list(cursor.get_children())))
-				children = list(cursor.get_children())
-
 				if len(list(cursor.get_children())) > 0 and list(cursor.get_children())[0].kind == clang.cindex.CursorKind.CALL_EXPR:
 					self.hasReturn = True
 
@@ -120,7 +117,7 @@ class Check(FormalCheckInterface):
 				elif not (self.skipNext or self.isFetch):
 					for key in self.affected:
 						for val in self.affected[key]:
-							if cursor.referenced.get_usr() == val.get_usr():
+							if cursor.referenced.get_usr() == val.get_usr() and self.investagating.referenced not in self.affected[key]:
 								self.affected[key].append(self.investagating.referenced)
 								self.affectedSeen += 1
 				elif self.skipNext:
