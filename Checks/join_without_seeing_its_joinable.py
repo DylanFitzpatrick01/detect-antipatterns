@@ -30,7 +30,7 @@ class Check(FormalCheckInterface):
 						print("Found std::thread::joinable() function call at line {0}".format(node.location.line))
 
 
-			if joinDetected != joinableDetected:
+			if joinDetected > joinableDetected:
 				newAlert = Alert(cursor.translation_unit, cursor.extent,"Not all join functions are checked if thread is joinable")
 				if newAlert not in alerts:
 					alerts.append(newAlert)
