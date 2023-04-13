@@ -17,7 +17,7 @@ class Check():
 		# I think that this might detect the anti-pattern
 		# No testing has been done.
 		if cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
-			if cursor.referenced.access_specifier == clang.cindex.AccessSpecifier.PUBLIC:
+			if cursor.referenced and cursor.referenced.access_specifier == clang.cindex.AccessSpecifier.PUBLIC:
 				# Mutex's are allowed to be public and naturally get accessed under a lock... Exclude them
 				if cursor.type.spelling != "std::mutex" and cursor.type.spelling != "mutex":
 					# Get base cursor of where this cursor is location.. go up
