@@ -16,6 +16,8 @@ class Check(FormalCheckInterface):
 		self.atomicWrite = False
 		self.affectedSeen = 0
 
+		self.hasReturn = False
+
 	# When a var will be changed, add it to the stack. When moved on, remove it
 	# If entered method tell it next return
 
@@ -31,8 +33,14 @@ class Check(FormalCheckInterface):
 
 				self.isFetch = False
 
+				if len(list(cursor.get_children())) > 0 and list(cursor.get_children())[0].kind == clang.cindex.CursorKind.CALL_EXPR:
+					self.hasReturn = True
+
 		# atomic types such as atomic int can use operators such as &= and +=
 		elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and "operator" in cursor.spelling:
+			# if "==" not in cursor.spelling and list(cursor.get_children())[1].type == clang.cindex.CursorKind.CALL_EXPR:
+			# 	self.hasReturn = True
+
 			if "atomic" in list(cursor.get_children())[0].type.spelling:
 				self.atomicWrite = True
 				self.atomic = list(cursor.get_children())[0]
@@ -54,6 +62,12 @@ class Check(FormalCheckInterface):
 		# Some fetch type calls can both access and modify atomic values, it must be
 		# handled differently to reflect that.
 		elif cursor.kind == clang.cindex.CursorKind.CALL_EXPR and ("fetch" in cursor.spelling or "exchange" in cursor.spelling):
+			if not self.hasReturn:
+				self.investagating = None
+				self.affectedSeen = 0
+			else:
+				self.hasReturn = False
+
 			if "atomic" in list(list(cursor.get_children())[0].get_children())[0].type.spelling:
 				self.atomicWrite = True
 				self.atomic = list(list(cursor.get_children())[0].get_children())[0]
@@ -81,6 +95,9 @@ class Check(FormalCheckInterface):
 		# cursor under them, this screws stuff up. To fix this no variables with
 		# operator in their name will be checked.
 		elif cursor.kind == clang.cindex.CursorKind.BINARY_OPERATOR and "operator=" not in list(cursor.get_children())[0].spelling:
+			if "==" not in cursor.spelling and list(cursor.get_children())[1].type == clang.cindex.CursorKind.CALL_EXPR:
+				self.hasReturn = True
+
 			if list(cursor.get_children())[0].spelling != '':
 				self.atomicWrite = False
 				self.investigate_new(list(cursor.get_children())[0])
@@ -100,8 +117,8 @@ class Check(FormalCheckInterface):
 				elif not (self.skipNext or self.isFetch):
 					for key in self.affected:
 						for val in self.affected[key]:
-							if cursor.referenced.get_usr() == val.get_usr():
-								val.append(self.investagating.referenced)
+							if cursor.referenced.get_usr() == val.get_usr() and self.investagating.referenced not in self.affected[key]:
+								self.affected[key].append(self.investagating.referenced)
 								self.affectedSeen += 1
 				elif self.skipNext:
 					self.skipNext = False
