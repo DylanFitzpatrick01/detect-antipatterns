@@ -9,17 +9,17 @@ void test()
 {
     a.lock();
 
-    while(true)
-    {
-        b.lock();
-    }
+    // while(true)
+    // {
+    //     b.lock();
+    // }
 }
 
 int main()
 {
-    while(true)
-    {
-        test();
-    }
+    // while(true)
+    // {
+    //     test();
+    // }
     return 0;
 }
