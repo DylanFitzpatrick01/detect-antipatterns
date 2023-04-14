@@ -8,6 +8,8 @@ class Check(FormalCheckInterface):
 		self.locks = list()
 		self.scopeLevel = 0
 
+		self.isReturn = False
+
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
 		if cursor.kind == clang.cindex.CursorKind.CALL_EXPR:
 			if cursor.spelling == "lock":
@@ -19,7 +21,7 @@ class Check(FormalCheckInterface):
 						self.locks.remove(lock)
 			elif cursor.spelling == "lock_guard":
 				self.lock_guards.append(Lock_Guard(cursor, self.scopeLevel))
-			elif (self.locks or self.lock_guards) and cursor.spelling != "":
+			elif (self.locks or self.lock_guards) and cursor.spelling != "" and cursor.kind != clang.cindex.CursorKind.CONSTRUCTOR and not self.isReturn:
 				# If there is a call that is not a .lock(), .unlock() or lock_guard and
 				# there are still held mutexes (the lists not being empty) raise an
 				# error and inform of which call was made and which mutex/es are locked.
@@ -34,6 +36,12 @@ class Check(FormalCheckInterface):
 
 				if newAlert not in alerts:
 					alerts.append(newAlert)
+		
+		# If we are returning from the statement better to not check
+		if cursor.kind == clang.cindex.CursorKind.RETURN_STMT:
+			self.isReturn = True
+		else:
+			self.isReturn = False
 
 	def __eq__(self, __o: object) -> bool:
 		if type(self) != type(__o):
