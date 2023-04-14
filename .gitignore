@@ -2,6 +2,6 @@
 .vs
 build
 dist
-main.spec
+DANCE.spec
 __pycache__/
 .pyc

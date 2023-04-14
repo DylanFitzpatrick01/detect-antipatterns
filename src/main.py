@@ -26,7 +26,7 @@ def main():
 
         # Generate the file's translation unit / Abstract Syntax Tree.
         idx = clang.cindex.Index.create()
-        tu = idx.parse(file)
+        tu = idx.parse(file, args=args.clang_args)
 
         # If anything went wrong with the translation unit, let us know.        
         diagnostics.extend([diag for diag in tu.diagnostics])
