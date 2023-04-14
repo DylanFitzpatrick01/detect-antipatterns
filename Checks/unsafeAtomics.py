@@ -22,11 +22,11 @@ class Check(FormalCheckInterface):
 	# If entered method tell it next return
 
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
-		if cursor.referenced is not None and cursor.referenced.type is not None and "atomic" in cursor.referenced.type.spelling and cursor.referenced.get_usr() not in self.affected:
+		if cursor.referenced is not None and cursor.referenced.type is not None and "std::atomic" in cursor.referenced.type.spelling and cursor.referenced.get_usr() not in self.affected:
 			self.affected[cursor.referenced.get_usr()] = list()
 
 		if cursor.kind == clang.cindex.CursorKind.VAR_DECL or cursor.kind == clang.cindex.CursorKind.FIELD_DECL:
-			if "atomic" not in cursor.type.spelling:
+			if "std::atomic" not in cursor.type.spelling:
 				self.atomicWrite = False
 				self.investigate_new(cursor)
 				self.skipNext = False
@@ -41,7 +41,7 @@ class Check(FormalCheckInterface):
 			# if "==" not in cursor.spelling and list(cursor.get_children())[1].type == clang.cindex.CursorKind.CALL_EXPR:
 			# 	self.hasReturn = True
 
-			if "atomic" in list(cursor.get_children())[0].type.spelling:
+			if "std::atomic" in list(cursor.get_children())[0].type.spelling:
 				self.atomicWrite = True
 				self.atomic = list(cursor.get_children())[0]
 
