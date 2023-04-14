@@ -36,9 +36,8 @@ class FormalCheckInterface(metaclass=abc.ABCMeta):
 		pass
 
 	# All Checks should implement the "analyse_cursor()" method.
-	@abc.abstractmethod
 	def analyse_cursor(self, cursor: clang.cindex.Cursor, alerts):
-		raise NotImplementedError
+		pass
 
 	def __eq__(self, __o: object) -> bool:
 		return type(self) == type(__o)
