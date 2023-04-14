@@ -24,10 +24,10 @@ class Check(FormalCheckInterface):
 				if str(node.translation_unit.spelling) == str(node.location.file):
 					if node.kind == clang.cindex.CursorKind.CALL_EXPR and node.spelling == "join" and node.type.spelling == "void": 
 						joinDetected += 1
-						print("Found std::thread::join() function call at line {0}".format(node.location.line))
+						#print("Found std::thread::join() function call at line {0}".format(node.location.line))
 					elif (node.kind == clang.cindex.CursorKind.CALL_EXPR and node.spelling == "joinable" and node.type.spelling == "bool"):
 						joinableDetected += 1
-						print("Found std::thread::joinable() function call at line {0}".format(node.location.line))
+						#print("Found std::thread::joinable() function call at line {0}".format(node.location.line))
 
 
 			if joinDetected > joinableDetected:
