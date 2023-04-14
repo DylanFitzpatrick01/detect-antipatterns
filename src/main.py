@@ -19,7 +19,7 @@ def main():
     alerts: List[Alert] = list()
     diagnostics: List[clang.cindex.Diagnostic] = list()
 
-	# Start the progress bar.
+    # Start the progress bar.
     progress_bar(0,1,40,suffix=' of files analysed')
 
     # Run every check on every cursor of every file.
@@ -27,9 +27,18 @@ def main():
         # Progress bar for terminals.
         progress_bar(index,len(args.locations),40,suffix=' of files analysed')
 
-        # Generate the file's translation unit / Abstract Syntax Tree.
-        idx = clang.cindex.Index.create()
-        tu = idx.parse(file, args=args.clang_args)
+        try:
+            # Generate the file's translation unit / Abstract Syntax Tree.
+            idx = clang.cindex.Index.create()
+            tu = idx.parse(file, args=args.clang_args)
+        except clang.cindex.LibclangError as err:
+            print("\n\nLibclang Error Found:\n")
+            term_colour("light red")
+            print(err)
+            term_colour("native")
+            print("\nTo get DANCE to pass a location into Config.set_library_path(),\n"
+                  "use the --libclang_dir option, or pass args directly to the\n"
+				  "Clang compiler with --clang_args\n")
 
         # If anything went wrong with the translation unit, let us know.        
         diagnostics.extend([diag for diag in tu.diagnostics])
