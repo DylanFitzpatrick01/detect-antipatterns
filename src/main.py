@@ -19,6 +19,9 @@ def main():
     alerts: List[Alert] = list()
     diagnostics: List[clang.cindex.Diagnostic] = list()
 
+	# Start the progress bar.
+    progress_bar(0,1,40,suffix=' of files analysed')
+
     # Run every check on every cursor of every file.
     for index, file in enumerate(args.locations):
         # Progress bar for terminals.
@@ -325,7 +328,7 @@ def init_argparse() -> argparse.ArgumentParser:
 
     # Setting up the argument parser.
     parser = argparse.ArgumentParser(
-        description='Detects common C++ concurrency anti-patterns and malpractices pre-compile.',
+        description='Detecting ANtipatterns in a C++ Environment',
         epilog='The default ouput is designed for log files; to be picked up by another program, NOT '
                'TO BE READ BY REAL PEOPLE. Verbosity  (-v) is recommended for humans.'
     )
