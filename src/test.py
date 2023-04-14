@@ -285,11 +285,11 @@ def run_check_on_file(check_path: str, file_path: str = None) -> List[Alert]:
 	# Get our check filename, so we can import the check!
 	check_filename = os.path.basename(check_path)
 
-    # Make sure all of our files exist!
-    if not os.path.isfile(abs_file_path):
-        raise FileNotFoundError(f"\nFILE PATH '{file_path}' DOES NOT EXIST")
-    if not os.path.isfile(abs_check_path):
-        raise FileNotFoundError(f"\nCHECK PATH '{check_path}' DOES NOT EXIST")
+	# Make sure all of our files exist!
+	if not os.path.isfile(abs_file_path):
+		raise FileNotFoundError(f"\nFILE PATH '{file_path}' DOES NOT EXIST")
+	if not os.path.isfile(abs_check_path):
+		raise FileNotFoundError(f"\nCHECK PATH '{check_path}' DOES NOT EXIST")
 
 	# Import the check.
 	check_list: List[FormalCheckInterface] = list()
